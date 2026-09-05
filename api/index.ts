@@ -138,7 +138,7 @@ let tickets: Ticket[] = [
     id: 't-open-45', name: 'INGRESSO OPEN', category: 'OPEN',
     price: 45, originalPrice: 65, batch: '1º LOTE', available: 200, total: 200,
     features: ['Open Bar das 21:00 às 00:00'],
-    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   }
 ];
@@ -285,7 +285,7 @@ app.get('/api/event', (_req: Request, res: Response) => {
     dressCodeRule: 'Traje a rigor sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
     highlights: [
       "3 DJ's que serão revelados",
-      "Bebidas: Gin, Vodka, Energético, Caipirinha & Canelinha"
+      "Bebidas: Gin, Vodka, Energético, Caipirinha, Canelinha & ???"
     ]
   });
 });

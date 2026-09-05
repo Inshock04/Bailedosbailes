@@ -23,7 +23,7 @@ const DEFAULT_TIERS: TicketTier[] = [
     features: [
       'Open Bar das 21:00 às 00:00'
     ],
-    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   }
 ];
@@ -151,8 +151,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
             </div>
 
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'].map((drink, i) => (
-                <span key={i} className="bg-[#2e1065] text-[#e9d5ff] text-xs px-2.5 py-1 border border-[#6b21a8] font-mono">
+              {['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'].map((drink, i) => (
+                <span
+                  key={i}
+                  className={`text-xs px-2.5 py-1 border font-mono ${
+                    drink === '???'
+                      ? 'bg-[#581c87] text-[#fef08a] border-[#eab308] font-pixel text-[10px] font-bold shadow-[0_0_10px_rgba(234,179,8,0.4)]'
+                      : 'bg-[#2e1065] text-[#e9d5ff] border-[#6b21a8]'
+                  }`}
+                >
                   ✓ {drink}
                 </span>
               ))}

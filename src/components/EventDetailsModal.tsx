@@ -81,7 +81,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                   Três DJs comandando a pista com uma seleção de sons para manter a festa em alta.
                 </p>
                 <div className="text-xs text-[#86efac] font-bold pt-1">
-                  Open das 21:00 às 00:00. (Gin, Vodka, Energético, Caipirinha & Canelinha)
+                  Open das 21:00 às 00:00. (Gin, Vodka, Energético, Caipirinha, Canelinha & ???)
                 </div>
               </div>
 
