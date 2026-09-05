@@ -171,8 +171,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         {/* Footer / CTA */}
         <div className="mt-5 pt-3 border-t-2 border-[#5c3e06] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
-            <span className="font-pixel text-[10px] text-[#fbbf24] block">INGRESSO OPEN</span>
-            <span className="font-pixel text-base text-[#22c55e] font-bold">R$ 50,00</span>
+            <span className="font-pixel text-[10px] text-[#fbbf24] block">INGRESSO OPEN (1º LOTE)</span>
+            <span className="font-pixel text-base text-[#22c55e] font-bold">R$ 45,00</span>
           </div>
           <button
             onClick={() => {

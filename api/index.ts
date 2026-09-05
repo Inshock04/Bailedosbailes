@@ -135,9 +135,9 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-open-50', name: 'INGRESSO OPEN', category: 'OPEN',
-    price: 50, originalPrice: 70, batch: '1º LOTE', available: 200, total: 200,
-    features: ["3 DJ's que serão revelados"],
+    id: 't-open-45', name: 'INGRESSO OPEN', category: 'OPEN',
+    price: 45, originalPrice: 65, batch: '1º LOTE', available: 200, total: 200,
+    features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'],
     color: '#991b1b'
   }

@@ -12,16 +12,16 @@ interface TicketModalProps {
 
 const DEFAULT_TIERS: TicketTier[] = [
   {
-    id: 't-open-50',
+    id: 't-open-45',
     name: 'INGRESSO OPEN',
     category: 'OPEN',
-    price: 50,
-    originalPrice: 70,
+    price: 45,
+    originalPrice: 65,
     batch: '1º LOTE',
     available: 200,
     total: 200,
     features: [
-      "3 DJ's que serão revelados"
+      'Open Bar das 21:00 às 00:00'
     ],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'],
     color: '#991b1b'
@@ -30,7 +30,7 @@ const DEFAULT_TIERS: TicketTier[] = [
 
 export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, preselectedTierId }) => {
   const [tiers, setTiers] = useState<TicketTier[]>(DEFAULT_TIERS);
-  const [selectedTierId, setSelectedTierId] = useState<string>('t-open-50');
+  const [selectedTierId, setSelectedTierId] = useState<string>('t-open-45');
   const [quantity, setQuantity] = useState<number>(1);
   const [buyerName, setBuyerName] = useState<string>('');
 
@@ -62,7 +62,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
     const message =
       `Olá! Gostaria de garantir meu ingresso para o *Halloween Hotel Cortez 2026* no *The Triplex*:\n\n` +
-      `🎫 *Ingresso:* ${tierName} (R$ 50,00)\n` +
+      `🎫 *Ingresso:* ${tierName} (R$ 45,00)\n` +
       `📦 *Lote:* ${batch}\n` +
       `🔢 *Quantidade:* ${quantity} ingresso(s)\n` +
       `💰 *Total:* R$ ${totalFormatted}${nameLine}\n` +
@@ -86,7 +86,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 BILHETERIA OFICIAL • THE TRIPLEX
               </h2>
               <span className="font-mono text-[10px] text-[#fca5a5]">
-                Ingresso Open R$ 50,00 • Atendimento Direto via WhatsApp
+                Ingresso Open R$ 45,00 • Atendimento Direto via WhatsApp
               </span>
             </div>
           </div>
@@ -117,7 +117,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
         <form onSubmit={handleWhatsAppRedirect} className="space-y-4">
           
-          {/* 1. Modalidade do Ingresso (Única opção Open 50 reais) */}
+          {/* 1. Modalidade do Ingresso (Única opção Open 45 reais) */}
           <div>
             <label className="block font-pixel text-[10px] sm:text-[11px] text-[#fca5a5] mb-2 uppercase font-bold">
               MODALIDADE DO INGRESSO
@@ -133,41 +133,29 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               </div>
               <div className="text-right">
                 <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">
-                  R$ 50,00
+                  R$ 45,00
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 2. Itens & Benefícios da Festa */}
-          <div className="bg-[#12071a] border border-[#4c1d95] p-3.5 space-y-3">
+          {/* 2. Bebidas Inclusas no Open */}
+          <div className="bg-[#12071a] border border-[#4c1d95] p-3.5 space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-1 border-b border-[#3b1754] pb-2">
-              <span className="font-pixel text-[10px] text-[#c084fc] font-bold uppercase">
-                ITENS & BENEFÍCIOS DA FESTA:
-              </span>
-              <span className="font-mono text-[10px] text-[#86efac]">
-                THE TRIPLEX (Itaim Paulista)
-              </span>
-            </div>
-
-            <div className="space-y-1 text-xs font-mono text-[#e9d5ff]">
-              <div className="flex items-center gap-2">
-                <PixelCheck size={12} color="#34d399" />
-                <span className="font-bold text-white">3 DJ's que serão revelados</span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-[#3b1754]">
-              <span className="font-pixel text-[9px] text-[#d8b4fe] block mb-2 font-bold uppercase">
+              <span className="font-pixel text-[10px] text-[#d8b4fe] font-bold uppercase">
                 BEBIDAS INCLUSAS NO OPEN:
               </span>
-              <div className="flex flex-wrap gap-1.5">
-                {['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'].map((drink, i) => (
-                  <span key={i} className="bg-[#2e1065] text-[#e9d5ff] text-xs px-2.5 py-1 border border-[#6b21a8] font-mono">
-                    ✓ {drink}
-                  </span>
-                ))}
-              </div>
+              <span className="font-mono text-[10px] text-[#86efac]">
+                21:00 às 00:00 • THE TRIPLEX
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'].map((drink, i) => (
+                <span key={i} className="bg-[#2e1065] text-[#e9d5ff] text-xs px-2.5 py-1 border border-[#6b21a8] font-mono">
+                  ✓ {drink}
+                </span>
+              ))}
             </div>
           </div>
 
