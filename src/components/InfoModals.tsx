@@ -79,8 +79,12 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
       a: 'Não é obrigatório, porém é amplamente incentivado. Convidados com fantasias ou trajes sombrios/góticos concorrem a prêmios em dinheiro e garrafas exclusivas.'
     },
     {
+      q: 'Como é feita a compra do ingresso?',
+      a: 'A compra oficial é realizada diretamente via WhatsApp oficial (+55 11 94396-3952) com nossa equipe organizadora. Não realizamos simulações ou cobranças diretas por formulário no site: você é atendido diretamente, paga com segurança via PIX e recebe seu comprovante com inclusão garantida na lista da portaria.'
+    },
+    {
       q: 'Posso transferir meu ingresso para outra pessoa?',
-      a: 'Sim, a troca de titularidade pode ser solicitada pelo WhatsApp de suporte até 48 horas antes do início da festa.'
+      a: 'Sim, a troca de titularidade pode ser solicitada pelo WhatsApp oficial (+55 11 94396-3952) até 48 horas antes do início da festa.'
     },
     {
       q: 'Como funciona o Oráculo e resgate de cupons?',

@@ -86,7 +86,7 @@ let tickets: Ticket[] = [
     price: 50,
     originalPrice: 70,
     batch: '1º LOTE',
-    available: 48,
+    available: 200,
     total: 200,
     features: [
       'Acesso ao Lobby e Salão Principal',
@@ -104,7 +104,7 @@ let tickets: Ticket[] = [
     price: 110,
     originalPrice: 140,
     batch: '1º LOTE',
-    available: 22,
+    available: 80,
     total: 80,
     features: [
       'Entrada preferencial sem filas',
@@ -123,7 +123,7 @@ let tickets: Ticket[] = [
     price: 180,
     originalPrice: 220,
     batch: 'ÚLTIMOS',
-    available: 8,
+    available: 30,
     total: 30,
     features: [
       'Área reservada com visão panorâmica do palco',
@@ -142,7 +142,7 @@ let tickets: Ticket[] = [
     price: 1200,
     originalPrice: 1500,
     batch: 'EXCLUSIVO',
-    available: 2,
+    available: 4,
     total: 4,
     features: [
       'Espaço privativo com sofás e segurança',
@@ -264,73 +264,11 @@ const oracleCards = [
   }
 ];
 
-let purchasedTickets: PurchasedTicket[] = [
-  {
-    id: 'TICK-901',
-    token: 'AHS-TK-883921',
-    buyerName: 'Gabriel Oliveira',
-    buyerEmail: 'gabriel.olv@gmail.com',
-    buyerPhone: '(11) 98765-4321',
-    ticketId: 't-vip',
-    ticketName: 'VIP SUITE 64 - OPEN BAR PREMIUM',
-    category: 'VIP',
-    price: 110,
-    paymentMethod: 'PIX',
-    status: 'VALIDO',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    lote: '1º LOTE'
-  },
-  {
-    id: 'TICK-902',
-    token: 'AHS-TK-447219',
-    buyerName: 'Mariana Duarte',
-    buyerEmail: 'mariana.d@yahoo.com.br',
-    buyerPhone: '(11) 97123-8899',
-    ticketId: 't-pista',
-    ticketName: 'PISTA CORTEZ - OPEN BAR',
-    category: 'PISTA',
-    price: 50,
-    paymentMethod: 'CARTAO',
-    status: 'VALIDO',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    lote: '1º LOTE'
-  }
-];
+let purchasedTickets: PurchasedTicket[] = [];
 
-let guestList: GuestEntry[] = [
-  {
-    id: 'GUEST-1',
-    name: 'Renata Vasconcelos',
-    phone: '(11) 99123-4567',
-    eventName: 'Halloween Party Hotel Cortez 2026',
-    status: 'CONFIRMADO',
-    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    token: 'RSVP-1092'
-  },
-  {
-    id: 'GUEST-2',
-    name: 'Lucas Ferreira Mendes',
-    phone: '(11) 98877-6655',
-    eventName: 'Halloween Party Hotel Cortez 2026',
-    status: 'CONFIRMADO',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-    token: 'RSVP-3341'
-  }
-];
+let guestList: GuestEntry[] = [];
 
-let coupons: Coupon[] = [
-  {
-    id: 'CP-101',
-    token: 'CORTEZ-DRK25-7891',
-    rewardTitle: '2 Drinks por R$25',
-    rewardValue: 'R$ 25,00',
-    phone: '(11) 98811-2233',
-    userName: 'Carlos Silveira',
-    status: 'ATIVO',
-    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-    expiresAt: '2026-11-01T06:00:00.000Z'
-  }
-];
+let coupons: Coupon[] = [];
 
 // Helper to normalize phone
 function sanitizePhone(phone: string): string {
@@ -356,18 +294,18 @@ app.get('/api/event', (_req: Request, res: Response) => {
     date: '31 DE OUTUBRO DE 2026',
     isoDate: '2026-10-31T22:00:00-03:00',
     time: '22:00 ÀS 06:00',
-    location: 'HOTEL CORTEZ / PALACETE HISTÓRICO',
-    address: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP',
-    description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel. Três pistas de dança, performances teatrais ao vivo, cenografia em pixel art interativa, open bar premium e concurso de fantasias com R$ 5.000 em prêmios.',
+    location: 'THE TRIPLEX',
+    address: 'THE TRIPLEX • Rua Manoel Castilho, 201 - Itaim Paulista, São Paulo - SP',
+    description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',
     theme: 'Horror Psicológico, Gothic Deco & Dark Glamour',
     ageRestriction: '18 ANOS (Obrigatória apresentação de documento original com foto)',
     dressCodeRule: 'Traje a rigor sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
     highlights: [
-      '3 Ambientes imersivos (Grand Ballroom, The 1920s Bar, The Secret Room 64)',
-      'Line-up com 6 DJs nacionais e internacionais (Dark Wave, Synthwave, Techno & Pop Horror)',
+      'Ambientes imersivos inspirados no universo AHS Hotel',
       'Open Bar até as 04:00 (Cerveja, Gin, Vodka, Energético e Drinks Especiais)',
-      'Concurso de Fantasias com Premiação às 02:30',
-      'Flash Tattoo e Maquiagem Macabra temática gratuita'
+      'Concurso de Fantasias com Premiação',
+      'Flash Tattoo e Maquiagem Macabra temática gratuita',
+      'Atendimento e aquisição oficial direta via WhatsApp'
     ]
   });
 });
@@ -377,48 +315,11 @@ app.get('/api/tickets', (_req: Request, res: Response) => {
   res.json(tickets);
 });
 
-// Purchase Ticket (Simulation with instant validation & secure token generation)
-app.post('/api/tickets/purchase', (req: Request, res: Response) => {
-  const { ticketId, buyerName, buyerEmail, buyerPhone, paymentMethod } = req.body;
-
-  if (!ticketId || !buyerName || !buyerEmail || !buyerPhone) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios para emissão do ingresso.' });
-  }
-
-  const selectedTier = tickets.find(t => t.id === ticketId);
-  if (!selectedTier) {
-    return res.status(404).json({ error: 'Tipo de ingresso não encontrado.' });
-  }
-
-  if (selectedTier.available <= 0) {
-    return res.status(400).json({ error: 'Este lote de ingressos está esgotado.' });
-  }
-
-  // Deduct available
-  selectedTier.available -= 1;
-
-  const newTicket: PurchasedTicket = {
-    id: `TICK-${Math.floor(1000 + Math.random() * 9000)}`,
-    token: generateSecureToken('AHS-TK'),
-    buyerName: buyerName.trim(),
-    buyerEmail: buyerEmail.trim().toLowerCase(),
-    buyerPhone: buyerPhone.trim(),
-    ticketId: selectedTier.id,
-    ticketName: selectedTier.name,
-    category: selectedTier.category,
-    price: selectedTier.price,
-    paymentMethod: paymentMethod === 'CARTAO' ? 'CARTAO' : 'PIX',
-    status: 'VALIDO',
-    createdAt: new Date().toISOString(),
-    lote: selectedTier.batch
-  };
-
-  purchasedTickets.unshift(newTicket);
-
-  return res.status(201).json({
-    success: true,
-    message: 'Ingresso emitido com sucesso!',
-    ticket: newTicket
+// Purchase Ticket Route - Purchases are handled exclusively via WhatsApp (+55 11 94396-3952)
+app.post('/api/tickets/purchase', (_req: Request, res: Response) => {
+  return res.status(400).json({
+    error: 'Simulações de pagamento no site foram removidas. Para adquirir seu ingresso oficial com total segurança e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
+    whatsappUrl: 'https://wa.me/5511943963952'
   });
 });
 

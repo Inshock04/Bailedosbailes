@@ -411,6 +411,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#2a1040]">
+                    {(!metrics?.purchasedTickets || metrics.purchasedTickets.length === 0) && (
+                      <tr>
+                        <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
+                          Nenhum ingresso emitido no banco ainda. Vendas direcionadas ao WhatsApp Oficial (+55 11 94396-3952).
+                        </td>
+                      </tr>
+                    )}
                     {metrics?.purchasedTickets?.map((t: PurchasedTicket) => (
                       <tr key={t.id} className="hover:bg-[#1f0b30]">
                         <td className="p-2 font-pixel text-[8px] text-[#fbbf24]">{t.token}</td>
@@ -449,6 +456,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#2d1205]">
+                    {(!metrics?.guestList || metrics.guestList.length === 0) && (
+                      <tr>
+                        <td colSpan={4} className="p-4 text-center text-gray-400 font-mono text-xs">
+                          Nenhum convidado na lista ainda. Formulário público de RSVP aberto.
+                        </td>
+                      </tr>
+                    )}
                     {metrics?.guestList?.map((g: GuestListEntry) => (
                       <tr key={g.id} className="hover:bg-[#240e04]">
                         <td className="p-2 font-pixel text-[8px] text-[#fde047]">{g.token}</td>
@@ -537,6 +551,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e1b4b]">
+                    {(!metrics?.coupons || metrics.coupons.length === 0) && (
+                      <tr>
+                        <td colSpan={4} className="p-4 text-center text-gray-400 font-mono text-xs">
+                          Nenhum cupom resgatado ainda. Oráculo místico ativo para os visitantes.
+                        </td>
+                      </tr>
+                    )}
                     {metrics?.coupons?.map((c: Coupon) => (
                       <tr key={c.id} className="hover:bg-[#18153e]">
                         <td className="p-2 font-pixel text-[8px] text-[#fbbf24]">{c.token}</td>

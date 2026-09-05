@@ -51,23 +51,11 @@ export class PaymentsService {
       this.mpAccessToken.startsWith('TEST_ACCESS_TOKEN_') ||
       this.mpAccessToken === 'TEST_ACCESS_TOKEN_PLACEHOLDER';
 
-    // Se estiver em modo de teste/desenvolvimento sem token real configurado, simula a preference
+    // Simulações de pagamento no site estão desativadas por segurança
     if (isPlaceholderToken) {
-      this.logger.warn(
-        `[MP SIMULAÇÃO] MP_ACCESS_TOKEN não configurado ou placeholder. Gerando Preference simulada para Order ${order.id}`,
+      throw new BadRequestException(
+        'Simulações de pagamento no site foram desativadas. Para adquirir seu ingresso oficial com segurança, fale diretamente com a equipe organizadora pelo WhatsApp oficial: https://wa.me/5511943963952 (+55 11 94396-3952).',
       );
-
-      const simulatedPrefId = `SIMULATED-PREF-${Date.now()}`;
-      await this.ordersService.updateOrderPreference(order.id, simulatedPrefId);
-
-      return {
-        orderId: order.id,
-        preferenceId: simulatedPrefId,
-        initPoint: `${this.frontendUrl}/checkout-simulation?orderId=${order.id}&preferenceId=${simulatedPrefId}`,
-        sandboxInitPoint: `${this.frontendUrl}/checkout-simulation?orderId=${order.id}&preferenceId=${simulatedPrefId}`,
-        isSimulated: true,
-        message: 'Modo Sandbox com credenciais placeholder ativas.',
-      };
     }
 
     // 2. Monta o payload oficial para a API de Preferences do Mercado Pago
