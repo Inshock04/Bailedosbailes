@@ -72,7 +72,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
 
           <div className="bg-[#111c0c] border border-[#3f6212] p-3">
             <span className="font-pixel text-[10px] text-[#bef264] block mb-1">🚗 CARRO / APLICATIVO / ESTACIONAMENTO:</span>
-            <p className="leading-relaxed">Ponto de desembarque direto na porta pela <strong className="text-white">Rua Manoel Castilho, 201</strong> com segurança monitorada para a festa.</p>
+            <p className="leading-relaxed">Ponto de desembarque direto na porta pela <strong className="text-white">Rua Manoel Castilho, 201</strong>.</p>
           </div>
         </div>
 
