@@ -44,29 +44,52 @@ CREATE TABLE IF NOT EXISTS public.coupons (
 CREATE INDEX IF NOT EXISTS idx_coupons_phone ON public.coupons(phone);
 CREATE INDEX IF NOT EXISTS idx_coupons_token ON public.coupons(token);
 
--- 4. Habilitar Row Level Security (RLS)
+-- ==============================================================================
+-- 4. Habilitar Row Level Security (RLS) em TODAS as tabelas
+-- ==============================================================================
 ALTER TABLE public.guest_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
--- 5. Políticas de Segurança (Permitir inserções públicas da landing page)
-CREATE POLICY "Permitir inserção anônima na lista VIP" 
-ON public.guest_list FOR INSERT 
+-- ==============================================================================
+-- 5. POLÍTICAS DE SEGURANÇA RESTRITIVAS
+--    - Apenas a service_role (backend) pode INSERIR e LER dados.
+--    - Requisições anônimas (anon key) NÃO podem acessar dados diretamente.
+--    - Todo acesso passa obrigatoriamente pelo backend (server.ts).
+-- ==============================================================================
+
+-- Drop políticas antigas permissivas (se existirem)
+DROP POLICY IF EXISTS "Permitir inserção anônima na lista VIP" ON public.guest_list;
+DROP POLICY IF EXISTS "Permitir leitura da lista VIP para service role" ON public.guest_list;
+DROP POLICY IF EXISTS "Permitir envio anônimo de mensagens de contato" ON public.contacts;
+DROP POLICY IF EXISTS "Permitir leitura de contatos para service role" ON public.contacts;
+DROP POLICY IF EXISTS "Permitir inserção e leitura de cupons" ON public.coupons;
+
+-- Guest List: Apenas service_role pode inserir e ler
+CREATE POLICY "service_role_insert_guest_list"
+ON public.guest_list FOR INSERT
+TO service_role
 WITH CHECK (true);
 
-CREATE POLICY "Permitir leitura da lista VIP para service role" 
-ON public.guest_list FOR SELECT 
+CREATE POLICY "service_role_select_guest_list"
+ON public.guest_list FOR SELECT
+TO service_role
 USING (true);
 
-CREATE POLICY "Permitir envio anônimo de mensagens de contato" 
-ON public.contacts FOR INSERT 
+-- Contacts: Apenas service_role pode inserir e ler
+CREATE POLICY "service_role_insert_contacts"
+ON public.contacts FOR INSERT
+TO service_role
 WITH CHECK (true);
 
-CREATE POLICY "Permitir leitura de contatos para service role" 
-ON public.contacts FOR SELECT 
+CREATE POLICY "service_role_select_contacts"
+ON public.contacts FOR SELECT
+TO service_role
 USING (true);
 
-CREATE POLICY "Permitir inserção e leitura de cupons" 
-ON public.coupons FOR ALL 
-USING (true) 
+-- Coupons: Apenas service_role pode inserir, ler e atualizar
+CREATE POLICY "service_role_all_coupons"
+ON public.coupons FOR ALL
+TO service_role
+USING (true)
 WITH CHECK (true);

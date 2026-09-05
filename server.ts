@@ -1,10 +1,12 @@
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -12,13 +14,56 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
+
+// ----------------------------------------------------
+// HEADERS DE SEGURANÇA HTTP (Helmet)
+// ----------------------------------------------------
+app.use(helmet({
+  contentSecurityPolicy: false, // Desabilitado para permitir styles inline do React
+  crossOriginEmbedderPolicy: false,
+}));
+
+app.use(express.json({ limit: '1mb' }));
+
+// ----------------------------------------------------
+// RATE LIMITING GLOBAL E POR ENDPOINT
+// ----------------------------------------------------
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 300, // máximo 300 requests por IP a cada 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' }
+});
+app.use(globalLimiter);
+
+// Rate limiting agressivo para login admin (anti brute-force)
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 tentativas de login por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+});
+
+// Rate limiting para endpoints públicos de escrita
+const publicWriteLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 15, // máximo 15 submissões por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas submissões. Aguarde alguns minutos.' }
+});
 
 // ----------------------------------------------------
 // SUPABASE BACKEND CLIENT (CHAVES SEGURAS NO SERVIDOR)
 // ----------------------------------------------------
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://upijucscuvnxeqdetrhm.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('[Hotel Cortez] AVISO: Variáveis SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY não definidas. Sincronização com Supabase desabilitada.');
+}
 
 const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -27,17 +72,51 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
 // ----------------------------------------------------
 // AUTENTICAÇÃO SEGURA DO PAINEL ADMINISTRATIVO
 // ----------------------------------------------------
-const ADMIN_SECRET = process.env.ADMIN_KEY || 'Cortez@2026!Admin';
+const ADMIN_SECRET = process.env.ADMIN_KEY;
 
-function requireAdminAuth(req: Request, res: Response, next: () => void) {
+if (!ADMIN_SECRET) {
+  console.error('[Hotel Cortez] ERRO CRÍTICO: Variável ADMIN_KEY não definida no .env! O painel admin ficará inacessível.');
+}
+
+// Sessões ativas de admin (token aleatório -> timestamp de criação)
+const activeSessions = new Map<string, { createdAt: number }>();
+const SESSION_DURATION_MS = 4 * 60 * 60 * 1000; // 4 horas
+
+function generateSessionToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Limpa sessões expiradas periodicamente (a cada 30 min)
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of activeSessions) {
+    if (now - session.createdAt > SESSION_DURATION_MS) {
+      activeSessions.delete(token);
+    }
+  }
+}, 30 * 60 * 1000);
+
+function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
   const token = typeof authHeader === 'string'
     ? authHeader.replace(/^Bearer\s+/i, '').trim()
     : '';
 
-  if (!token || token !== ADMIN_SECRET) {
-    return res.status(401).json({ error: 'Acesso negado: Autenticação de administrador necessária.' });
+  if (!token) {
+    return res.status(401).json({ error: 'Acesso negado: Token de autenticação não fornecido.' });
   }
+
+  const session = activeSessions.get(token);
+  if (!session) {
+    return res.status(401).json({ error: 'Sessão inválida ou expirada. Faça login novamente.' });
+  }
+
+  // Verifica se a sessão expirou
+  if (Date.now() - session.createdAt > SESSION_DURATION_MS) {
+    activeSessions.delete(token);
+    return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
+  }
+
   next();
 }
 
@@ -347,7 +426,7 @@ app.get('/api/tickets', (_req: Request, res: Response) => {
 });
 
 // Purchase Ticket Route - Purchases are handled exclusively via WhatsApp (+55 11 94396-3952)
-app.post('/api/tickets/purchase', (_req: Request, res: Response) => {
+app.post('/api/tickets/purchase', publicWriteLimiter, (_req: Request, res: Response) => {
   return res.status(400).json({
     error: 'Simulações de pagamento no site foram removidas. Para adquirir seu ingresso oficial com total segurança e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
     whatsappUrl: 'https://wa.me/5511943963952'
@@ -403,7 +482,7 @@ app.get('/api/oracle/cards', (_req: Request, res: Response) => {
 });
 
 // Draw Oracle Reward with Strict Backend Validation (1 per phone)
-app.post('/api/oracle/draw', (req: Request, res: Response) => {
+app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) => {
   const { phone, cardId, userName } = req.body;
 
   if (!phone) {
@@ -483,7 +562,7 @@ app.get('/api/guestlist', (_req: Request, res: Response) => {
   });
 });
 
-app.post('/api/guestlist', (req: Request, res: Response) => {
+app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => {
   const { name, phone } = req.body;
 
   if (!name || !phone) {
@@ -655,13 +734,23 @@ app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response)
   return res.status(400).json({ error: 'Tipo de validação inválido.' });
 });
 
-// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA)
-app.post('/api/admin/login', (req: Request, res: Response) => {
+// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA com rate limiting anti brute-force)
+app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) => {
   const { password } = req.body;
+
+  if (!ADMIN_SECRET) {
+    return res.status(503).json({ error: 'Sistema de autenticação indisponível. Contate o administrador.' });
+  }
+
   if (!password || password !== ADMIN_SECRET) {
     return res.status(401).json({ error: 'Chave de administração inválida.' });
   }
-  return res.json({ success: true, token: ADMIN_SECRET, message: 'Autenticado com sucesso!' });
+
+  // Gera um token de sessão aleatório (NUNCA retorna a senha real)
+  const sessionToken = generateSessionToken();
+  activeSessions.set(sessionToken, { createdAt: Date.now() });
+
+  return res.json({ success: true, token: sessionToken, message: 'Autenticado com sucesso!' });
 });
 
 // 8. Admin Metrics & Full Database View (PROTEGIDO)
@@ -689,7 +778,7 @@ app.get('/api/admin/metrics', requireAdminAuth, (_req: Request, res: Response) =
 });
 
 // 9. Contact / Reception Message Submission (com persistência no Supabase)
-app.post('/api/contact', (req: Request, res: Response) => {
+app.post('/api/contact', publicWriteLimiter, (req: Request, res: Response) => {
   const { name, email, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Nome, e-mail e mensagem são obrigatórios.' });
