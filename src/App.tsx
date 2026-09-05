@@ -601,6 +601,7 @@ export default function App() {
       <EventDetailsModal
         isOpen={activeModal === 'evento'}
         onClose={() => setActiveModal(null)}
+        onOpenTickets={() => setActiveModal('tickets')}
       />
 
       <LocationModal
