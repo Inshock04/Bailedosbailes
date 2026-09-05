@@ -146,7 +146,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 BEBIDAS INCLUSAS NO OPEN:
               </span>
               <span className="font-mono text-[10px] text-[#86efac]">
-                21:00 às 00:00 • THE TRIPLEX
+                A partir das 21:00 • THE TRIPLEX
               </span>
             </div>
 

@@ -127,27 +127,27 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 <span className="text-[#86efac] font-bold">Início do Open</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#ef4444] font-bold">00:00</span>
+                <span className="font-pixel text-xs text-[#ef4444] font-bold">???</span>
                 <span className="text-[#fca5a5]">Encerramento do Open</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#f59e0b] font-bold">01:00</span>
+                <span className="font-pixel text-xs text-[#f59e0b] font-bold">???</span>
                 <span className="text-[#fef08a] font-bold">Grande Concurso de Fantasias</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#c084fc]">03:00</span>
+                <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
                 <span className="text-[#c084fc] font-pixel text-xs">???</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#c084fc]">05:00</span>
+                <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
                 <span className="text-[#c084fc] font-pixel text-xs">???</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#c084fc]">06:00</span>
+                <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
                 <span className="text-[#c084fc] font-pixel text-xs">???</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-pixel text-xs text-[#a855f7]">???</span>
+                <span className="font-pixel text-xs text-[#a855f7] font-bold">???</span>
                 <span className="text-[#a855f7] font-pixel text-xs">???</span>
               </div>
             </div>
