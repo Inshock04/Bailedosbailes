@@ -3,12 +3,43 @@ import type { Request, Response } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
+
+// ----------------------------------------------------
+// SUPABASE BACKEND CLIENT (CHAVES SEGURAS NO SERVIDOR)
+// ----------------------------------------------------
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://upijucscuvnxeqdetrhm.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  : null;
+
+// ----------------------------------------------------
+// AUTENTICAÇÃO SEGURA DO PAINEL ADMINISTRATIVO
+// ----------------------------------------------------
+const ADMIN_SECRET = process.env.ADMIN_KEY || 'Cortez@2026!Admin';
+
+function requireAdminAuth(req: Request, res: Response, next: () => void) {
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
+  const token = typeof authHeader === 'string'
+    ? authHeader.replace(/^Bearer\s+/i, '').trim()
+    : '';
+
+  if (!token || token !== ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Acesso negado: Autenticação de administrador necessária.' });
+  }
+  next();
+}
 
 // In-Memory Database for the Hotel Cortez Event
 interface Ticket {
@@ -329,7 +360,7 @@ app.get('/api/promotions', (_req: Request, res: Response) => {
 });
 
 // Admin update promotion
-app.post('/api/promotions/update', (req: Request, res: Response) => {
+app.post('/api/promotions/update', requireAdminAuth, (req: Request, res: Response) => {
   const { id, price, active, name, description } = req.body;
   const promo = promotions.find(p => p.id === id);
   if (!promo) {
@@ -345,7 +376,7 @@ app.post('/api/promotions/update', (req: Request, res: Response) => {
 });
 
 // Admin add promotion
-app.post('/api/promotions/new', (req: Request, res: Response) => {
+app.post('/api/promotions/new', requireAdminAuth, (req: Request, res: Response) => {
   const { name, description, quantity, price, category, tag } = req.body;
   if (!name || !price) {
     return res.status(400).json({ error: 'Nome e preço são obrigatórios.' });
@@ -414,6 +445,26 @@ app.post('/api/oracle/draw', (req: Request, res: Response) => {
 
   coupons.unshift(newCoupon);
 
+  // Sincronização segura com Supabase em segundo plano
+  if (supabaseAdmin) {
+    Promise.resolve(
+      supabaseAdmin.from('coupons').insert([
+        {
+          token: newCoupon.token,
+          reward_title: newCoupon.rewardTitle,
+          reward_value: newCoupon.rewardValue,
+          phone: newCoupon.phone,
+          user_name: newCoupon.userName,
+          status: newCoupon.status,
+          created_at: newCoupon.createdAt,
+          expires_at: newCoupon.expiresAt
+        }
+      ])
+    ).then(({ error }: any) => {
+      if (error) console.warn('[Supabase coupons Sync Warning]', error.message);
+    }).catch(err => console.warn('[Supabase coupons Sync Exception]', err));
+  }
+
   return res.status(201).json({
     success: true,
     message: 'Destino revelado! Seu cupom mágico foi gerado.',
@@ -458,6 +509,24 @@ app.post('/api/guestlist', (req: Request, res: Response) => {
 
   guestList.unshift(newEntry);
 
+  // Sincronização segura com Supabase em segundo plano
+  if (supabaseAdmin) {
+    Promise.resolve(
+      supabaseAdmin.from('guest_list').insert([
+        {
+          name: newEntry.name,
+          phone: newEntry.phone,
+          token: newEntry.token,
+          event_name: newEntry.eventName,
+          status: newEntry.status,
+          created_at: newEntry.createdAt
+        }
+      ])
+    ).then(({ error }: any) => {
+      if (error) console.warn('[Supabase guest_list Sync Warning]', error.message);
+    }).catch(err => console.warn('[Supabase guest_list Sync Exception]', err));
+  }
+
   return res.status(201).json({
     success: true,
     message: 'Nome confirmado com sucesso na Lista VIP!',
@@ -471,8 +540,8 @@ app.post('/api/guestlist', (req: Request, res: Response) => {
   });
 });
 
-// 6. Verification / Check-in for QR Codes & Tokens
-app.post('/api/checkin/verify', (req: Request, res: Response) => {
+// 6. Verification / Check-in for QR Codes & Tokens (PROTEGIDO)
+app.post('/api/checkin/verify', requireAdminAuth, (req: Request, res: Response) => {
   const { token } = req.body;
   if (!token) {
     return res.status(400).json({ error: 'Token ou QR Code não fornecido.' });
@@ -541,8 +610,8 @@ app.post('/api/checkin/verify', (req: Request, res: Response) => {
   });
 });
 
-// Confirm Check-in / Redemption
-app.post('/api/checkin/confirm', (req: Request, res: Response) => {
+// Confirm Check-in / Redemption (PROTEGIDO)
+app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response) => {
   const { token, type } = req.body;
   if (!token) {
     return res.status(400).json({ error: 'Token é obrigatório.' });
@@ -586,8 +655,17 @@ app.post('/api/checkin/confirm', (req: Request, res: Response) => {
   return res.status(400).json({ error: 'Tipo de validação inválido.' });
 });
 
-// 7. Admin Metrics & Full Database View
-app.get('/api/admin/metrics', (_req: Request, res: Response) => {
+// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA)
+app.post('/api/admin/login', (req: Request, res: Response) => {
+  const { password } = req.body;
+  if (!password || password !== ADMIN_SECRET) {
+    return res.status(401).json({ error: 'Chave de administração inválida.' });
+  }
+  return res.json({ success: true, token: ADMIN_SECRET, message: 'Autenticado com sucesso!' });
+});
+
+// 8. Admin Metrics & Full Database View (PROTEGIDO)
+app.get('/api/admin/metrics', requireAdminAuth, (_req: Request, res: Response) => {
   const totalTicketsSold = purchasedTickets.length;
   const totalRevenue = purchasedTickets.reduce((acc, t) => acc + t.price, 0);
   const guestListCount = guestList.length;
@@ -607,6 +685,35 @@ app.get('/api/admin/metrics', (_req: Request, res: Response) => {
     guestList,
     promotions,
     coupons
+  });
+});
+
+// 9. Contact / Reception Message Submission (com persistência no Supabase)
+app.post('/api/contact', (req: Request, res: Response) => {
+  const { name, email, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Nome, e-mail e mensagem são obrigatórios.' });
+  }
+
+  // Sincronização segura com Supabase em segundo plano
+  if (supabaseAdmin) {
+    Promise.resolve(
+      supabaseAdmin.from('contacts').insert([
+        {
+          name: String(name).trim(),
+          email: String(email).trim().toLowerCase(),
+          message: String(message).trim(),
+          created_at: new Date().toISOString()
+        }
+      ])
+    ).then(({ error }: any) => {
+      if (error) console.warn('[Supabase contacts Sync Warning]', error.message);
+    }).catch(err => console.warn('[Supabase contacts Sync Exception]', err));
+  }
+
+  return res.status(201).json({
+    success: true,
+    message: 'Mensagem recebida com sucesso pela recepção!'
   });
 });
 

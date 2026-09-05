@@ -1,91 +1,55 @@
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 
-  'https://upijucscuvnxeqdetrhm.supabase.co';
-
-const SUPABASE_ANON_KEY = 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 
-  'sb_publishable_VX-bnvZULI5fyOJgSnZ_Xw_CuAwWZuy';
-
 /**
- * Cliente Supabase Oficial para o Hotel Cortez / The Triplex
- * Conectado ao projeto: upijucscuvnxeqdetrhm
+ * Utilitário Seguro de Sincronização
+ * 
+ * SEGURANÇA E PRIVACIDADE:
+ * Nenhuma chave secreta ou token de banco de dados é exposto no bundle do front-end.
+ * Todas as requisições de persistência passam pelos endpoints protegidos do backend (/api/).
  */
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export interface SupabaseGuestEntry {
-  id?: string;
+export interface GuestEntryPayload {
   name: string;
   phone: string;
   token?: string;
   eventName?: string;
   status?: string;
-  createdAt?: string;
 }
 
-export interface SupabaseContactEntry {
-  id?: string;
+export interface ContactPayload {
   name: string;
   email: string;
   message: string;
-  createdAt?: string;
 }
 
 /**
- * Salva convidado da lista VIP no Supabase
+ * Envia confirmação de RSVP para persistência segura no backend
  */
-export async function syncGuestListToSupabase(entry: SupabaseGuestEntry) {
+export async function syncGuestListToSupabase(entry: GuestEntryPayload) {
   try {
-    const { data, error } = await supabase
-      .from('guest_list')
-      .insert([
-        {
-          name: entry.name,
-          phone: entry.phone,
-          token: entry.token,
-          event_name: entry.eventName || 'Halloween Party Hotel Cortez 2026',
-          status: entry.status || 'CONFIRMADO',
-          created_at: entry.createdAt || new Date().toISOString()
-        }
-      ])
-      .select();
-
-    if (error) {
-      console.warn('[Supabase Sync Warning] Tabela guest_list:', error.message);
-      return null;
-    }
-    return data;
+    const res = await fetch('/api/guestlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    return await res.json();
   } catch (err) {
-    console.warn('[Supabase Sync Exception]', err);
+    console.warn('[Sync Error]', err);
     return null;
   }
 }
 
 /**
- * Salva mensagem de contato no Supabase
+ * Envia mensagem de contato para persistência segura no backend
  */
-export async function syncContactToSupabase(entry: SupabaseContactEntry) {
+export async function syncContactToSupabase(entry: ContactPayload) {
   try {
-    const { data, error } = await supabase
-      .from('contacts')
-      .insert([
-        {
-          name: entry.name,
-          email: entry.email,
-          message: entry.message,
-          created_at: entry.createdAt || new Date().toISOString()
-        }
-      ])
-      .select();
-
-    if (error) {
-      console.warn('[Supabase Sync Warning] Tabela contacts:', error.message);
-      return null;
-    }
-    return data;
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    return await res.json();
   } catch (err) {
-    console.warn('[Supabase Sync Exception]', err);
+    console.warn('[Sync Error]', err);
     return null;
   }
 }
