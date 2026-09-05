@@ -104,7 +104,7 @@ function generateSecureToken(prefix: string): string {
 // IN-MEMORY DATA (idêntico ao server.ts)
 // ----------------------------------------------------
 interface Ticket {
-  id: string; name: string; category: 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE';
+  id: string; name: string; category: 'OPEN' | 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE' | string;
   price: number; originalPrice?: number; batch: string; available: number; total: number;
   features: string[]; drinksIncluded: string[]; color: string;
 }
@@ -135,32 +135,11 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-pista', name: 'PISTA CORTEZ - OPEN BAR', category: 'PISTA',
+    id: 't-open-50', name: 'INGRESSO OPEN', category: 'OPEN',
     price: 50, originalPrice: 70, batch: '1º LOTE', available: 200, total: 200,
-    features: ['Acesso ao Lobby e Salão Principal', 'Open Bar até 04:00', 'Copo oficial colecionável Hotel Cortez', 'Acesso a todas as atrações musicais'],
-    drinksIncluded: ['Gin & Tônica', 'Vodka Smirnoff', 'Energético Baly', 'Caipirinha Velho Barreiro'],
+    features: ["3 DJ's que serão revelados"],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha'],
     color: '#991b1b'
-  },
-  {
-    id: 't-vip', name: 'VIP SUITE 64 - OPEN BAR PREMIUM', category: 'VIP',
-    price: 110, originalPrice: 140, batch: '1º LOTE', available: 80, total: 80,
-    features: ['Entrada preferencial sem filas', 'Acesso ao Mezanino VIP Suite 64', 'Open Bar Premium completo', 'Barbearia e maquiagem temática cortesia', '1 Welcome Shot Sangue da Condessa'],
-    drinksIncluded: ['Whisky Red Label', 'Gin Tanqueray', 'Vodka Absolut', 'Cerveja Heineken', 'Energético Monster'],
-    color: '#9333ea'
-  },
-  {
-    id: 't-camarote', name: 'CAMAROTE COUNTESS - ALL INCLUSIVE', category: 'CAMAROTE',
-    price: 180, originalPrice: 220, batch: 'ÚLTIMOS', available: 30, total: 30,
-    features: ['Área reservada com visão panorâmica do palco', 'Garçom exclusivo no camarote', 'Open Food Finger foods & petiscos gourmet', 'Open Bar Super Premium', 'Brinde exclusivo comemorativo AHS'],
-    drinksIncluded: ['Gin Hendricks', 'Vodka Ciroc', 'Whisky Black Label', 'Espumante Chandon', 'Drinks Autorais'],
-    color: '#d97706'
-  },
-  {
-    id: 't-lounge', name: 'LOUNGE PRIVATIVO PARA 10 PESSOAS', category: 'LOUNGE',
-    price: 1200, originalPrice: 1500, batch: 'EXCLUSIVO', available: 4, total: 4,
-    features: ['Espaço privativo com sofás e segurança', '10 Ingressos VIP inclusos', '3 Garrafas de Destilados Premium à escolha', '12 Red Bulls + 12 Águas', 'Atendimento de maître particular'],
-    drinksIncluded: ['Cardápio All Inclusive Super Premium + Combos de Garrafas'],
-    color: '#dc2626'
   }
 ];
 
@@ -305,11 +284,8 @@ app.get('/api/event', (_req: Request, res: Response) => {
     ageRestriction: '18 ANOS (Obrigatória apresentação de documento original com foto)',
     dressCodeRule: 'Traje a rigor sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
     highlights: [
-      'Ambientes imersivos inspirados no universo AHS Hotel',
-      'Open Bar até as 04:00 (Cerveja, Gin, Vodka, Energético e Drinks Especiais)',
-      'Concurso de Fantasias com Premiação',
-      'Flash Tattoo e Maquiagem Macabra temática gratuita',
-      'Atendimento e aquisição oficial direta via WhatsApp'
+      "3 DJ's que serão revelados",
+      "Bebidas: Gin, Vodka, Energético, Caipirinha & Canelinha"
     ]
   });
 });

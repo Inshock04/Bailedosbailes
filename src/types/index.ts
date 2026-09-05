@@ -18,7 +18,7 @@ export interface EventInfo {
 export interface TicketTier {
   id: string;
   name: string;
-  category: 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE';
+  category: 'OPEN' | 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE' | string;
   price: number;
   originalPrice?: number;
   batch: string;
