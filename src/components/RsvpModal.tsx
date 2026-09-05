@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PixelClose, PixelSkull, PixelCheck } from './PixelIcons';
 import { audioManager } from '../utils/audio';
+import { syncGuestListToSupabase } from '../utils/supabase';
 import confetti from 'canvas-confetti';
 
 interface RsvpModalProps {
@@ -43,6 +44,16 @@ export const RsvpModal: React.FC<RsvpModalProps> = ({ isOpen, onClose, onOpenTic
 
       setConfirmedGuest(data.guest);
       audioManager.playSuccess();
+      
+      // Sincroniza em tempo real com o banco de dados Supabase
+      syncGuestListToSupabase({
+        name,
+        phone,
+        token: data.guest?.token,
+        eventName: 'Halloween Party Hotel Cortez 2026',
+        status: 'CONFIRMADO'
+      });
+
       confetti({
         particleCount: 35,
         spread: 60,

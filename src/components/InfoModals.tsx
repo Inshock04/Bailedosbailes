@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PixelClose, PixelSkull, PixelCheck, PixelPin } from './PixelIcons';
 import { OfficialSocialButtons } from './OfficialSocialButtons';
 import { audioManager } from '../utils/audio';
+import { syncContactToSupabase } from '../utils/supabase';
 
 // 1. SOBRE MODAL
 export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -167,6 +168,10 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     audioManager.playSuccess();
+    
+    // Envia mensagem para a tabela contacts no Supabase
+    syncContactToSupabase({ name, email, message });
+    
     setSent(true);
   };
 
