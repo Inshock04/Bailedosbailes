@@ -172,12 +172,113 @@ let promotions: Promotion[] = [
   { id: 'promo-5', name: 'COMBO JACK DANIEL\u2019S + 4 COCA-COLAS', description: '1 Garrafa Jack Daniel\u2019s Old No. 7 1L + 4 latas de Coca-Cola + Balde de Gelo.', quantity: '1 Garrafa + 4 Latas', price: 240, originalPrice: 310, active: true, category: 'COMBO' }
 ];
 
-const oracleCards = [
-  { id: 'card-1', name: 'A CONDESSA (THE COUNTESS)', title: 'SANGUE E SEDUÇÃO', symbol: 'CHALICE', arcana: 'ARCANA III', description: 'Você foi abençoado com a imortalidade da noite. Beba do cálice sagrado do Cortez.', rewardText: '2 DRINKS POR R$25 (OU 50% NO SEGUNDO)', rewardCodePrefix: 'DRK25', discountType: 'PRICE', value: 'R$ 25,00' },
-  { id: 'card-2', name: 'O CARA DE BORRACHA (RUBBER MAN)', title: 'O MISTÉRIO DO CORREDOR', symbol: 'EYE', arcana: 'ARCANA VII', description: 'As sombras do hotel conspiram a seu favor. Uma passagem secreta foi revelada.', rewardText: 'DESCONTO DE R$ 20,00 NO INGRESSO VIP', rewardCodePrefix: 'VIP20', discountType: 'PRICE', value: 'R$ 20,00 OFF' },
-  { id: 'card-3', name: 'O FUNDADOR JAMES MARCH', title: 'O BANQUETE MACABRO', symbol: 'SKULL', arcana: 'ARCANA XIII', description: 'James Patrick March convida você para brindar na Sala de Jantar Secreta.', rewardText: '1 SHOT CORTESIA SANGUE DO CORTEZ NA ENTRADA', rewardCodePrefix: 'SHOTFREE', discountType: 'GIFT', value: 'SHOT GRÁTIS' },
-  { id: 'card-4', name: 'O CORVO DA MEIA-NOITE', title: 'O PRESSÁGIO DOURADO', symbol: 'RAVEN', arcana: 'ARCANA IX', description: 'As asas negras trazem a sorte dos condenados. Celebre com seus aliados.', rewardText: 'BALDE DE CERVEJA POR R$ 45 (6 UNID)', rewardCodePrefix: 'BALDE45', discountType: 'PRICE', value: 'R$ 45,00' }
+const allOracleCards = [
+  {
+    id: 'card-skolbeats-40',
+    name: '3 SKOL BEATS POR R$ 40',
+    title: 'O RITMO DOS IMORTAIS',
+    symbol: 'CHALICE',
+    arcana: 'ARCANA I',
+    description: 'A Condessa convoca a noite com ritmo frenético. O néctar da celebração aguarda por você.',
+    rewardText: '3 SKOL BEATS POR R$ 40',
+    rewardCodePrefix: 'BEATS40',
+    discountType: 'PRICE',
+    value: 'R$ 40,00'
+  },
+  {
+    id: 'card-redlabel-60',
+    name: '2 DOSES DE RED LABEL POR R$ 60',
+    title: 'BANQUETE DE WHISKY',
+    symbol: 'SKULL',
+    arcana: 'ARCANA II',
+    description: 'James March brinda no salão nobre com o mais refinado destilado escocês.',
+    rewardText: '2 DOSES DE RED LABEL POR R$ 60',
+    rewardCodePrefix: 'RED60',
+    discountType: 'PRICE',
+    value: 'R$ 60,00'
+  },
+  {
+    id: 'card-jackdaniels-35',
+    name: "1 DOSE DE JACK DANIEL'S POR R$ 35",
+    title: 'TENNESSEE OBSCURO',
+    symbol: 'EYE',
+    arcana: 'ARCANA III',
+    description: 'As sombras revelam a lendária dose âmbar das noites proibidas do Cortez.',
+    rewardText: "1 DOSE DE JACK DANIEL'S POR R$ 35",
+    rewardCodePrefix: 'JACK35',
+    discountType: 'PRICE',
+    value: 'R$ 35,00'
+  },
+  {
+    id: 'card-doublerosh-40',
+    name: 'DOUBLE ROSH POR R$ 40',
+    title: 'NÉVOA MÍSTICA',
+    symbol: 'FLAME',
+    arcana: 'ARCANA IV',
+    description: 'A névoa ancestral invade o lounge com o dobro da essência e do vapor.',
+    rewardText: 'DOUBLE ROSH POR R$ 40',
+    rewardCodePrefix: 'ROSH40',
+    discountType: 'PRICE',
+    value: 'R$ 40,00'
+  },
+  {
+    id: 'card-smirnoff-50',
+    name: '2 DOSES DE SMIRNOFF POR R$ 50',
+    title: 'PUREZA GÉLIDA',
+    symbol: 'MOON',
+    arcana: 'ARCANA V',
+    description: 'Um ritual de vodka destilada dez vezes para purificar o seu espírito na pista.',
+    rewardText: '2 DOSES DE SMIRNOFF POR R$ 50',
+    rewardCodePrefix: 'SMIR50',
+    discountType: 'PRICE',
+    value: 'R$ 50,00'
+  },
+  {
+    id: 'card-caipirinha-50',
+    name: '3 CAIPIRINHAS POR R$ 50',
+    title: 'TRINDADE TROPICAL',
+    symbol: 'CHALICE',
+    arcana: 'ARCANA VI',
+    description: 'O caldeirão das bruxas ferve a tríade perfeita de frutas e limão para você.',
+    rewardText: '3 CAIPIRINHAS POR R$ 50',
+    rewardCodePrefix: 'CAIP50',
+    discountType: 'PRICE',
+    value: 'R$ 50,00'
+  },
+  {
+    id: 'card-maracujack-55',
+    name: '2 MARACUJACK POR R$ 55',
+    title: 'JACK & MARACUJÁ DUPLO',
+    symbol: 'RAVEN',
+    arcana: 'ARCANA VII',
+    description: "Jack Daniel's casado com o fruto da paixão em dose dupla para curtir a noite.",
+    rewardText: '2 MARACUJACK POR R$ 55',
+    rewardCodePrefix: 'MJACK55',
+    discountType: 'PRICE',
+    value: 'R$ 55,00'
+  },
+  {
+    id: 'card-maracujack-30',
+    name: '1 MARACUJACK POR R$ 30',
+    title: 'O TOQUE DOURADO',
+    symbol: 'EYE',
+    arcana: 'ARCANA VIII',
+    description: 'Refrescante, marcante e intenso: o drink assinatura do baile em valor especial.',
+    rewardText: '1 MARACUJACK POR R$ 30',
+    rewardCodePrefix: 'MJACK30',
+    discountType: 'PRICE',
+    value: 'R$ 30,00'
+  }
 ];
+
+function getShuffledOracleCards(count = 6) {
+  const copy = [...allOracleCards];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
 
 let purchasedTickets: PurchasedTicket[] = [];
 let guestList: GuestEntry[] = [];
@@ -253,9 +354,9 @@ app.post('/api/promotions/new', requireAdminAuth, (req: Request, res: Response) 
   return res.status(201).json({ success: true, promotion: newPromo });
 });
 
-// 4. Oracle
+// 4. Oracle (Returns 6 shuffled cards from the 8 options)
 app.get('/api/oracle/cards', (_req: Request, res: Response) => {
-  res.json(oracleCards);
+  res.json(getShuffledOracleCards(6));
 });
 
 app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) => {
@@ -270,8 +371,8 @@ app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) =
     return res.status(403).json({ error: 'Você já resgatou sua carta do destino para este evento!', coupon: existingCoupon, alreadyClaimed: true });
   }
 
-  let selectedCard = oracleCards.find(c => c.id === cardId);
-  if (!selectedCard) selectedCard = oracleCards[Math.floor(Math.random() * oracleCards.length)];
+  let selectedCard = allOracleCards.find(c => c.id === cardId);
+  if (!selectedCard) selectedCard = allOracleCards[Math.floor(Math.random() * allOracleCards.length)];
 
   const newCoupon: Coupon = {
     id: `CP-${Math.floor(1000 + Math.random() * 9000)}`,

@@ -10,8 +10,118 @@ interface OracleModalProps {
   onClose: () => void;
 }
 
+const DEFAULT_ORACLE_CARDS: OracleCard[] = [
+  {
+    id: 'card-skolbeats-40',
+    name: '3 SKOL BEATS POR R$ 40',
+    title: 'O RITMO DOS IMORTAIS',
+    symbol: 'CHALICE',
+    arcana: 'ARCANA I',
+    description: 'A Condessa convoca a noite com ritmo frenético. O néctar da celebração aguarda por você.',
+    rewardText: '3 SKOL BEATS POR R$ 40',
+    rewardCodePrefix: 'BEATS40',
+    discountType: 'PRICE',
+    value: 'R$ 40,00'
+  },
+  {
+    id: 'card-redlabel-60',
+    name: '2 DOSES DE RED LABEL POR R$ 60',
+    title: 'BANQUETE DE WHISKY',
+    symbol: 'SKULL',
+    arcana: 'ARCANA II',
+    description: 'James March brinda no salão nobre com o mais refinado destilado escocês.',
+    rewardText: '2 DOSES DE RED LABEL POR R$ 60',
+    rewardCodePrefix: 'RED60',
+    discountType: 'PRICE',
+    value: 'R$ 60,00'
+  },
+  {
+    id: 'card-jackdaniels-35',
+    name: "1 DOSE DE JACK DANIEL'S POR R$ 35",
+    title: 'TENNESSEE OBSCURO',
+    symbol: 'EYE',
+    arcana: 'ARCANA III',
+    description: 'As sombras revelam a lendária dose âmbar das noites proibidas do Cortez.',
+    rewardText: "1 DOSE DE JACK DANIEL'S POR R$ 35",
+    rewardCodePrefix: 'JACK35',
+    discountType: 'PRICE',
+    value: 'R$ 35,00'
+  },
+  {
+    id: 'card-doublerosh-40',
+    name: 'DOUBLE ROSH POR R$ 40',
+    title: 'NÉVOA MÍSTICA',
+    symbol: 'FLAME',
+    arcana: 'ARCANA IV',
+    description: 'A névoa ancestral invade o lounge com o dobro da essência e do vapor.',
+    rewardText: 'DOUBLE ROSH POR R$ 40',
+    rewardCodePrefix: 'ROSH40',
+    discountType: 'PRICE',
+    value: 'R$ 40,00'
+  },
+  {
+    id: 'card-smirnoff-50',
+    name: '2 DOSES DE SMIRNOFF POR R$ 50',
+    title: 'PUREZA GÉLIDA',
+    symbol: 'MOON',
+    arcana: 'ARCANA V',
+    description: 'Um ritual de vodka destilada dez vezes para purificar o seu espírito na pista.',
+    rewardText: '2 DOSES DE SMIRNOFF POR R$ 50',
+    rewardCodePrefix: 'SMIR50',
+    discountType: 'PRICE',
+    value: 'R$ 50,00'
+  },
+  {
+    id: 'card-caipirinha-50',
+    name: '3 CAIPIRINHAS POR R$ 50',
+    title: 'TRINDADE TROPICAL',
+    symbol: 'CHALICE',
+    arcana: 'ARCANA VI',
+    description: 'O caldeirão das bruxas ferve a tríade perfeita de frutas e limão para você.',
+    rewardText: '3 CAIPIRINHAS POR R$ 50',
+    rewardCodePrefix: 'CAIP50',
+    discountType: 'PRICE',
+    value: 'R$ 50,00'
+  },
+  {
+    id: 'card-maracujack-55',
+    name: '2 MARACUJACK POR R$ 55',
+    title: 'JACK & MARACUJÁ DUPLO',
+    symbol: 'RAVEN',
+    arcana: 'ARCANA VII',
+    description: "Jack Daniel's casado com o fruto da paixão em dose dupla para curtir a noite.",
+    rewardText: '2 MARACUJACK POR R$ 55',
+    rewardCodePrefix: 'MJACK55',
+    discountType: 'PRICE',
+    value: 'R$ 55,00'
+  },
+  {
+    id: 'card-maracujack-30',
+    name: '1 MARACUJACK POR R$ 30',
+    title: 'O TOQUE DOURADO',
+    symbol: 'EYE',
+    arcana: 'ARCANA VIII',
+    description: 'Refrescante, marcante e intenso: o drink assinatura do baile em valor especial.',
+    rewardText: '1 MARACUJACK POR R$ 30',
+    rewardCodePrefix: 'MJACK30',
+    discountType: 'PRICE',
+    value: 'R$ 30,00'
+  }
+];
+
+function shuffleDeck<T>(array: T[], count = 6): T[] {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
+
+const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+
 export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => {
-  const [cards, setCards] = useState<OracleCard[]>([]);
+  const [cards, setCards] = useState<OracleCard[]>(() => shuffleDeck(DEFAULT_ORACLE_CARDS, 6));
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [revealedCard, setRevealedCard] = useState<OracleCard | null>(null);
   const [isFlipping, setIsFlipping] = useState<boolean>(false);
@@ -22,11 +132,29 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
   const [claimedCoupon, setClaimedCoupon] = useState<Coupon | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
-  useEffect(() => {
+  const loadCards = () => {
     fetch('/api/oracle/cards')
       .then(res => res.json())
-      .then(data => setCards(data))
-      .catch(() => {});
+      .then((data: OracleCard[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCards(shuffleDeck(data, 6));
+        } else {
+          setCards(shuffleDeck(DEFAULT_ORACLE_CARDS, 6));
+        }
+      })
+      .catch(() => {
+        setCards(shuffleDeck(DEFAULT_ORACLE_CARDS, 6));
+      });
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedCardId(null);
+      setRevealedCard(null);
+      setIsFlipping(false);
+      setErrorMsg(null);
+      loadCards();
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -42,10 +170,10 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
       setRevealedCard(card);
       setIsFlipping(false);
       confetti({
-        particleCount: 40,
-        spread: 50,
+        particleCount: 45,
+        spread: 60,
         origin: { y: 0.5 },
-        colors: ['#a855f7', '#d97706', '#dc2626']
+        colors: ['#a855f7', '#d97706', '#dc2626', '#34d399']
       });
     }, 600);
   };
@@ -75,7 +203,6 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
       const data = await res.json();
       if (!res.ok) {
         if (data.coupon) {
-          // Already claimed, show existing
           setClaimedCoupon(data.coupon);
           const qr = await QRCode.toDataURL(data.coupon.token, { width: 180, margin: 1 });
           setQrCodeDataUrl(qr);
@@ -98,13 +225,13 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#0d0716] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+      <div className="relative w-full max-w-4xl bg-[#0d0716] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#3b0764] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <PixelCardIcon size={20} color="#c084fc" />
-            <h2 className="font-pixel text-sm sm:text-base font-bold text-[#d8b4fe] tracking-wider">
+            <h2 className="font-pixel text-xs sm:text-base font-bold text-[#d8b4fe] tracking-wider">
               ORÁCULO DO HOTEL CORTEZ
             </h2>
           </div>
@@ -113,7 +240,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
               audioManager.playClick();
               onClose();
             }}
-            className="p-1 hover:bg-[#2e1065] text-[#d8b4fe] cursor-pointer"
+            className="p-1 hover:bg-[#2e1065] text-[#d8b4fe] cursor-pointer transition-colors"
             aria-label="Fechar"
           >
             <PixelClose size={18} />
@@ -122,7 +249,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
 
         {claimedCoupon ? (
           /* Claimed Reward Coupon */
-          <div className="space-y-4 text-center">
+          <div className="space-y-4 text-center max-w-xl mx-auto">
             <div className="bg-[#1b0d2d] border-2 border-[#d97706] p-4 sm:p-5 shadow-[0_0_20px_rgba(217,119,6,0.4)]">
               <span className="font-pixel text-[10px] sm:text-[11px] text-[#fbbf24] uppercase tracking-widest block mb-1 font-bold">
                 ★ RECOMPENSA RESGATADA ★
@@ -160,47 +287,62 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
             </button>
           </div>
         ) : !revealedCard ? (
-          /* Step 1: Pick a Tarot Card */
+          /* Step 1: Pick a Tarot Card (6 Shuffled Cards) */
           <div className="space-y-4 text-center">
-            <p className="font-mono text-xs sm:text-sm text-[#d8b4fe] leading-relaxed">
-              As sombras do Cortez guardam bênçãos e maldições. Escolha uma das 3 cartas arcanas para revelar sua oferenda da noite:
-            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
+              <p className="font-mono text-xs sm:text-sm text-[#d8b4fe] leading-relaxed text-center sm:text-left">
+                As sombras do Cortez guardam bênçãos e oferendas. Escolha uma das <strong>6 cartas arcanas embaralhadas</strong> para revelar sua sorte da noite:
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  audioManager.playClick();
+                  setCards(shuffleDeck(DEFAULT_ORACLE_CARDS, 6));
+                }}
+                className="shrink-0 font-pixel text-[9px] text-[#c084fc] hover:text-[#fde047] border border-[#7e22ce] hover:border-[#f59e0b] px-2.5 py-1 bg-[#1e0a35] transition-colors cursor-pointer"
+                title="Embaralhar as cartas novamente"
+              >
+                🔀 RE-EMBARALHAR
+              </button>
+            </div>
 
-            <div className="grid grid-cols-3 gap-3 py-3">
-              {(cards.length > 0 ? cards.slice(0, 3) : [
-                { id: '1', title: 'ARCANA I', symbol: 'SKULL' },
-                { id: '2', title: 'ARCANA II', symbol: 'EYE' },
-                { id: '3', title: 'ARCANA III', symbol: 'CHALICE' }
-              ]).map((c: any, index) => (
+            {/* 6 Shuffled Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3 py-2">
+              {cards.slice(0, 6).map((c, index) => (
                 <div
                   key={c.id || index}
                   onClick={() => handleCardClick(c)}
-                  className={`group cursor-pointer relative h-40 bg-[#1e0a35] border-2 border-[#7e22ce] p-2 flex flex-col items-center justify-between transition-all duration-300 hover:border-[#f59e0b] hover:shadow-[0_0_15px_rgba(245,158,11,0.5)] ${
-                    isFlipping && selectedCardId === c.id ? 'scale-110 rotate-6 border-[#f59e0b]' : ''
+                  className={`group cursor-pointer relative h-44 sm:h-52 bg-[#19092d] border-2 border-[#7e22ce] p-2 flex flex-col items-center justify-between transition-all duration-300 hover:border-[#f59e0b] hover:shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:-translate-y-1 ${
+                    isFlipping && selectedCardId === c.id ? 'scale-105 rotate-3 border-[#f59e0b]' : ''
                   }`}
                 >
-                  <div className="w-full h-2 bg-[#581c87] border-b border-[#a855f7]"></div>
+                  <div className="w-full flex items-center justify-between border-b border-[#581c87] pb-1">
+                    <span className="font-pixel text-[8px] text-[#a855f7]">ARCANA</span>
+                    <span className="font-pixel text-[9px] text-[#fef08a] font-bold">{ROMAN_NUMERALS[index] || `0${index + 1}`}</span>
+                  </div>
                   
                   {/* Occult Pixel Back Emblem */}
-                  <div className="w-14 h-18 bg-[#130623] border border-[#a855f7] flex flex-col items-center justify-center gap-1">
-                    <span className="font-pixel text-[14px] text-[#e9d5ff]">✦</span>
-                    <span className="font-pixel text-[9px] text-[#c084fc]">CORTEZ</span>
+                  <div className="w-12 h-20 sm:w-14 sm:h-24 bg-[#110520] border border-[#9333ea] group-hover:border-[#f59e0b] flex flex-col items-center justify-center gap-1.5 shadow-inner transition-colors">
+                    <span className="font-pixel text-base text-[#e9d5ff] group-hover:text-[#fde047] transition-colors">✦</span>
+                    <div className="w-6 h-px bg-[#7e22ce] group-hover:bg-[#f59e0b]"></div>
+                    <span className="font-pixel text-[8px] tracking-wider text-[#c084fc]">CORTEZ</span>
                   </div>
 
-                  <span className="font-pixel text-[9px] sm:text-[10px] text-[#e9d5ff] group-hover:text-[#fde047] font-bold">
+                  <span className="font-pixel text-[9px] text-[#e9d5ff] group-hover:text-[#fde047] font-bold tracking-wider">
                     ESCOLHER
                   </span>
                 </div>
               ))}
             </div>
 
-            <div className="text-xs font-mono text-[#9ca3af] border-t border-[#2d124d] pt-2">
-              Regra: 1 carta e cupom por número de telefone por evento.
+            <div className="text-xs font-mono text-[#9ca3af] border-t border-[#2d124d] pt-2 flex flex-col sm:flex-row items-center justify-between gap-1">
+              <span>★ 6 cartas embaralhadas a cada rodada</span>
+              <span>Regra: 1 cupom por número de telefone</span>
             </div>
           </div>
         ) : (
           /* Step 2: Revealed Reward + Claim Form */
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-xl mx-auto">
             <div className="bg-[#1c0c2e] border-2 border-[#a855f7] p-4 text-center">
               <span className="font-pixel text-[10px] sm:text-[11px] text-[#f43f5e] uppercase tracking-widest block mb-1 font-bold">
                 VOCÊ FOI ESCOLHIDO PELO DESTINO
@@ -214,7 +356,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
 
               <div className="bg-[#2d1047] border border-[#c084fc] p-3 text-center">
                 <span className="text-xs text-[#d8b4fe] block font-mono">SEU PRÊMIO REVELADO:</span>
-                <span className="font-pixel text-sm sm:text-base text-[#34d399] font-bold block mt-1">
+                <span className="font-pixel text-base sm:text-lg text-[#34d399] font-bold block mt-1">
                   {revealedCard.rewardText}
                 </span>
               </div>
