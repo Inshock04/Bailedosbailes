@@ -25,6 +25,8 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
     let animationFrameId: number;
     let width = (canvas.width = canvas.parentElement?.clientWidth || 220);
     let height = (canvas.height = canvas.parentElement?.clientHeight || 120);
@@ -51,7 +53,8 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
     ];
 
     const particles: Particle[] = [];
-    const maxParticles = 22;
+    // Mobile: 8 particles. Desktop: 22 particles
+    const maxParticles = isMobile ? 8 : 22;
 
     const createParticle = (initialRandomY = false): Particle => {
       const colorBase = smokeColors[Math.floor(Math.random() * smokeColors.length)];
@@ -76,7 +79,17 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
       particles.push(createParticle(true));
     }
 
-    const render = () => {
+    // Mobile: throttle to ~30fps
+    let lastFrame = 0;
+    const frameBudget = isMobile ? 33 : 0;
+
+    const render = (timestamp: number = 0) => {
+      if (isMobile && timestamp - lastFrame < frameBudget) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+      lastFrame = timestamp;
+
       ctx.clearRect(0, 0, width, height);
 
       // Add gentle bottom gradient baseline
@@ -141,7 +154,7 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
     <canvas
       ref={canvasRef}
       className={`pointer-events-none select-none ${className}`}
-      style={{ filter: 'blur(1px)' }}
+      style={{ filter: window.matchMedia('(max-width: 768px)').matches ? 'none' : 'blur(1px)' }}
     />
   );
 };

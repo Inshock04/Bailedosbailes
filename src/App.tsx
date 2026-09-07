@@ -468,9 +468,7 @@ export default function App() {
                     <span className="font-pixel text-[12px] sm:text-[13px] text-[#86efac] tracking-wider uppercase font-bold">
                       ATENDIMENTO
                     </span>
-                    <span className="font-mono text-[12px] sm:text-[13px] text-[#4ade80]">
-                      CANAIS OFICIAIS
-                    </span>
+
                   </div>
                   <OfficialSocialButtons />
                 </div>
