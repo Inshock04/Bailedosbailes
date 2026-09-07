@@ -74,7 +74,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
+    <div className="fixed inset-0 z-[120] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto mb-20 sm:mb-auto">
         
         {/* Modal Header */}
@@ -216,20 +216,20 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           </div>
 
           {/* 4. Total & Botão Oficial WhatsApp */}
-          <div className="pt-3 border-t-2 border-[#381622] flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div>
-              <span className="text-xs text-[#9ca3af] block font-mono">VALOR TOTAL</span>
-              <span className="font-pixel text-lg sm:text-xl text-[#22c55e] font-bold">
+          <div className="pt-3 border-t-2 border-[#381622] flex flex-row items-center justify-between gap-2 sm:gap-3">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs text-[#9ca3af] block font-mono">VALOR TOTAL</span>
+              <span className="font-pixel text-base sm:text-xl text-[#22c55e] font-bold">
                 R$ {totalPrice.toFixed(2)}
               </span>
             </div>
 
             <button
               type="submit"
-              className="w-full sm:w-auto pixel-btn bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white px-6 py-3.5 font-pixel text-[13px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 border-2 border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer transition-all"
+              className="flex-1 sm:flex-none pixel-btn bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white px-3 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[10px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-1.5 sm:gap-2 border-2 border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer transition-all whitespace-nowrap"
             >
-              <WhatsAppIcon className="text-white" size={18} />
-              <span>GARANTIR NO WHATSAPP OFICIAL</span>
+              <WhatsAppIcon className="text-white" size={16} />
+              <span>GARANTIR NO WHATSAPP</span>
             </button>
           </div>
 
