@@ -3,6 +3,12 @@ import React, { useEffect, useRef } from 'react';
 export const DenseAtmosphericFog: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+  if (isMobile) {
+    return null;
+  }
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;

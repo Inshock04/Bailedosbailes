@@ -128,21 +128,21 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
 
   const circusSrc = circusSceneryWebp || circusScenery;
   const hotelSrc = theTriplexHotelSceneryWebp || theTriplexHotelScenery;
-  const imageClassName = isMobile ? 'object-contain' : 'object-cover';
+  const imageClassName = isMobile ? 'object-cover' : 'object-cover';
   const mobileImageStyle = isMobile
     ? currentScene === 'hotel'
       ? {
           width: '100%',
           height: '100%',
           objectPosition: 'center 18%',
-          transform: 'scale(1.02)',
+          transform: 'scale(1.06)',
           transformOrigin: 'center center',
         }
       : {
           width: '100%',
           height: '100%',
           objectPosition: 'center center',
-          transform: 'scale(1.01)',
+          transform: 'scale(1.03)',
           transformOrigin: 'center center',
         }
     : undefined;
