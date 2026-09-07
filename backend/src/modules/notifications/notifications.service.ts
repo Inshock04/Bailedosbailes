@@ -54,7 +54,7 @@ export class NotificationsService {
 
         <div style="font-size: 12px; color: #9ca3af; text-align: center; border-top: 1px solid #2d1222; padding-top: 15px;">
           <p>Local: Hotel Cortez / Palacete Histórico • Av. Paulista, 1000 - São Paulo, SP</p>
-          <p>Data: 31 de Outubro de 2026 • 22:00 às 06:00 | Classificação: 18 anos</p>
+          <p>Data: 31 de Outubro de 2026 • 21:00 às 06:00 | Classificação: 18 anos</p>
         </div>
       </div>
     `;

@@ -17,13 +17,29 @@
     background-color: #07050d;
     color: #f0e6d2;
     font-family: 'American Horror Story', sans-serif;
-    image-rendering: pixelated;
   }
 
   @media (pointer: fine) {
     body, a, button, input, select, textarea, [role="button"], .cursor-pointer {
       cursor: none !important;
     }
+  }
+}
+
+/* Only apply pixelated rendering to the actual pixel art scenery image */
+.image-pixelated {
+  image-rendering: pixelated;
+}
+
+/* GPU layer promotion for animated elements on mobile */
+@media (max-width: 768px) {
+  canvas {
+    will-change: contents;
+    contain: strict;
+  }
+
+  .fixed.pointer-events-none {
+    contain: layout style;
   }
 }
 

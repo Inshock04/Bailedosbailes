@@ -141,13 +141,13 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
             {/* ========================================================================= */}
 
             {/* A. Iluminação Quente do Letreiro e Tenda "CIRCO" (Lado Direito) */}
-            <div className="circo-sign-glow absolute top-[48%] right-[2%] sm:right-[6%] w-72 sm:w-96 h-48 sm:h-64 rounded-full bg-radial from-[#f59e0b]/40 via-[#b45309]/20 to-transparent blur-2xl pointer-events-none"></div>
+            <div className={`circo-sign-glow absolute top-[48%] right-[2%] sm:right-[6%] w-72 sm:w-96 h-48 sm:h-64 rounded-full bg-radial from-[#f59e0b]/40 via-[#b45309]/20 to-transparent ${isMobile ? 'blur-md' : 'blur-2xl'} pointer-events-none`}></div>
 
             {/* B. Ponto de Luz Âmbar no topo do Estande CIRCO */}
-            <div className="circus-bulb-glow absolute top-[52%] right-[10%] sm:right-[14%] w-24 h-24 rounded-full bg-radial from-[#ffffff]/70 via-[#fde047]/35 to-transparent blur-lg pointer-events-none"></div>
+            <div className={`circus-bulb-glow absolute top-[52%] right-[10%] sm:right-[14%] w-24 h-24 rounded-full bg-radial from-[#ffffff]/70 via-[#fde047]/35 to-transparent ${isMobile ? 'blur-sm' : 'blur-lg'} pointer-events-none`}></div>
 
             {/* C. Varal de Luzes Suspensas (Cordão Central) */}
-            <div className="circus-bulb-glow absolute top-[30%] left-[34%] -translate-x-1/2 w-32 h-32 rounded-full bg-radial from-[#fef08a]/50 via-[#eab308]/20 to-transparent blur-xl pointer-events-none"></div>
+            <div className={`circus-bulb-glow absolute top-[30%] left-[34%] -translate-x-1/2 w-32 h-32 rounded-full bg-radial from-[#fef08a]/50 via-[#eab308]/20 to-transparent ${isMobile ? 'blur-md' : 'blur-xl'} pointer-events-none`}></div>
             {!isMobile && (
               <>
                 <div className="circus-bulb-glow absolute top-[42%] left-[48%] -translate-x-1/2 w-40 h-40 rounded-full bg-radial from-[#fef08a]/45 via-[#eab308]/15 to-transparent blur-xl pointer-events-none"></div>
@@ -156,7 +156,7 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
             )}
 
             {/* D. Máscaras dos Palhaços das Tendas Listradas (Aura Vermelha Sinistra) */}
-            <div className="clown-aura-glow absolute top-[32%] left-[12%] sm:left-[14%] w-44 sm:w-56 h-44 sm:h-56 rounded-full bg-radial from-[#ef4444]/35 via-[#991b1b]/15 to-transparent blur-2xl pointer-events-none"></div>
+            <div className={`clown-aura-glow absolute top-[32%] left-[12%] sm:left-[14%] w-44 sm:w-56 h-44 sm:h-56 rounded-full bg-radial from-[#ef4444]/35 via-[#991b1b]/15 to-transparent ${isMobile ? 'blur-md' : 'blur-2xl'} pointer-events-none`}></div>
             {!isMobile && (
               <div className="clown-aura-glow absolute top-[46%] left-[32%] sm:left-[34%] w-36 sm:w-44 h-36 sm:h-44 rounded-full bg-radial from-[#ef4444]/30 via-[#991b1b]/10 to-transparent blur-2xl pointer-events-none"></div>
             )}
@@ -176,10 +176,10 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
             {/* ILUMINAÇÃO DO HOTEL CORTEZ / THE TRIPLEX */}
             {/* ========================================================================= */}
             <div className="absolute top-[8%] left-[18%] sm:left-[22%] -translate-x-1/2 -translate-y-1/2 w-48 sm:w-72 h-48 sm:h-72 pointer-events-none">
-              <div className="celestial-moon-glow absolute inset-0 rounded-full bg-radial from-[#fef08a]/45 via-[#f59e0b]/20 to-transparent blur-2xl"></div>
-              <div className="absolute inset-8 rounded-full bg-radial from-[#ffffff]/70 via-[#fef9c3]/40 to-transparent blur-md"></div>
+              <div className={`celestial-moon-glow absolute inset-0 rounded-full bg-radial from-[#fef08a]/45 via-[#f59e0b]/20 to-transparent ${isMobile ? 'blur-md' : 'blur-2xl'}`}></div>
+              <div className={`absolute inset-8 rounded-full bg-radial from-[#ffffff]/70 via-[#fef9c3]/40 to-transparent ${isMobile ? 'blur-sm' : 'blur-md'}`}></div>
             </div>
-            <div className="hotel-rgb-red absolute top-[18%] left-[45%] sm:left-[48%] -translate-x-1/2 w-72 sm:w-96 h-28 bg-radial from-[#ef4444]/40 via-[#b91c1c]/20 to-transparent blur-xl pointer-events-none"></div>
+            <div className={`hotel-rgb-red absolute top-[18%] left-[45%] sm:left-[48%] -translate-x-1/2 w-72 sm:w-96 h-28 bg-radial from-[#ef4444]/40 via-[#b91c1c]/20 to-transparent ${isMobile ? 'blur-md' : 'blur-xl'} pointer-events-none`}></div>
             {!isMobile && (
               <>
                 <div className="hotel-rgb-amber absolute top-[36%] left-[46%] -translate-x-1/2 w-[60vw] sm:w-[35vw] h-48 bg-radial from-[#f59e0b]/35 via-[#d97706]/15 to-transparent blur-2xl pointer-events-none"></div>

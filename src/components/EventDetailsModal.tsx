@@ -24,7 +24,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 O EVENTO • HOTEL CORTEZ HALLOWEEN
               </h2>
               <span className="font-mono text-xs text-[#fbbf24]">
-                31 de Outubro de 2026 • THE TRIPLEX • 20:00 às 06:00
+                31 de Outubro de 2026 • THE TRIPLEX • 21:00 às 06:00
               </span>
             </div>
           </div>
@@ -119,7 +119,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
 
             <div className="bg-[#140a1c] border border-[#3b1747] p-3.5 space-y-2 text-xs sm:text-sm">
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#f59e0b] font-bold">20:00</span>
+                <span className="font-pixel text-xs text-[#f59e0b] font-bold">21:00</span>
                 <span className="text-[#f3edf9]">Início do rolê e abertura da noite</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">

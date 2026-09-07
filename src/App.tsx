@@ -60,7 +60,7 @@ export default function App() {
   const [isCardMinimized, setIsCardMinimized] = useState<boolean>(false);
   const [currentScene, setCurrentScene] = useState<'circus' | 'hotel'>('circus');
 
-  // Real-Time Countdown to October 31, 2026, 22:00
+  // Real-Time Countdown to October 31, 2026, 21:00
   const [timeLeft, setTimeLeft] = useState({
     days: 28,
     hours: 14,
@@ -139,7 +139,7 @@ export default function App() {
   }, { scope: containerRef });
 
   useEffect(() => {
-    const targetDate = new Date('2026-10-31T22:00:00-03:00').getTime();
+    const targetDate = new Date('2026-10-31T21:00:00-03:00').getTime();
 
     const updateCountdown = () => {
       const now = new Date().getTime();

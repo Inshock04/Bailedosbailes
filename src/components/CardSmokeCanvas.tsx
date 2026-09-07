@@ -53,8 +53,8 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
     ];
 
     const particles: Particle[] = [];
-    // Mobile: 8 particles. Desktop: 22 particles
-    const maxParticles = isMobile ? 8 : 22;
+    // Mobile: 4 particles. Desktop: 22 particles
+    const maxParticles = isMobile ? 4 : 22;
 
     const createParticle = (initialRandomY = false): Particle => {
       const colorBase = smokeColors[Math.floor(Math.random() * smokeColors.length)];
@@ -81,7 +81,7 @@ export const CardSmokeCanvas: React.FC<{ className?: string }> = ({ className = 
 
     // Mobile: throttle to ~30fps
     let lastFrame = 0;
-    const frameBudget = isMobile ? 33 : 0;
+    const frameBudget = isMobile ? 50 : 0;
 
     const render = (timestamp: number = 0) => {
       if (isMobile && timestamp - lastFrame < frameBudget) {

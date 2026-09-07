@@ -288,8 +288,8 @@ app.get('/api/event', (_req: Request, res: Response) => {
     subtitle: 'AMERICAN HORROR STORY',
     tagline: 'UMA NOITE. SEIS HISTÓRIAS. INFINITAS MEMÓRIAS.',
     date: '31 DE OUTUBRO DE 2026',
-    isoDate: '2026-10-31T22:00:00-03:00',
-    time: '22:00 ÀS 06:00',
+    isoDate: '2026-10-31T21:00:00-03:00',
+    time: '21:00 ÀS 06:00',
     location: 'THE TRIPLEX',
     address: 'THE TRIPLEX • Rua Manoel Castilho, 201 - Itaim Paulista, São Paulo - SP',
     description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',
@@ -310,7 +310,7 @@ app.get('/api/tickets', (_req: Request, res: Response) => {
 
 app.post('/api/tickets/purchase', publicWriteLimiter, (_req: Request, res: Response) => {
   return res.status(400).json({
-    error: 'Simulações de pagamento no site foram removidas. Para adquirir seu ingresso oficial com total segurança e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
+    error: 'Para adquirir seu ingresso oficial e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
     whatsappUrl: 'https://wa.me/5511943963952'
   });
 });

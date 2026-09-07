@@ -11,8 +11,8 @@ export const DenseAtmosphericFog: React.FC = () => {
     if (!ctx) return;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    // On mobile, use half-resolution canvas for better GPU perf
-    const dpr = isMobile ? 0.5 : 1;
+    // On mobile, use quarter-resolution canvas for better GPU perf
+    const dpr = isMobile ? 0.35 : 1;
 
     let animationFrameId: number;
     let width = (canvas.width = Math.round(window.innerWidth * dpr));
@@ -47,9 +47,9 @@ export const DenseAtmosphericFog: React.FC = () => {
     }
 
     const fogClouds: FogCloud[] = [];
-    // Mobile: ~12 particles. Desktop: ~24-38 particles
+    // Mobile: 6 particles. Desktop: ~24-38 particles
     const count = isMobile
-      ? Math.min(12, Math.max(8, Math.floor(window.innerWidth / 80)))
+      ? 6
       : Math.min(38, Math.max(24, Math.floor(window.innerWidth / 35)));
 
     const fogColors = [
@@ -118,7 +118,7 @@ export const DenseAtmosphericFog: React.FC = () => {
     let time = 0;
     // Mobile: throttle to ~30fps instead of 60fps
     let lastFrame = 0;
-    const frameBudget = isMobile ? 33 : 0; // ~30fps on mobile
+    const frameBudget = isMobile ? 50 : 0; // ~20fps on mobile
 
     const render = (timestamp: number = 0) => {
       // Frame throttling on mobile
