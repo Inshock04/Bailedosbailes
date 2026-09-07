@@ -12,7 +12,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#0c120a] border-2 border-[#65a30d] shadow-[0_0_35px_rgba(101,163,13,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         
         {/* Header */}

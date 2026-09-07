@@ -9,7 +9,7 @@ export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#3b0764] pb-3 mb-4">
           <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#d97706] shadow-[0_0_35px_rgba(217,119,6,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#451a03] pb-3 mb-4">
           <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-lg bg-[#0e0a17] border-2 border-[#ef4444] shadow-[0_0_35px_rgba(239,68,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#450a0a] pb-3 mb-4">
           <div className="flex items-center gap-2">

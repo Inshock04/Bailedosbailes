@@ -11,7 +11,7 @@ export const DressCodeModal: React.FC<DressCodeModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#100818] border-2 border-[#a855f7] shadow-[0_0_35px_rgba(168,85,247,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         
         {/* Header */}

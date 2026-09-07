@@ -238,7 +238,7 @@ export default function App() {
   return (
     <div 
       ref={containerRef}
-      className={`min-h-screen w-full bg-[#05030a] text-[#eae5f5] relative overflow-x-hidden flex ${isCrtOn ? 'crt-overlay' : ''}`}
+      className={`min-h-[100dvh] w-full bg-[#05030a] text-[#eae5f5] relative overflow-x-hidden flex ${isCrtOn ? 'crt-overlay' : ''}`}
     >
       {/* Custom Pixel Art Skeleton / Horror Dagger Cursor */}
       <CustomCursor />
@@ -257,7 +257,7 @@ export default function App() {
       {/* ========================================================================= */}
       {/* 3. NAVIGATION BAR: BOTTOM ON MOBILE / LEFT SIDEBAR ON DESKTOP */}
       {/* ========================================================================= */}
-      <div className="fixed bottom-2 sm:bottom-3 inset-x-0 z-[100] pointer-events-none flex justify-center items-center px-3 sm:px-2 md:inset-x-auto md:left-3 md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:block" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="fixed bottom-2 sm:bottom-3 inset-x-0 z-[110] pointer-events-none flex justify-center items-center px-3 sm:px-2 md:inset-x-auto md:left-3 md:top-1/2 md:-translate-y-1/2 md:bottom-auto md:block" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <nav 
           ref={leftSidebarRef}
           aria-label="Menu de Navegação Vermelho Brilhoso"
