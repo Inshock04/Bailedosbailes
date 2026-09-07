@@ -1,24 +1,32 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const DenseAtmosphericFog: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-
-  if (isMobile) {
-    return null;
-  }
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 768px)').matches);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const handleChange = () => setIsMobile(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    // On mobile, use quarter-resolution canvas for better GPU perf
-    const dpr = isMobile ? 0.35 : 1;
+    const dpr = 1;
 
     let animationFrameId: number;
     let width = (canvas.width = Math.round(window.innerWidth * dpr));
@@ -215,7 +223,11 @@ export const DenseAtmosphericFog: React.FC = () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <div className="hidden md:block fixed inset-0 pointer-events-none z-20 overflow-hidden select-none">
