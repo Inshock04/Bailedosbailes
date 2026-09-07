@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PixelClose, 
-  PixelSkull, 
-  PixelCheck, 
-  PixelTicketIcon, 
-  PixelCardIcon, 
-  PixelChart, 
-  PixelEye, 
+import {
+  PixelClose,
+  PixelSkull,
+  PixelCheck,
+  PixelTicketIcon,
+  PixelCardIcon,
+  PixelChart,
+  PixelEye,
   PixelWarning,
   PixelKey
 } from './PixelIcons';
@@ -105,10 +105,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          login: cleanLogin, 
-          username: cleanLogin, 
-          password: cleanPass 
+        body: JSON.stringify({
+          login: cleanLogin,
+          username: cleanLogin,
+          password: cleanPass
         })
       });
 
@@ -139,7 +139,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       fetch('/api/admin/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${adminToken}` }
-      }).catch(() => {});
+      }).catch(() => { });
     }
     setAdminToken('');
     sessionStorage.removeItem('cortez_admin_key');
@@ -170,7 +170,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     try {
       const res = await fetch('/api/checkin/verify', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
@@ -203,7 +203,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     try {
       const res = await fetch('/api/checkin/confirm', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
@@ -382,7 +382,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xs overflow-y-auto">
       <div className="relative w-full max-w-4xl bg-[#090510] border-2 border-[#ef4444] shadow-[0_0_40px_rgba(239,68,68,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto max-h-[92vh] flex flex-col">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#5c1322] pb-3 mb-3">
           <div className="flex items-center gap-2">
@@ -396,7 +396,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
               </span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {adminToken && (
               <>
@@ -406,7 +406,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   title="Ocultar ou exibir tokens reais"
                   className="px-2 py-1 bg-[#1a0b1f] hover:bg-[#2d1038] border border-[#a855f7] text-[#e9d5ff] font-pixel text-[10px] cursor-pointer"
                 >
-                  {showTokens ? '🔒 MASCARAR' : '👁️ REVELAR'}
+                  {showTokens ? 'MASCARAR' : 'REVELAR'}
                 </button>
                 <button
                   type="button"
@@ -500,38 +500,34 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             <div className="flex flex-wrap gap-1.5 border-b border-[#2d1222] pb-2 mb-4 font-pixel text-[10px] sm:text-[11px]">
               <button
                 onClick={() => { audioManager.playClick(); setActiveTab('TICKETS'); }}
-                className={`px-3.5 py-1.5 border flex items-center gap-1.5 ${
-                  activeTab === 'TICKETS' 
-                    ? 'bg-[#7e22ce] border-[#c084fc] text-white shadow-[0_0_12px_rgba(168,85,247,0.6)] font-bold' 
+                className={`px-3.5 py-1.5 border flex items-center gap-1.5 ${activeTab === 'TICKETS'
+                    ? 'bg-[#7e22ce] border-[#c084fc] text-white shadow-[0_0_12px_rgba(168,85,247,0.6)] font-bold'
                     : 'bg-[#160812] border-[#381420] text-gray-300 hover:text-white hover:border-[#a855f7]'
-                }`}
+                  }`}
               >
                 <PixelTicketIcon size={13} />
                 <span>INSERIR DADOS DOS USUÁRIOS ({metrics?.purchasedTickets?.length || 0})</span>
               </button>
               <button
                 onClick={() => { audioManager.playClick(); setActiveTab('CHECKIN'); }}
-                className={`px-3 py-1.5 border flex items-center gap-1 ${
-                  activeTab === 'CHECKIN' ? 'bg-[#047857] border-[#10b981] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
-                }`}
+                className={`px-3 py-1.5 border flex items-center gap-1 ${activeTab === 'CHECKIN' ? 'bg-[#047857] border-[#10b981] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
+                  }`}
               >
                 <PixelEye size={12} />
                 <span>SCANNER / CHECK-IN</span>
               </button>
               <button
                 onClick={() => { audioManager.playClick(); setActiveTab('METRICS'); }}
-                className={`px-3 py-1.5 border flex items-center gap-1 ${
-                  activeTab === 'METRICS' ? 'bg-[#991b1b] border-[#ef4444] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
-                }`}
+                className={`px-3 py-1.5 border flex items-center gap-1 ${activeTab === 'METRICS' ? 'bg-[#991b1b] border-[#ef4444] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
+                  }`}
               >
                 <PixelChart size={12} />
                 <span>MÉTRICAS & KPIS</span>
               </button>
               <button
                 onClick={() => { audioManager.playClick(); setActiveTab('COUPONS'); }}
-                className={`px-3 py-1.5 border flex items-center gap-1 ${
-                  activeTab === 'COUPONS' ? 'bg-[#4338ca] border-[#818cf8] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
-                }`}
+                className={`px-3 py-1.5 border flex items-center gap-1 ${activeTab === 'COUPONS' ? 'bg-[#4338ca] border-[#818cf8] text-white' : 'bg-[#160812] border-[#381420] text-gray-400'
+                  }`}
               >
                 <PixelCardIcon size={12} />
                 <span>CUPONS ORÁCULO ({metrics?.coupons?.length || 0})</span>
@@ -540,7 +536,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto pr-1">
-              
+
               {/* 1. METRICS & KPIS */}
               {activeTab === 'METRICS' && (
                 <div className="space-y-4">
@@ -611,11 +607,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <div className="bg-[#160a22] border-2 border-[#9333ea] p-4 space-y-3 font-mono text-xs sm:text-sm">
                       <div className="flex justify-between items-center border-b border-[#3b1754] pb-2">
                         <span className="font-pixel text-[12px] text-[#c084fc] uppercase">TIPO: {verifyResult.type}</span>
-                        <span className={`px-2 py-0.5 font-pixel text-[11px] font-bold ${
-                          verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN'
+                        <span className={`px-2 py-0.5 font-pixel text-[11px] font-bold ${verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN'
                             ? 'bg-[#7f1d1d] text-[#fca5a5]'
                             : 'bg-[#15803d] text-[#bbf7d0]'
-                        }`}>
+                          }`}>
                           STATUS: {verifyResult.data.status}
                         </span>
                       </div>
@@ -795,9 +790,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                     )}
                                   </td>
                                   <td className="p-2">
-                                    <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${
-                                      t.status === 'VALIDO' ? 'bg-[#064e3b] text-[#6ee7b7]' : 'bg-[#7f1d1d] text-[#fca5a5]'
-                                    }`}>
+                                    <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${t.status === 'VALIDO' ? 'bg-[#064e3b] text-[#6ee7b7]' : 'bg-[#7f1d1d] text-[#fca5a5]'
+                                      }`}>
                                       {t.status}
                                     </span>
                                   </td>
@@ -879,9 +873,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             <td className="p-2 text-white">{c.rewardTitle}</td>
                             <td className="p-2 text-gray-400">{c.userName || c.phone}</td>
                             <td className="p-2">
-                              <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${
-                                c.status === 'ATIVO' ? 'bg-[#065f46] text-[#a7f3d0]' : 'bg-[#7f1d1d] text-[#fca5a5]'
-                              }`}>
+                              <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${c.status === 'ATIVO' ? 'bg-[#065f46] text-[#a7f3d0]' : 'bg-[#7f1d1d] text-[#fca5a5]'
+                                }`}>
                                 {c.status}
                               </span>
                             </td>

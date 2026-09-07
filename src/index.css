@@ -13,10 +13,16 @@
     --font-ahs: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Bellefair', 'Cinzel Decorative', 'Marcellus', 'Cormorant SC', serif;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: #07050d;
     color: #f0e6d2;
     font-family: 'American Horror Story', sans-serif;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   @media (pointer: fine) {
@@ -342,15 +348,47 @@
 
 /* Smooth scrolling for overflow containers */
 .overflow-y-auto,
-.overflow-y-scroll {
+.overflow-y-scroll,
+.mobile-scroll-smooth {
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   scrollbar-width: thin;
 }
 
 /* Prevent horizontal overflow on mobile */
-@media (max-width: 639px) {
-  body {
+@media (max-width: 768px) {
+  html, body {
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.8) rgba(12, 6, 20, 0.4);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(12, 6, 20, 0.3);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.8);
+    border-radius: 9999px;
+  }
+
+  .fixed {
+    will-change: transform;
+    transform: translateZ(0);
   }
   
   /* Ensure images and elements don't overflow */

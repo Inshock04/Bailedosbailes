@@ -22,7 +22,18 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
-    setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+
+    const handleViewportChange = () => setIsMobile(mediaQuery.matches);
+    handleViewportChange();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
   }, []);
 
   useGSAP(() => {
@@ -117,6 +128,7 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
 
   const circusSrc = circusSceneryWebp || circusScenery;
   const hotelSrc = theTriplexHotelSceneryWebp || theTriplexHotelScenery;
+  const imageClassName = isMobile ? 'object-contain object-center' : 'object-cover object-center';
 
   return (
     <div ref={containerRef} className="fixed inset-0 w-full h-full overflow-hidden select-none pointer-events-none z-0">
@@ -131,7 +143,7 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
           loading="lazy"
           decoding="async"
           onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full object-cover object-center image-pixelated select-none transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full ${imageClassName} image-pixelated select-none transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />
 
         {currentScene === 'circus' ? (

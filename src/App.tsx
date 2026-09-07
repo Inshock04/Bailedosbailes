@@ -238,7 +238,7 @@ export default function App() {
   return (
     <div 
       ref={containerRef}
-      className={`min-h-screen w-full bg-[#05030a] text-[#eae5f5] relative overflow-hidden flex ${isCrtOn ? 'crt-overlay' : ''}`}
+      className={`min-h-screen w-full bg-[#05030a] text-[#eae5f5] relative overflow-x-hidden flex ${isCrtOn ? 'crt-overlay' : ''}`}
     >
       {/* Custom Pixel Art Skeleton / Horror Dagger Cursor */}
       <CustomCursor />
@@ -321,7 +321,7 @@ export default function App() {
           /* Responsive Horizontal Top Card (Mobile) / Compact Sidebar (Desktop) */
           <aside 
             ref={rightSidebarRef}
-            className="relative pointer-events-auto w-full max-w-[96vw] sm:max-w-[94vw] md:max-w-[305px] lg:max-w-[335px] bg-[#0c0614]/95 backdrop-blur-md border-2 border-[#361c4d] rounded-xl md:rounded-none shadow-[0_0_30px_rgba(0,0,0,0.95)] flex flex-col justify-between p-3 sm:p-3 md:p-3.5 my-0 md:my-auto max-h-[80vh] sm:max-h-[85vh] md:max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar select-none"
+            className="relative pointer-events-auto w-full max-w-[96vw] sm:max-w-[94vw] md:max-w-[305px] lg:max-w-[335px] bg-[#0c0614]/95 backdrop-blur-md border-2 border-[#361c4d] rounded-xl md:rounded-none shadow-[0_0_30px_rgba(0,0,0,0.95)] flex flex-col justify-between p-3 sm:p-3 md:p-3.5 my-0 md:my-auto max-h-[80vh] sm:max-h-[85vh] md:max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar select-none mobile-scroll-smooth"
           >
             {/* Atmospheric canvas smoke particles at the bottom of the card */}
             <CardSmokeCanvas className="absolute bottom-0 left-0 right-0 w-full h-20 sm:h-24 md:h-28 z-0 pointer-events-none opacity-85" />
@@ -338,13 +338,13 @@ export default function App() {
                     2026
                   </span>
                   <span className="hidden sm:inline-block font-mono text-[13px] sm:text-[14px] text-[#a855f7]">
-                    • 31 OUT • 22H
+                    • 31 OUT • 21H
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="text-[#ef4444] font-pixel text-[13px] sm:text-[14px] font-bold sm:hidden">
-                    31 OUT • 22H
+                    31 OUT • 21H
                   </span>
                   {/* Minimize toggle button */}
                   <button
