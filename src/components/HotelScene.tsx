@@ -128,10 +128,21 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
 
   const circusSrc = circusSceneryWebp || circusScenery;
   const hotelSrc = theTriplexHotelSceneryWebp || theTriplexHotelScenery;
-  const imageClassName = isMobile ? 'object-contain object-center' : 'object-cover object-center';
+  const imageClassName = isMobile ? 'object-cover' : 'object-cover';
+  const mobileImageStyle = isMobile
+    ? {
+        minWidth: '100%',
+        minHeight: '100%',
+        width: '120%',
+        height: '120%',
+        objectPosition: currentScene === 'hotel' ? 'center top' : 'center center',
+        transform: 'scale(1.7)',
+        transformOrigin: 'center center',
+      }
+    : undefined;
 
   return (
-    <div ref={containerRef} className="fixed inset-0 w-full h-full overflow-hidden select-none pointer-events-none z-0">
+    <div ref={containerRef} className="fixed inset-0 w-full h-[100dvh] min-h-[100dvh] overflow-hidden select-none pointer-events-none z-0">
       <div className="relative w-full h-full bg-[#05090c]">
         {/* ========================================================================= */}
         {/* 1. IMAGEM DO CENÁRIO COM RENDERIZAÇÃO PIXEL ART ADAPTADA */}
@@ -140,10 +151,11 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
           src={currentScene === 'circus' ? circusSrc : hotelSrc}
           alt={currentScene === 'circus' ? "Cenário Pixel Art Circo Macabro / Freak Show" : "The Triplex 2D Pixel Art Scenery"}
           referrerPolicy="no-referrer"
-          loading="lazy"
+          loading="eager"
           decoding="async"
           onLoad={() => setImageLoaded(true)}
-          className={`w-full h-full ${imageClassName} image-pixelated select-none transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 w-full h-full ${imageClassName} image-pixelated select-none transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          style={mobileImageStyle}
         />
 
         {currentScene === 'circus' ? (
