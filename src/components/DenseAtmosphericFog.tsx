@@ -31,9 +31,9 @@ export const DenseAtmosphericFog: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const viewportIsMobile = window.matchMedia('(max-width: 768px)').matches;
     // On mobile, use quarter-resolution canvas for better GPU perf
-    const dpr = isMobile ? 0.35 : 1;
+    const dpr = viewportIsMobile ? 0.35 : 1;
 
     let animationFrameId: number;
     let width = (canvas.width = Math.round(window.innerWidth * dpr));
@@ -69,7 +69,7 @@ export const DenseAtmosphericFog: React.FC = () => {
 
     const fogClouds: FogCloud[] = [];
     // Mobile: 6 particles. Desktop: ~24-38 particles
-    const count = isMobile
+    const count = viewportIsMobile
       ? 6
       : Math.min(38, Math.max(24, Math.floor(window.innerWidth / 35)));
 
@@ -90,7 +90,7 @@ export const DenseAtmosphericFog: React.FC = () => {
       let radius = Math.random() * 90 + 75;
       let maxAlpha = Math.random() * 0.28 + 0.16;
 
-      if (isMobile) {
+      if (viewportIsMobile) {
         // Mobile: slightly larger particles to compensate for fewer count
         radius *= 1.3;
         maxAlpha *= 0.8;
@@ -99,18 +99,18 @@ export const DenseAtmosphericFog: React.FC = () => {
       if (layer === 0) {
         // Heavy low street fog
         yBase = height * 0.72 + Math.random() * (height * 0.3);
-        radius = (Math.random() * 140 + 100) * (isMobile ? 1.2 : 1);
-        maxAlpha = (Math.random() * 0.35 + 0.22) * (isMobile ? 0.7 : 1);
+        radius = (Math.random() * 140 + 100) * (viewportIsMobile ? 1.2 : 1);
+        maxAlpha = (Math.random() * 0.35 + 0.22) * (viewportIsMobile ? 0.7 : 1);
       } else if (layer === 1) {
         // Mid hotel facade rolling fog
         yBase = height * 0.48 + Math.random() * (height * 0.35);
-        radius = (Math.random() * 110 + 85) * (isMobile ? 1.2 : 1);
-        maxAlpha = (Math.random() * 0.22 + 0.12) * (isMobile ? 0.7 : 1);
+        radius = (Math.random() * 110 + 85) * (viewportIsMobile ? 1.2 : 1);
+        maxAlpha = (Math.random() * 0.22 + 0.12) * (viewportIsMobile ? 0.7 : 1);
       } else {
         // High atmospheric wisps
         yBase = height * 0.25 + Math.random() * (height * 0.3);
-        radius = (Math.random() * 80 + 60) * (isMobile ? 1.2 : 1);
-        maxAlpha = (Math.random() * 0.15 + 0.08) * (isMobile ? 0.7 : 1);
+        radius = (Math.random() * 80 + 60) * (viewportIsMobile ? 1.2 : 1);
+        maxAlpha = (Math.random() * 0.15 + 0.08) * (viewportIsMobile ? 0.7 : 1);
       }
 
       const vx = Math.random() * 0.45 + 0.22; // Drift from left to right
@@ -119,7 +119,7 @@ export const DenseAtmosphericFog: React.FC = () => {
         x: initialSpread ? Math.random() * (width + 300) - 150 : -radius - 50,
         y: yBase + (Math.random() - 0.5) * 40,
         radius,
-        vx: vx * (isMobile ? 0.7 : 1),
+        vx: vx * (viewportIsMobile ? 0.7 : 1),
         vy: (Math.random() - 0.5) * 0.08,
         alpha: initialSpread ? Math.random() * maxAlpha : 0,
         maxAlpha,
@@ -139,11 +139,11 @@ export const DenseAtmosphericFog: React.FC = () => {
     let time = 0;
     // Mobile: throttle to ~30fps instead of 60fps
     let lastFrame = 0;
-    const frameBudget = isMobile ? 50 : 0; // ~20fps on mobile
+    const frameBudget = viewportIsMobile ? 50 : 0; // ~20fps on mobile
 
     const render = (timestamp: number = 0) => {
       // Frame throttling on mobile
-      if (isMobile && timestamp - lastFrame < frameBudget) {
+      if (viewportIsMobile && timestamp - lastFrame < frameBudget) {
         animationFrameId = requestAnimationFrame(render);
         return;
       }
