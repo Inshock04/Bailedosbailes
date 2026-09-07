@@ -9,8 +9,8 @@ export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#3b0764] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <PixelSkull size={20} color="#c084fc" />
@@ -50,7 +50,7 @@ export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
               audioManager.playClick();
               onClose();
             }}
-            className="pixel-btn bg-[#9333ea] hover:bg-[#a855f7] text-white px-5 py-2.5 font-pixel text-[10px] sm:text-[11px] font-bold"
+            className="pixel-btn bg-[#9333ea] hover:bg-[#a855f7] text-white px-5 py-2.5 font-pixel text-[12px] sm:text-[13px] font-bold"
           >
             FECHAR
           </button>
@@ -94,8 +94,8 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#d97706] shadow-[0_0_35px_rgba(217,119,6,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#d97706] shadow-[0_0_35px_rgba(217,119,6,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#451a03] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <PixelSkull size={20} color="#fbbf24" />
@@ -127,7 +127,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
                   }}
                   className="w-full p-3 text-left flex justify-between items-center cursor-pointer hover:bg-[#251408]"
                 >
-                  <span className="font-pixel text-[10px] sm:text-[11px] text-[#fef08a] font-bold">{faq.q}</span>
+                  <span className="font-pixel text-[12px] sm:text-[13px] text-[#fef08a] font-bold">{faq.q}</span>
                   <span className="font-pixel text-xs text-[#fbbf24]">{isOpen ? '▲' : '▼'}</span>
                 </button>
                 {isOpen && (
@@ -146,7 +146,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
               audioManager.playClick();
               onClose();
             }}
-            className="pixel-btn bg-[#d97706] hover:bg-[#f59e0b] text-black px-5 py-2.5 font-pixel text-[10px] sm:text-[11px] font-bold"
+            className="pixel-btn bg-[#d97706] hover:bg-[#f59e0b] text-black px-5 py-2.5 font-pixel text-[12px] sm:text-[13px] font-bold"
           >
             FECHAR
           </button>
@@ -176,8 +176,8 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-[#0e0a17] border-2 border-[#ef4444] shadow-[0_0_35px_rgba(239,68,68,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-[#0e0a17] border-2 border-[#ef4444] shadow-[0_0_35px_rgba(239,68,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         <div className="flex items-center justify-between border-b-2 border-[#450a0a] pb-3 mb-4">
           <div className="flex items-center gap-2">
             <PixelSkull size={20} color="#ef4444" />
@@ -212,7 +212,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
                 setSent(false);
                 onClose();
               }}
-              className="pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-[10px] sm:text-[11px] font-bold"
+              className="pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-[12px] sm:text-[13px] font-bold"
             >
               CONCLUÍDO
             </button>
@@ -220,7 +220,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs sm:text-sm">
             <div>
-              <label className="block font-pixel text-[10px] text-[#fca5a5] mb-1 font-bold">SEU NOME</label>
+              <label className="block font-pixel text-[12px] text-[#fca5a5] mb-1 font-bold">SEU NOME</label>
               <input
                 type="text"
                 required
@@ -231,7 +231,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
               />
             </div>
             <div>
-              <label className="block font-pixel text-[10px] text-[#fca5a5] mb-1 font-bold">E-MAIL</label>
+              <label className="block font-pixel text-[12px] text-[#fca5a5] mb-1 font-bold">E-MAIL</label>
               <input
                 type="email"
                 required
@@ -242,7 +242,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
               />
             </div>
             <div>
-              <label className="block font-pixel text-[10px] text-[#fca5a5] mb-1 font-bold">MENSAGEM / DÚVIDA</label>
+              <label className="block font-pixel text-[12px] text-[#fca5a5] mb-1 font-bold">MENSAGEM / DÚVIDA</label>
               <textarea
                 required
                 rows={3}
@@ -254,7 +254,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
             </div>
 
             <div className="bg-[#1a0c16] p-3 border border-[#451020] space-y-2">
-              <div className="text-[10px] font-pixel text-[#fca5a5] font-bold">
+              <div className="text-[12px] font-pixel text-[#fca5a5] font-bold">
                 CANAIS OFICIAIS DE ATENDIMENTO
               </div>
               <OfficialSocialButtons />
@@ -262,7 +262,7 @@ export const ContactModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
             <button
               type="submit"
-              className="w-full pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white py-3 font-pixel text-[10px] sm:text-[11px] tracking-wider font-bold flex items-center justify-center gap-2"
+              className="w-full pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white py-3 font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2"
             >
               <span>ENVIAR MENSAGEM</span>
               <PixelSkull size={13} color="#ffffff" />

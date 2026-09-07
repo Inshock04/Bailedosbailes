@@ -74,8 +74,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b-2 border-[#450a0a] pb-3 mb-4">
@@ -85,7 +85,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               <h2 className="font-pixel text-xs sm:text-sm font-bold text-[#ff4455] tracking-wider">
                 BILHETERIA OFICIAL • THE TRIPLEX
               </h2>
-              <span className="font-mono text-[10px] text-[#fca5a5]">
+              <span className="font-mono text-[12px] text-[#fca5a5]">
                 Ingresso Open R$ 45,00 • Atendimento Direto via WhatsApp
               </span>
             </div>
@@ -110,7 +110,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               Finalize seu pedido diretamente no <strong>WhatsApp Oficial</strong> com a organização.
             </span>
           </div>
-          <span className="shrink-0 bg-[#052e16] border border-[#22c55e] text-[#86efac] font-pixel text-[8px] px-2 py-1">
+          <span className="shrink-0 bg-[#052e16] border border-[#22c55e] text-[#86efac] font-pixel text-[10px] px-2 py-1">
             CANAL OFICIAL
           </span>
         </div>
@@ -119,7 +119,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           
           {/* 1. Modalidade do Ingresso (Única opção Open 45 reais) */}
           <div>
-            <label className="block font-pixel text-[10px] sm:text-[11px] text-[#fca5a5] mb-2 uppercase font-bold">
+            <label className="block font-pixel text-[12px] sm:text-[13px] text-[#fca5a5] mb-2 uppercase font-bold">
               MODALIDADE DO INGRESSO
             </label>
             <div className="p-3.5 border-2 border-[#22c55e] bg-[#0c2414] shadow-[0_0_15px_rgba(34,197,94,0.3)] flex justify-between items-center">
@@ -127,7 +127,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 <span className="font-pixel text-xs sm:text-sm text-white font-bold">
                   INGRESSO OPEN
                 </span>
-                <span className="bg-[#240c1e] text-[#fca5a5] px-1.5 py-0.5 border border-[#581c2b] font-pixel text-[9px]">
+                <span className="bg-[#240c1e] text-[#fca5a5] px-1.5 py-0.5 border border-[#581c2b] font-pixel text-[11px]">
                   1º LOTE
                 </span>
               </div>
@@ -142,10 +142,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           {/* 2. Bebidas Inclusas no Open */}
           <div className="bg-[#12071a] border border-[#4c1d95] p-3.5 space-y-2.5">
             <div className="flex flex-wrap items-center justify-between gap-1 border-b border-[#3b1754] pb-2">
-              <span className="font-pixel text-[10px] text-[#d8b4fe] font-bold uppercase">
+              <span className="font-pixel text-[12px] text-[#d8b4fe] font-bold uppercase">
                 BEBIDAS INCLUSAS NO OPEN:
               </span>
-              <span className="font-mono text-[10px] text-[#86efac]">
+              <span className="font-mono text-[12px] text-[#86efac]">
                 A partir das 21:00 • THE TRIPLEX
               </span>
             </div>
@@ -156,7 +156,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                   key={i}
                   className={`text-xs px-2.5 py-1 border font-mono ${
                     drink === '???'
-                      ? 'bg-[#581c87] text-[#fef08a] border-[#eab308] font-pixel text-[10px] font-bold shadow-[0_0_10px_rgba(234,179,8,0.4)]'
+                      ? 'bg-[#581c87] text-[#fef08a] border-[#eab308] font-pixel text-[12px] font-bold shadow-[0_0_10px_rgba(234,179,8,0.4)]'
                       : 'bg-[#2e1065] text-[#e9d5ff] border-[#6b21a8]'
                   }`}
                 >
@@ -170,7 +170,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             {/* Quantidade */}
             <div>
-              <label className="block font-pixel text-[10px] text-[#fca5a5] mb-1 uppercase font-bold">
+              <label className="block font-pixel text-[12px] text-[#fca5a5] mb-1 uppercase font-bold">
                 QUANTIDADE DE INGRESSOS
               </label>
               <div className="flex items-center gap-2 bg-[#120718] border-2 border-[#431424] p-1.5">
@@ -202,7 +202,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
             {/* Nome Opcional */}
             <div>
-              <label className="block font-pixel text-[10px] text-[#fca5a5] mb-1 uppercase font-bold">
+              <label className="block font-pixel text-[12px] text-[#fca5a5] mb-1 uppercase font-bold">
                 NOME DO TITULAR (OPCIONAL)
               </label>
               <input
@@ -226,7 +226,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
             <button
               type="submit"
-              className="w-full sm:w-auto pixel-btn bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white px-6 py-3.5 font-pixel text-[11px] sm:text-[12px] tracking-wider font-bold flex items-center justify-center gap-2 border-2 border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer transition-all"
+              className="w-full sm:w-auto pixel-btn bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white px-6 py-3.5 font-pixel text-[13px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 border-2 border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer transition-all"
             >
               <WhatsAppIcon className="text-white" size={18} />
               <span>GARANTIR NO WHATSAPP OFICIAL</span>

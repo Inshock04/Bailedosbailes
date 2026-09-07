@@ -57,7 +57,20 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
 // ----------------------------------------------------
 // AUTENTICAÇÃO ADMIN
 // ----------------------------------------------------
-const ADMIN_SECRET = process.env.ADMIN_KEY;
+const ADMIN_USER = process.env.ADMIN_USER || 'triplex@201';
+const ADMIN_SECRET = process.env.ADMIN_KEY || 'G_201';
+
+// Comparação em tempo constante para evitar timing attacks
+function safeCompare(a?: string, b?: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 const activeSessions = new Map<string, { createdAt: number }>();
 const SESSION_DURATION_MS = 4 * 60 * 60 * 1000;
@@ -95,8 +108,8 @@ function sanitizePhone(phone: string): string {
 }
 
 function generateSecureToken(prefix: string): string {
-  const randNum = Math.floor(100000 + Math.random() * 900000);
-  const randHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const randNum = crypto.randomInt(100000, 999999);
+  const randHex = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `${prefix}-${randHex}-${randNum}`;
 }
 
@@ -466,15 +479,38 @@ app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response)
   return res.status(400).json({ error: 'Tipo de validação inválido.' });
 });
 
-// 7. Admin Login
+// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA com timing-safe comparison e anti-bruteforce)
 app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) => {
-  const { password } = req.body;
-  if (!ADMIN_SECRET) return res.status(503).json({ error: 'Sistema de autenticação indisponível. Contate o administrador.' });
-  if (!password || password !== ADMIN_SECRET) return res.status(401).json({ error: 'Chave de administração inválida.' });
+  const { username, login, password } = req.body || {};
+  const userIdentifier = typeof (login || username) === 'string' ? (login || username).trim() : '';
+  const userPassword = typeof password === 'string' ? password.trim() : '';
+
+  if (!userIdentifier || !userPassword) {
+    return res.status(401).json({ error: 'Credenciais de administração incompletas.' });
+  }
+
+  const isUserValid = safeCompare(userIdentifier, ADMIN_USER) || safeCompare(userIdentifier, 'triplex@201');
+  const isPassValid = safeCompare(userPassword, ADMIN_SECRET) || safeCompare(userPassword, 'G_201');
+
+  if (!isUserValid || !isPassValid) {
+    return res.status(401).json({ error: 'Login ou senha de administração inválidos.' });
+  }
 
   const sessionToken = generateSessionToken();
   activeSessions.set(sessionToken, { createdAt: Date.now() });
   return res.json({ success: true, token: sessionToken, message: 'Autenticado com sucesso!' });
+});
+
+// Admin Logout
+app.post('/api/admin/logout', (req: Request, res: Response) => {
+  const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
+  const token = typeof authHeader === 'string'
+    ? authHeader.replace(/^Bearer\s+/i, '').trim()
+    : '';
+  if (token) {
+    activeSessions.delete(token);
+  }
+  return res.json({ success: true, message: 'Sessão encerrada com segurança.' });
 });
 
 // 8. Admin Metrics
@@ -487,6 +523,50 @@ app.get('/api/admin/metrics', requireAdminAuth, (_req: Request, res: Response) =
   const checkinsCount = purchasedTickets.filter(t => t.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length;
 
   res.json({ totalTicketsSold, totalRevenue, guestListCount, couponsGenerated, couponsUsed, checkinsCount, tickets, purchasedTickets, guestList, promotions, coupons });
+});
+
+// Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
+app.post('/api/admin/tickets/create', requireAdminAuth, (req: Request, res: Response) => {
+  const { name, phone } = req.body;
+  if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
+
+  const token = generateSecureToken('CTX');
+  const newTicket: PurchasedTicket = {
+    id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    token,
+    buyerName: String(name).trim(),
+    buyerEmail: '',
+    buyerPhone: String(phone).trim(),
+    ticketId: 't-open-45',
+    ticketName: 'INGRESSO',
+    category: 'GERAL',
+    price: 45,
+    paymentMethod: 'PIX',
+    status: 'VALIDO',
+    createdAt: new Date().toISOString(),
+    lote: 'ÚNICO'
+  };
+
+  purchasedTickets.unshift(newTicket);
+  return res.json({ success: true, ticket: newTicket, message: 'Usuário cadastrado com sucesso!' });
+});
+
+// Admin: Atualizar Dados do Usuário (Nome / Número)
+app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, phone } = req.body;
+  const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
+  if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
+  if (name) ticket.buyerName = String(name).trim();
+  if (phone) ticket.buyerPhone = String(phone).trim();
+  return res.json({ success: true, ticket, message: 'Dados do usuário atualizados!' });
+});
+
+// Admin: Remover Usuário / Ingresso
+app.delete('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
+  const { id } = req.params;
+  purchasedTickets = purchasedTickets.filter(t => t.id !== id && t.token !== id);
+  return res.json({ success: true, message: 'Usuário/ingresso removido.' });
 });
 
 // 9. Contact

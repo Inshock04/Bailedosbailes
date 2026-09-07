@@ -225,3 +225,134 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #991b1b;
 }
+
+/* ==========================================================================
+   GLOBAL FONT SIZE INCREASE (+2px total for Tailwind standard classes)
+   ========================================================================== */
+
+/* Tailwind text-xs = 0.75rem (12px) → 14px */
+.text-xs {
+  font-size: 14px !important;
+}
+
+/* Tailwind text-sm = 0.875rem (14px) → 16px */
+.text-sm {
+  font-size: 16px !important;
+}
+
+/* Tailwind text-base = 1rem (16px) → 18px */
+.text-base {
+  font-size: 18px !important;
+}
+
+/* Tailwind text-lg = 1.125rem (18px) → 20px */
+.text-lg {
+  font-size: 20px !important;
+}
+
+/* Tailwind text-xl = 1.25rem (20px) → 22px */
+.text-xl {
+  font-size: 22px !important;
+}
+
+/* Tailwind text-2xl = 1.5rem (24px) → 26px */
+.text-2xl {
+  font-size: 26px !important;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS IMPROVEMENTS
+   ========================================================================== */
+
+/* Better touch targets on mobile */
+@media (max-width: 639px) {
+  /* Ensure minimum touch target size for interactive elements */
+  button, a, [role="button"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Make modals full-width on mobile for better readability */
+  .fixed.inset-0 > div {
+    max-width: 100% !important;
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  /* Improve the main sidebar card on mobile */
+  aside {
+    max-height: calc(100vh - 5rem) !important;
+    max-height: calc(100dvh - 5rem) !important;
+  }
+
+  /* Better spacing for grid items on small screens */
+  .grid.grid-cols-4 {
+    gap: 0.375rem;
+  }
+}
+
+/* Use dynamic viewport height for full-screen layouts */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+}
+
+/* Prevent content from being hidden behind mobile browser chrome */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fixed.bottom-3 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Improve readability of small text on mobile */
+@media (max-width: 639px) {
+  /* Ensure font-mono text is legible on small screens */
+  .font-mono {
+    letter-spacing: 0.01em;
+    word-spacing: 0.05em;
+  }
+  
+  /* Slightly increase line-height for better readability on small screens */
+  .leading-tight {
+    line-height: 1.35 !important;
+  }
+  
+  .leading-relaxed {
+    line-height: 1.75 !important;
+  }
+}
+
+/* Smooth scrolling for overflow containers */
+.overflow-y-auto,
+.overflow-y-scroll {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 639px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure images and elements don't overflow */
+  img, svg, video, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Better card responsiveness on very small screens */
+@media (max-width: 374px) {
+  /* Extra-small devices: reduce padding */
+  .p-4 { padding: 0.75rem !important; }
+  .p-3 { padding: 0.625rem !important; }
+  .px-3 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+  .py-2\.5 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+  
+  /* Scale down gap for tight layouts */
+  .gap-3 { gap: 0.5rem !important; }
+  .gap-2\.5 { gap: 0.375rem !important; }
+}

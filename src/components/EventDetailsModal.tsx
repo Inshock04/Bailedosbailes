@@ -12,8 +12,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#0d0716] border-2 border-[#f59e0b] shadow-[0_0_35px_rgba(245,158,11,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-[#0d0716] border-2 border-[#f59e0b] shadow-[0_0_35px_rgba(245,158,11,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#5c3e06] pb-3 mb-4">
@@ -73,7 +73,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                   <span className="font-pixel text-xs sm:text-sm text-[#c084fc] font-bold">
                     01 • 3 DJs + OPEN BAR
                   </span>
-                  <span className="bg-[#581c87] text-[#fef08a] font-pixel text-[9px] px-2 py-0.5 border border-[#a855f7]">
+                  <span className="bg-[#581c87] text-[#fef08a] font-pixel text-[11px] px-2 py-0.5 border border-[#a855f7]">
                     OPEN 21:00 ÀS 00:00
                   </span>
                 </div>
@@ -171,7 +171,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         {/* Footer / CTA */}
         <div className="mt-5 pt-3 border-t-2 border-[#5c3e06] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
-            <span className="font-pixel text-[10px] text-[#fbbf24] block">INGRESSO OPEN (1º LOTE)</span>
+            <span className="font-pixel text-[12px] text-[#fbbf24] block">INGRESSO OPEN (1º LOTE)</span>
             <span className="font-pixel text-base text-[#22c55e] font-bold">R$ 45,00</span>
           </div>
           <button
@@ -182,7 +182,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 onOpenTickets();
               }
             }}
-            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-[10px] sm:text-[11px] tracking-wider font-bold"
+            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold"
           >
             GARANTIR INGRESSO 💀
           </button>

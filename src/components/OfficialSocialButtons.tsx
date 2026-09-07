@@ -58,7 +58,7 @@ export const OfficialSocialButtons: React.FC<{ className?: string }> = ({ classN
         rel="noopener noreferrer"
         title="Falar no WhatsApp: +55 11 94396-3952"
         aria-label="Falar no WhatsApp oficial"
-        className="group relative px-2 py-1.5 bg-[#062914] hover:bg-[#0b3d1f] active:bg-[#062914] border border-[#22c55e] hover:border-[#4ade80] text-[#86efac] hover:text-white font-pixel text-[8px] sm:text-[9px] tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(34,197,94,0.25)] hover:shadow-[0_0_18px_rgba(34,197,94,0.6)] cursor-pointer text-center select-none"
+        className="group relative px-2 py-1.5 bg-[#062914] hover:bg-[#0b3d1f] active:bg-[#062914] border border-[#22c55e] hover:border-[#4ade80] text-[#86efac] hover:text-white font-pixel text-[12px] sm:text-[13px] tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(34,197,94,0.25)] hover:shadow-[0_0_18px_rgba(34,197,94,0.6)] cursor-pointer text-center select-none"
       >
         <WhatsAppIcon className="text-[#22c55e] group-hover:text-[#4ade80] group-hover:scale-110 transition-transform" />
         <span className="font-bold">WHATSAPP</span>
@@ -71,7 +71,7 @@ export const OfficialSocialButtons: React.FC<{ className?: string }> = ({ classN
         rel="noopener noreferrer"
         title="Seguir no Instagram: @bailedosbailes_"
         aria-label="Acessar Instagram oficial @bailedosbailes_"
-        className="group relative px-2 py-1.5 bg-[#20081d] hover:bg-[#340d2f] active:bg-[#20081d] border border-[#d946ef] hover:border-[#f472b6] text-[#f5d0fe] hover:text-white font-pixel text-[8px] sm:text-[9px] tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(217,70,239,0.25)] hover:shadow-[0_0_18px_rgba(217,70,239,0.6)] cursor-pointer text-center select-none"
+        className="group relative px-2 py-1.5 bg-[#20081d] hover:bg-[#340d2f] active:bg-[#20081d] border border-[#d946ef] hover:border-[#f472b6] text-[#f5d0fe] hover:text-white font-pixel text-[12px] sm:text-[13px] tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-[0_0_12px_rgba(217,70,239,0.25)] hover:shadow-[0_0_18px_rgba(217,70,239,0.6)] cursor-pointer text-center select-none"
       >
         <InstagramIcon className="text-[#e879f9] group-hover:text-[#f472b6] group-hover:scale-110 transition-transform" />
         <span className="font-bold">INSTAGRAM</span>

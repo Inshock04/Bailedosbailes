@@ -224,8 +224,8 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-[#0d0716] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-full max-w-4xl bg-[#0d0716] border-2 border-[#9333ea] shadow-[0_0_35px_rgba(147,51,234,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b-2 border-[#3b0764] pb-3 mb-4">
@@ -251,7 +251,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
           /* Claimed Reward Coupon */
           <div className="space-y-4 text-center max-w-xl mx-auto">
             <div className="bg-[#1b0d2d] border-2 border-[#d97706] p-4 sm:p-5 shadow-[0_0_20px_rgba(217,119,6,0.4)]">
-              <span className="font-pixel text-[10px] sm:text-[11px] text-[#fbbf24] uppercase tracking-widest block mb-1 font-bold">
+              <span className="font-pixel text-[12px] sm:text-[13px] text-[#fbbf24] uppercase tracking-widest block mb-1 font-bold">
                 ★ RECOMPENSA RESGATADA ★
               </span>
               <h3 className="font-pixel text-base sm:text-lg text-white mb-1 font-bold">
@@ -268,7 +268,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                   </div>
                 )}
                 <div className="text-left font-mono text-xs sm:text-sm space-y-1.5">
-                  <p><span className="text-[#a855f7]">CÓDIGO:</span> <strong className="text-[#fbbf24] font-pixel text-[10px]">{claimedCoupon.token}</strong></p>
+                  <p><span className="text-[#a855f7]">CÓDIGO:</span> <strong className="text-[#fbbf24] font-pixel text-[12px]">{claimedCoupon.token}</strong></p>
                   <p><span className="text-[#a855f7]">STATUS:</span> <span className="bg-[#065f46] text-[#6ee7b7] px-2 py-0.5 text-xs">{claimedCoupon.status}</span></p>
                   <p><span className="text-[#a855f7]">VALIDADE:</span> Na portaria / bar do evento até 06:00</p>
                   <p className="text-xs text-[#9ca3af] mt-1">Apresente no bar do Hotel Cortez para validar.</p>
@@ -281,7 +281,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                 audioManager.playClick();
                 onClose();
               }}
-              className="pixel-btn bg-[#9333ea] hover:bg-[#a855f7] text-white px-6 py-3 font-pixel text-[10px] sm:text-[11px] tracking-wider font-bold"
+              className="pixel-btn bg-[#9333ea] hover:bg-[#a855f7] text-white px-6 py-3 font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold"
             >
               FECHAR E SALVAR CUPOM
             </button>
@@ -299,7 +299,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                   audioManager.playClick();
                   setCards(shuffleDeck(DEFAULT_ORACLE_CARDS, 6));
                 }}
-                className="shrink-0 font-pixel text-[9px] text-[#c084fc] hover:text-[#fde047] border border-[#7e22ce] hover:border-[#f59e0b] px-2.5 py-1 bg-[#1e0a35] transition-colors cursor-pointer"
+                className="shrink-0 font-pixel text-[11px] text-[#c084fc] hover:text-[#fde047] border border-[#7e22ce] hover:border-[#f59e0b] px-2.5 py-1 bg-[#1e0a35] transition-colors cursor-pointer"
                 title="Embaralhar as cartas novamente"
               >
                 🔀 RE-EMBARALHAR
@@ -317,18 +317,18 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                   }`}
                 >
                   <div className="w-full flex items-center justify-between border-b border-[#581c87] pb-1">
-                    <span className="font-pixel text-[8px] text-[#a855f7]">ARCANA</span>
-                    <span className="font-pixel text-[9px] text-[#fef08a] font-bold">{ROMAN_NUMERALS[index] || `0${index + 1}`}</span>
+                    <span className="font-pixel text-[10px] text-[#a855f7]">ARCANA</span>
+                    <span className="font-pixel text-[11px] text-[#fef08a] font-bold">{ROMAN_NUMERALS[index] || `0${index + 1}`}</span>
                   </div>
                   
                   {/* Occult Pixel Back Emblem */}
                   <div className="w-12 h-20 sm:w-14 sm:h-24 bg-[#110520] border border-[#9333ea] group-hover:border-[#f59e0b] flex flex-col items-center justify-center gap-1.5 shadow-inner transition-colors">
                     <span className="font-pixel text-base text-[#e9d5ff] group-hover:text-[#fde047] transition-colors">✦</span>
                     <div className="w-6 h-px bg-[#7e22ce] group-hover:bg-[#f59e0b]"></div>
-                    <span className="font-pixel text-[8px] tracking-wider text-[#c084fc]">CORTEZ</span>
+                    <span className="font-pixel text-[10px] tracking-wider text-[#c084fc]">CORTEZ</span>
                   </div>
 
-                  <span className="font-pixel text-[9px] text-[#e9d5ff] group-hover:text-[#fde047] font-bold tracking-wider">
+                  <span className="font-pixel text-[11px] text-[#e9d5ff] group-hover:text-[#fde047] font-bold tracking-wider">
                     ESCOLHER
                   </span>
                 </div>
@@ -344,7 +344,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
           /* Step 2: Revealed Reward + Claim Form */
           <div className="space-y-4 max-w-xl mx-auto">
             <div className="bg-[#1c0c2e] border-2 border-[#a855f7] p-4 text-center">
-              <span className="font-pixel text-[10px] sm:text-[11px] text-[#f43f5e] uppercase tracking-widest block mb-1 font-bold">
+              <span className="font-pixel text-[12px] sm:text-[13px] text-[#f43f5e] uppercase tracking-widest block mb-1 font-bold">
                 VOCÊ FOI ESCOLHIDO PELO DESTINO
               </span>
               <h3 className="font-pixel text-base sm:text-lg text-[#fef08a] mb-1 font-bold">
@@ -364,7 +364,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
 
             {/* Claim Form */}
             <form onSubmit={handleClaimReward} className="space-y-3 bg-[#130720] border border-[#3b1552] p-4">
-              <span className="font-pixel text-[10px] sm:text-[11px] text-[#e9d5ff] block uppercase font-bold">
+              <span className="font-pixel text-[12px] sm:text-[13px] text-[#e9d5ff] block uppercase font-bold">
                 RESGATE SEU CUPOM EXCLUSIVO
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -394,7 +394,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full pixel-btn bg-[#059669] hover:bg-[#10b981] text-white py-3 font-pixel text-[10px] sm:text-[11px] tracking-wider font-bold"
+                className="w-full pixel-btn bg-[#059669] hover:bg-[#10b981] text-white py-3 font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold"
               >
                 {loading ? 'GERANDO TOKEN SEGURO...' : 'RESGATAR MEU PRÊMIO AGORA ✨'}
               </button>

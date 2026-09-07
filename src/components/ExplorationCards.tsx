@@ -32,10 +32,10 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
 
   const cards = [
     {
-      id: 'rsvp',
-      title: 'RSVP / LISTA',
-      desc: 'Coloque seu nome na lista e garanta valores especiais na entrada.',
-      action: 'ENTRAR',
+      id: 'admin',
+      title: 'ÁREA DE ADM',
+      desc: 'Acesso restrito da organização para métricas, scanner de ingressos e gestão.',
+      action: 'ACESSAR',
       accentColor: '#ef4444',
       renderThumbnail: () => (
         <div className="w-full h-20 bg-[#160a12] border border-[#5c1322] relative p-1.5 flex flex-col justify-between overflow-hidden">
@@ -51,7 +51,7 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
           {/* Vintage Study Desk with Glowing Lamp */}
           <div className="w-full h-7 bg-[#240810] border-t border-[#7f1d1d] flex items-center justify-between px-2">
             <div className="w-3 h-4 bg-[#f59e0b] shadow-[0_0_8px_#f59e0b] border border-[#fef08a]"></div>
-            <div className="w-6 h-2 bg-[#f87171]/50"></div>
+            <div className="font-pixel text-[10px] text-[#fca5a5]">ADMIN</div>
           </div>
         </div>
       )
@@ -176,7 +176,7 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
         <div className="hidden sm:block flex-1 border-t-2 border-dotted border-[#7e22ce]/60"></div>
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 bg-[#a855f7]"></span>
-          <h2 className="font-pixel text-[10px] md:text-xs tracking-widest text-[#d8b4fe] uppercase">
+          <h2 className="font-pixel text-[12px] md:text-xs tracking-widest text-[#d8b4fe] uppercase">
             NAVEGAÇÃO POR EXPLORAÇÃO
           </h2>
           <span className="w-1.5 h-1.5 bg-[#a855f7]"></span>
@@ -206,7 +206,7 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
               {/* Card Title */}
               <div className="flex items-center justify-between mb-1.5">
                 <span 
-                  className="font-pixel text-[9px] md:text-[10px] font-bold tracking-wider"
+                  className="font-pixel text-[11px] md:text-[12px] font-bold tracking-wider"
                   style={{ color: card.accentColor }}
                 >
                   {card.title}
@@ -220,13 +220,13 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
               <div className="my-1.5">{card.renderThumbnail()}</div>
 
               {/* Description */}
-              <p className="font-mono text-[11px] leading-relaxed text-[#c7bfd6] my-2 min-h-[44px]">
+              <p className="font-mono text-[13px] leading-relaxed text-[#c7bfd6] my-2 min-h-[44px]">
                 {card.desc}
               </p>
 
               {/* Action Link */}
               <div className="pt-2 border-t border-[#231533] flex items-center justify-between">
-                <span className="font-pixel text-[8px] md:text-[9px] text-[#f43f5e] group-hover:text-[#fb7185] flex items-center gap-1">
+                <span className="font-pixel text-[10px] md:text-[11px] text-[#f43f5e] group-hover:text-[#fb7185] flex items-center gap-1">
                   <span>→</span> {card.action}
                 </span>
                 <span className="w-1.5 h-1.5 bg-[#4c1d95] group-hover:bg-[#a855f7]"></span>
