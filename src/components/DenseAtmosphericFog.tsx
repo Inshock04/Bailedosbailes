@@ -218,7 +218,7 @@ export const DenseAtmosphericFog: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none">
+    <div className="hidden md:block fixed inset-0 pointer-events-none z-20 overflow-hidden select-none">
       {/* Heavy atmospheric fog canvas layer — NO blur on mobile for GPU performance */}
       <canvas
         ref={canvasRef}
