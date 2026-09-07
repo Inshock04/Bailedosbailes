@@ -15,14 +15,22 @@
 
   html {
     scroll-behavior: smooth;
+    height: 100%;
   }
 
   body {
     background-color: #07050d;
     color: #f0e6d2;
     font-family: 'American Horror Story', sans-serif;
+    min-height: 100dvh;
+    height: 100%;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+  }
+
+  #root {
+    min-height: 100dvh;
+    height: 100%;
   }
 
   @media (pointer: fine) {

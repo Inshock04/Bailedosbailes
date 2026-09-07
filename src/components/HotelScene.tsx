@@ -19,6 +19,7 @@ interface HotelSceneProps {
 export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 768px)');
@@ -127,21 +128,21 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
 
   const circusSrc = circusSceneryWebp || circusScenery;
   const hotelSrc = theTriplexHotelSceneryWebp || theTriplexHotelScenery;
-  const imageClassName = 'object-cover';
+  const imageClassName = isMobile ? 'object-cover' : 'object-cover';
   const mobileImageStyle = isMobile
     ? currentScene === 'hotel'
       ? {
-          width: '115%',
-          height: '115%',
-          objectPosition: 'center 46%',
-          transform: 'scale(1.22)',
+          width: '100%',
+          height: '100%',
+          objectPosition: 'center 18%',
+          transform: 'scale(1.06)',
           transformOrigin: 'center center',
         }
       : {
-          width: '115%',
-          height: '115%',
-          objectPosition: 'center 16%',
-          transform: 'scale(1.16)',
+          width: '100%',
+          height: '100%',
+          objectPosition: 'center center',
+          transform: 'scale(1.03)',
           transformOrigin: 'center center',
         }
     : undefined;
@@ -158,7 +159,8 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
           referrerPolicy="no-referrer"
           loading="eager"
           decoding="async"
-          className={`absolute inset-0 w-full h-full ${imageClassName} image-pixelated select-none`}
+          onLoad={() => setImageLoaded(true)}
+          className={`absolute inset-0 w-full h-full ${imageClassName} image-pixelated select-none transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           style={mobileImageStyle}
         />
 
