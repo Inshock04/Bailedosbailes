@@ -1,15 +1,30 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export const DenseAtmosphericFog: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-
-  if (isMobile) {
-    return null;
-  }
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches;
+  });
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+
+    const handleViewportChange = () => setIsMobile(mediaQuery.matches);
+    handleViewportChange();
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleViewportChange);
+      return () => mediaQuery.removeEventListener('change', handleViewportChange);
+    }
+
+    mediaQuery.addListener(handleViewportChange);
+    return () => mediaQuery.removeListener(handleViewportChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -215,7 +230,11 @@ export const DenseAtmosphericFog: React.FC = () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none">
@@ -223,7 +242,7 @@ export const DenseAtmosphericFog: React.FC = () => {
       <canvas
         ref={canvasRef}
         className="w-full h-full pointer-events-none"
-        style={{ filter: window.matchMedia('(max-width: 768px)').matches ? 'none' : 'blur(3px)' }}
+        style={{ filter: 'blur(3px)' }}
       />
 
       {/* Slow horizontal CSS drifting fog wave 1 */}
