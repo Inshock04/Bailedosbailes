@@ -19,7 +19,6 @@ interface HotelSceneProps {
 export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 768px)');
@@ -159,8 +158,7 @@ export const HotelScene: React.FC<HotelSceneProps> = ({ currentScene = 'circus' 
           referrerPolicy="no-referrer"
           loading="eager"
           decoding="async"
-          onLoad={() => setImageLoaded(true)}
-          className={`absolute inset-0 w-full h-full ${imageClassName} image-pixelated select-none transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 w-full h-full ${imageClassName} image-pixelated select-none`}
           style={mobileImageStyle}
         />
 
