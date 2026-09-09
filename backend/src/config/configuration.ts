@@ -3,6 +3,10 @@ export interface AppConfig {
   nodeEnv: string;
   frontendUrl: string;
   databaseUrl: string;
+  admin: {
+    user: string;
+    key: string;
+  };
   mp: {
     accessToken: string;
     publicKey: string;
@@ -24,6 +28,10 @@ export default (): AppConfig => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL || '',
+  admin: {
+    user: process.env.ADMIN_USER || 'triplex@201',
+    key: process.env.ADMIN_KEY || 'G@201',
+  },
   mp: {
     accessToken: process.env.MP_ACCESS_TOKEN || 'TEST_ACCESS_TOKEN_PLACEHOLDER',
     publicKey: process.env.MP_PUBLIC_KEY || 'TEST_PUBLIC_KEY_PLACEHOLDER',

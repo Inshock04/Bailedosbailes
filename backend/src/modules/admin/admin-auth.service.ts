@@ -25,8 +25,8 @@ export class AdminAuthService {
       throw new UnauthorizedException('Informe o usuário administrativo.');
     }
 
-    const configuredUser = (process.env.ADMIN_USER || '').trim().toLowerCase();
-    const configuredPassword = process.env.ADMIN_KEY || '';
+    const configuredUser = (this.configService.get<string>('admin.user') || '').trim().toLowerCase();
+    const configuredPassword = this.configService.get<string>('admin.key') || '';
     if (configuredUser && configuredPassword && cleanEmail === configuredUser && password === configuredPassword) {
       const accessToken = await this.jwtService.signAsync({
         sub: 'env-admin',
