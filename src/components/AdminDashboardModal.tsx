@@ -143,6 +143,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showTokens, setShowTokens] = useState(false);
 
   // Tab State - Abre diretamente na tela de inserção de usuários
@@ -646,15 +647,26 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                 <label className="block font-pixel text-[11px] sm:text-[12px] text-[#fca5a5] mb-1 font-bold uppercase">
                   SENHA DE ACESSO
                 </label>
-                <input
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  placeholder="Insira a senha..."
-                  value={passwordInput}
-                  onChange={e => setPasswordInput(e.target.value)}
-                  className="w-full bg-[#140810] border-2 border-[#5c1322] px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-[#ef4444] outline-hidden font-mono tracking-widest"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    placeholder="Insira a senha..."
+                    value={passwordInput}
+                    onChange={e => setPasswordInput(e.target.value)}
+                    className="w-full bg-[#140810] border-2 border-[#5c1322] px-3 py-2 pr-10 text-sm text-white placeholder-gray-500 focus:border-[#ef4444] outline-hidden font-mono tracking-widest"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(current => !current)}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#fca5a5] hover:text-white cursor-pointer"
+                  >
+                    <PixelEye size={15} />
+                  </button>
+                </div>
               </div>
 
               {authError && (
@@ -668,7 +680,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                 disabled={authLoading}
                 className="w-full pixel-btn bg-[#991b1b] hover:bg-[#b91c1c] active:bg-[#7f1d1d] text-white py-3 font-pixel text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
-                <span>{authLoading ? 'VERIFICANDO...' : 'DESBLOQUEAR PAINEL 🗝️'}</span>
+                <span>{authLoading ? 'VERIFICANDO...' : 'DESBLOQUEAR PAINEL'}</span>
               </button>
             </form>
           </div>
