@@ -14,6 +14,121 @@ import {
 import { audioManager } from '../utils/audio';
 import type { PurchasedTicket, Coupon } from '../types';
 
+const QR_CANVAS_SIZE = 1024;
+const QR_QUIET_ZONE = 4;
+
+function isFinderModule(row: number, column: number, size: number): boolean {
+  return (row < 7 && column < 7)
+    || (row < 7 && column >= size - 7)
+    || (row >= size - 7 && column < 7);
+}
+
+function drawFinderPattern(context: CanvasRenderingContext2D, x: number, y: number, moduleSize: number): void {
+  const patternSize = moduleSize * 7;
+  context.fillStyle = '#120b08';
+  context.beginPath();
+  context.roundRect(x, y, patternSize, patternSize, moduleSize * 0.35);
+  context.fill();
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(x + moduleSize, y + moduleSize, moduleSize * 5, moduleSize * 5);
+
+  context.fillStyle = '#120b08';
+  context.beginPath();
+  context.roundRect(x + moduleSize * 2, y + moduleSize * 2, moduleSize * 3, moduleSize * 3, moduleSize * 0.18);
+  context.fill();
+}
+
+function drawJackOLantern(context: CanvasRenderingContext2D, centerX: number, centerY: number, size: number): void {
+  const pumpkinWidth = size * 0.62;
+  const pumpkinHeight = size * 0.48;
+  const pumpkinTop = centerY - pumpkinHeight * 0.3;
+
+  context.fillStyle = '#5b2a0a';
+  context.fillRect(centerX - size * 0.05, pumpkinTop - size * 0.16, size * 0.1, size * 0.18);
+  context.fillStyle = '#d97706';
+  context.beginPath();
+  context.ellipse(centerX, centerY, pumpkinWidth * 0.5, pumpkinHeight * 0.5, 0, 0, Math.PI * 2);
+  context.fill();
+  context.fillStyle = '#f59e0b';
+  context.beginPath();
+  context.ellipse(centerX - pumpkinWidth * 0.2, centerY, pumpkinWidth * 0.22, pumpkinHeight * 0.45, 0, 0, Math.PI * 2);
+  context.ellipse(centerX + pumpkinWidth * 0.2, centerY, pumpkinWidth * 0.22, pumpkinHeight * 0.45, 0, 0, Math.PI * 2);
+  context.fill();
+
+  context.fillStyle = '#1a0f0a';
+  context.beginPath();
+  context.moveTo(centerX - pumpkinWidth * 0.3, centerY - pumpkinHeight * 0.08);
+  context.lineTo(centerX - pumpkinWidth * 0.12, centerY - pumpkinHeight * 0.2);
+  context.lineTo(centerX - pumpkinWidth * 0.05, centerY - pumpkinHeight * 0.02);
+  context.closePath();
+  context.moveTo(centerX + pumpkinWidth * 0.3, centerY - pumpkinHeight * 0.08);
+  context.lineTo(centerX + pumpkinWidth * 0.12, centerY - pumpkinHeight * 0.2);
+  context.lineTo(centerX + pumpkinWidth * 0.05, centerY - pumpkinHeight * 0.02);
+  context.closePath();
+  context.fill();
+
+  context.beginPath();
+  context.moveTo(centerX - pumpkinWidth * 0.28, centerY + pumpkinHeight * 0.16);
+  context.lineTo(centerX - pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.08);
+  context.lineTo(centerX, centerY + pumpkinHeight * 0.18);
+  context.lineTo(centerX + pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.08);
+  context.lineTo(centerX + pumpkinWidth * 0.28, centerY + pumpkinHeight * 0.16);
+  context.lineTo(centerX + pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.3);
+  context.lineTo(centerX, centerY + pumpkinHeight * 0.22);
+  context.lineTo(centerX - pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.3);
+  context.closePath();
+  context.fill();
+}
+
+async function generateHalloweenTicketQr(token: string): Promise<string> {
+  const qr = QRCode.create(token, { errorCorrectionLevel: 'H' });
+  const moduleCount = qr.modules.size;
+  const moduleSize = Math.floor(QR_CANVAS_SIZE / (moduleCount + QR_QUIET_ZONE * 2));
+  const qrSize = moduleSize * (moduleCount + QR_QUIET_ZONE * 2);
+  const offset = Math.floor((QR_CANVAS_SIZE - qrSize) / 2);
+  const canvas = document.createElement('canvas');
+  canvas.width = QR_CANVAS_SIZE;
+  canvas.height = QR_CANVAS_SIZE;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Não foi possível preparar o QR Code.');
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, QR_CANVAS_SIZE, QR_CANVAS_SIZE);
+  context.fillStyle = '#120b08';
+  const centerStart = Math.floor((moduleCount - 9) / 2);
+
+  for (let row = 0; row < moduleCount; row += 1) {
+    for (let column = 0; column < moduleCount; column += 1) {
+      const inCenter = row >= centerStart && row < centerStart + 9 && column >= centerStart && column < centerStart + 9;
+      if (!qr.modules.get(row, column) || isFinderModule(row, column, moduleCount) || inCenter) continue;
+      const x = offset + (column + QR_QUIET_ZONE) * moduleSize;
+      const y = offset + (row + QR_QUIET_ZONE) * moduleSize;
+      context.beginPath();
+      context.roundRect(x + moduleSize * 0.08, y + moduleSize * 0.08, moduleSize * 0.84, moduleSize * 0.84, moduleSize * 0.22);
+      context.fill();
+    }
+  }
+
+  drawFinderPattern(context, offset + QR_QUIET_ZONE * moduleSize, offset + QR_QUIET_ZONE * moduleSize, moduleSize);
+  drawFinderPattern(context, offset + (QR_QUIET_ZONE + moduleCount - 7) * moduleSize, offset + QR_QUIET_ZONE * moduleSize, moduleSize);
+  drawFinderPattern(context, offset + QR_QUIET_ZONE * moduleSize, offset + (QR_QUIET_ZONE + moduleCount - 7) * moduleSize, moduleSize);
+
+  const centerX = offset + (QR_QUIET_ZONE + centerStart + 4.5) * moduleSize;
+  const centerY = centerX;
+  const badgeSize = moduleSize * 8.3;
+  context.fillStyle = '#ffffff';
+  context.beginPath();
+  context.roundRect(centerX - badgeSize / 2, centerY - badgeSize / 2, badgeSize, badgeSize, moduleSize * 0.7);
+  context.fill();
+  context.strokeStyle = '#d97706';
+  context.lineWidth = Math.max(3, moduleSize * 0.14);
+  context.stroke();
+  drawJackOLantern(context, centerX, centerY, moduleSize * 7.2);
+
+  return canvas.toDataURL('image/png');
+}
+
 interface AdminDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -201,7 +316,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
         throw new Error(data?.error || 'Login ou senha de administração inválidos.');
       }
 
-      const token = data.token;
+      const token = data.accessToken || data.token;
+      if (!token) {
+        throw new Error('O servidor não retornou um token de sessão.');
+      }
       setAdminToken(token);
       sessionStorage.setItem('cortez_admin_key', token);
       setLoginInput('');
@@ -343,7 +461,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       }
 
       const code = data.ticket.codigo || data.ticket.publicCode;
-      const qrDataUrl = await QRCode.toDataURL(data.ticket.token, { margin: 1, width: 240, errorCorrectionLevel: 'M' });
+      const qrDataUrl = await generateHalloweenTicketQr(data.ticket.token);
       setGeneratedTicket({ code, token: data.ticket.token, name, qrDataUrl });
       setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Código público: ${data.ticket.codigo || data.ticket.publicCode}`);
       setNewUserName('');
@@ -799,25 +917,24 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </div>
                     )}
                     {generatedTicket && (
-                      <div className="mt-3 p-3 bg-[#071b12] border-2 border-[#22c55e] flex flex-col sm:flex-row items-center gap-3">
-                        <img src={generatedTicket.qrDataUrl} alt={`QR Code do ingresso ${generatedTicket.code}`} className="w-40 h-40 bg-white p-2" />
-                        <div className="font-mono text-xs text-[#bbf7d0] space-y-1 text-center sm:text-left">
-                          <p className="font-pixel text-[#4ade80]">INGRESSO EMITIDO</p>
-                          <p>Nome: <strong>{generatedTicket.name}</strong></p>
-                          <p>Código público: <strong>{generatedTicket.code}</strong></p>
-                          <p>Status: <strong>Disponível para entrada</strong></p>
-                          <p className="text-[#86efac]">O QR contém somente o token seguro.</p>
-                          <div className="mt-2 flex gap-2 justify-center sm:justify-start">
+                      <div className="mt-3 p-4 bg-[#071b12] border-2 border-[#22c55e] flex flex-col items-center gap-3 text-center">
+                        <p className="font-pixel text-[#4ade80] text-sm">INGRESSO CRIADO COM SUCESSO</p>
+                        <p className="font-mono text-xs text-[#bbf7d0]">Nome: <strong>{generatedTicket.name}</strong></p>
+                        <div className="p-2 bg-white border-2 border-[#d97706] shadow-[0_0_18px_rgba(245,158,11,0.35)]">
+                          <img src={generatedTicket.qrDataUrl} alt={`QR Code do ingresso ${generatedTicket.code}`} className="w-56 h-56 sm:w-64 sm:h-64 max-w-full" />
+                        </div>
+                        <p className="font-pixel text-lg sm:text-xl text-[#fbbf24] tracking-widest">{generatedTicket.code}</p>
+                        <p className="font-mono text-xs text-[#86efac]">QR Code seguro, pronto para leitura.</p>
+                        <div className="flex flex-wrap gap-2 justify-center">
                             <a
                               href={generatedTicket.qrDataUrl}
-                              download={`ingresso-${generatedTicket.code}.png`}
-                              className="px-2 py-1 bg-[#15803d] border border-[#4ade80] text-white font-pixel"
+                              download={`${generatedTicket.code}-QRCode.png`}
+                              className="px-4 py-2.5 bg-[#15803d] border border-[#4ade80] text-white font-pixel text-xs shadow-[0_0_12px_rgba(34,197,94,0.35)]"
                             >
                               BAIXAR QR CODE
                             </a>
-                            <button type="button" onClick={() => setGeneratedTicket(null)} className="px-2 py-1 border border-[#22c55e] text-[#bbf7d0]">FECHAR QR</button>
+                            <button type="button" onClick={() => setGeneratedTicket(null)} className="px-4 py-2.5 border border-[#22c55e] text-[#bbf7d0] font-pixel text-xs">FECHAR QR</button>
                           </div>
-                        </div>
                       </div>
                     )}
                     {createUserError && (

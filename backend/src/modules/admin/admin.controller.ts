@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -62,5 +64,41 @@ export class AdminController {
   @Get('audit-logs')
   async getAuditLogs() {
     return this.adminService.getAuditLogs();
+  }
+
+  @Get('tickets/search')
+  async searchTickets(@Req() req: Request) {
+    return this.adminService.searchTickets(String(req.query.q || ''));
+  }
+
+  @Post('tickets/create')
+  async createTicket(@Body() body: { name: string; phone: string }) {
+    return this.adminService.createTicket(body.name, body.phone);
+  }
+
+  @Put('tickets/:id')
+  async updateTicket(@Req() req: Request, @Body() body: { name?: string; phone?: string }) {
+    return this.adminService.updateTicket(req.params.id, body.name, body.phone);
+  }
+
+  @Delete('tickets/:id')
+  async deleteTicket(@Req() req: Request) {
+    return this.adminService.deleteTicket(req.params.id);
+  }
+}
+
+@Controller('api')
+@UseGuards(AdminJwtGuard)
+export class LegacyAdminController {
+  constructor(private readonly adminService: AdminService) {}
+
+  @Post('checkin/verify')
+  async verifyLegacyCheckin(@Body('token') token: string) {
+    return this.adminService.verifyCheckin(token);
+  }
+
+  @Post('checkin/confirm')
+  async confirmLegacyCheckin(@Body('token') token: string, @Req() req: Request) {
+    return this.adminService.confirmCheckin(token, (req as any).adminUser?.email);
   }
 }

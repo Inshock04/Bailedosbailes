@@ -588,6 +588,7 @@ export default function App() {
       <PromotionsModal
         isOpen={activeModal === 'promocoes'}
         onClose={() => setActiveModal(null)}
+        onOpenTickets={() => setActiveModal('tickets')}
       />
 
       <EventDetailsModal

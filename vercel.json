@@ -3,6 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
+    { "source": "/api/admin/:path*", "destination": "/api/nest" },
+    { "source": "/api/checkin/:path*", "destination": "/api/nest" },
     { "source": "/api/(.*)", "destination": "/api" }
   ]
 }

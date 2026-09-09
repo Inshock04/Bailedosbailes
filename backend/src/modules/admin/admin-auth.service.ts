@@ -18,7 +18,31 @@ export class AdminAuthService {
   ) {}
 
   async login(dto: AdminLoginDto, ip?: string, userAgent?: string) {
-    const cleanEmail = dto.email.trim().toLowerCase();
+    const cleanEmail = (dto.email || dto.login || dto.username || '').trim().toLowerCase();
+    const password = dto.password;
+
+    if (!cleanEmail) {
+      throw new UnauthorizedException('Informe o usuário administrativo.');
+    }
+
+    const configuredUser = (process.env.ADMIN_USER || '').trim().toLowerCase();
+    const configuredPassword = process.env.ADMIN_KEY || '';
+    if (configuredUser && configuredPassword && cleanEmail === configuredUser && password === configuredPassword) {
+      const accessToken = await this.jwtService.signAsync({
+        sub: 'env-admin',
+        email: configuredUser,
+        name: 'Administrador Hotel Cortez',
+        role: 'ADMIN',
+      }, {
+        secret: this.configService.get<string>('jwt.secret'),
+        expiresIn: this.configService.get<string>('jwt.expiresIn') || '8h',
+      });
+
+      return {
+        accessToken,
+        user: { id: 'env-admin', email: configuredUser, name: 'Administrador Hotel Cortez', role: 'ADMIN' },
+      };
+    }
 
     // 1. Busca admin no banco
     const user = await this.prisma.adminUser.findUnique({
@@ -37,7 +61,7 @@ export class AdminAuthService {
     }
 
     // 2. Compara a senha criptografada via bcrypt
-    const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const passwordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordValid) {
       await this.auditService.log({

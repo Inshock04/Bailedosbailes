@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AdminController } from './admin.controller';
+import { AdminController, LegacyAdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminAuthController } from './admin-auth.controller';
 import { AdminAuthService } from './admin-auth.service';
@@ -20,7 +20,7 @@ import { AdminJwtGuard } from './guards/admin-jwt.guard';
       }),
     }),
   ],
-  controllers: [AdminController, AdminAuthController],
+  controllers: [AdminController, LegacyAdminController, AdminAuthController],
   providers: [AdminService, AdminAuthService, AdminJwtGuard],
   exports: [AdminService, AdminAuthService, AdminJwtGuard, JwtModule],
 })

@@ -4,7 +4,7 @@ import { AdminLoginDto } from './dto/admin-login.dto';
 import { Request } from 'express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
-@Controller('api/admin/auth')
+@Controller('api/admin')
 export class AdminAuthController {
   constructor(private readonly authService: AdminAuthService) {}
 
@@ -12,7 +12,7 @@ export class AdminAuthController {
    * Login do Painel Administrativo.
    * Rate limiting rígido: máx 5 tentativas por minuto por IP para proteção contra brute force.
    */
-  @Post('login')
+  @Post(['login', 'auth/login'])
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))

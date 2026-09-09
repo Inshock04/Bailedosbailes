@@ -16,6 +16,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+      envFilePath: ['.env', '../.env'],
     }),
 
     // Rate Limiting Global com Throttler
