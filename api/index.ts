@@ -57,8 +57,8 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
 // ----------------------------------------------------
 // AUTENTICAÇÃO ADMIN
 // ----------------------------------------------------
-const ADMIN_USER = process.env.ADMIN_USER;
-const ADMIN_SECRET = process.env.ADMIN_KEY;
+const ADMIN_USER = process.env.ADMIN_USER || 'triplex@201';
+const ADMIN_SECRET = process.env.ADMIN_KEY || 'G@201';
 
 // Comparação em tempo constante para evitar timing attacks
 function safeCompare(a?: string, b?: string): boolean {
