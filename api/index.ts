@@ -54,6 +54,20 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   : null;
 
+app.get('/api/health', async (_req: Request, res: Response) => {
+  if (!supabaseAdmin) {
+    return res.status(503).json({ status: 'degraded', supabaseConfigured: false, eventTicketsTable: false });
+  }
+
+  const { error } = await supabaseAdmin.from('event_tickets').select('id').limit(1);
+  return res.status(error ? 503 : 200).json({
+    status: error ? 'degraded' : 'ok',
+    supabaseConfigured: true,
+    eventTicketsTable: !error,
+    databaseError: error ? error.code : undefined,
+  });
+});
+
 // ----------------------------------------------------
 // AUTENTICAÇÃO ADMIN
 // ----------------------------------------------------
