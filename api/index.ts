@@ -165,7 +165,10 @@ async function createPersistedTicket(name: string, phone: string) {
     const createdAt = new Date().toISOString();
     const { data, error } = await supabaseAdmin.from('event_tickets').insert({ codigo: code, token_hash: tokenHash, nome: name, telefone: phone, item: 'INGRESSO OPEN', categoria: 'GERAL', preco: 45, lote: 'UNICO', status: 'valido', criado_em: createdAt }).select('*').single();
     if (!error && data) return { data, error: null, token, createdAt };
-    if (error?.code !== '23505') return { data: null, error };
+    if (error?.code !== '23505') {
+      logSupabaseError('create event ticket', error);
+      return { data: null, error };
+    }
   }
 
   return { data: null, error: new Error('Não foi possível gerar um código único.') };
@@ -679,7 +682,13 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
   const error = created.error;
   const token = created.token;
   const createdAt = created.createdAt;
-  if (error || !persistedTicket) return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
+  if (error || !persistedTicket) {
+    if (error?.code === 'PGRST205') {
+      return res.status(503).json({ error: 'A tabela de ingressos ainda não foi criada no Supabase. Execute supabase/schema.sql no SQL Editor.' });
+    }
+    return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
+  }
+  const code = persistedTicket.codigo;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,

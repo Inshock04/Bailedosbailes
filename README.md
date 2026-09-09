@@ -23,6 +23,8 @@ View your app in AI Studio: https://ai.studio/apps/52aa04aa-f374-4d81-8519-6295a
 
 Execute o conteúdo adicionado ao final de `supabase/schema.sql` no SQL Editor do Supabase. Ele cria `event_tickets`, armazena somente o hash do token secreto e instala o consumo atômico do ingresso. Não execute a migration mais de uma vez fora do SQL Editor: os comandos são idempotentes, mas devem ser revisados no ambiente de produção.
 
+Se o cadastro retornar que a tabela de ingressos não foi criada, execute todo o arquivo `supabase/schema.sql` no projeto Supabase conectado à Vercel e aguarde o schema cache atualizar.
+
 O painel administrativo em `Área de ADM > SCANNER / CHECK-IN` exige `ADMIN_USER` e `ADMIN_KEY` configurados somente no servidor. A emissão manual persistente fica em `INSERIR DADOS DOS USUÁRIOS`; o código público pode ser exibido, enquanto o QR é gerado em memória com o token secreto e não contém dados pessoais.
 
 O fluxo de compra atual ainda encaminha o visitante para o WhatsApp. Portanto, o ingresso de teste deve ser emitido pelo formulário autenticado do painel, representando a confirmação feita pela organização. A integração automática com pagamento só deve emitir o mesmo registro após o webhook oficial confirmar o pagamento.

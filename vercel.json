@@ -4,8 +4,8 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/api/admin/login", "destination": "/api" },
-    { "source": "/api/admin/:path*", "destination": "/api/nest" },
-    { "source": "/api/checkin/:path*", "destination": "/api/nest" },
+    { "source": "/api/admin/:path*", "destination": "/api" },
+    { "source": "/api/checkin/:path*", "destination": "/api" },
     { "source": "/api/(.*)", "destination": "/api" }
   ]
 }
