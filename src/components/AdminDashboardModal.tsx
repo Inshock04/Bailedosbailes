@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import QRCode from 'qrcode';
 import {
   PixelClose,
   PixelSkull,
@@ -40,6 +41,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Inserir Usuário / Ingresso State
   const [newUserName, setNewUserName] = useState('');
@@ -47,13 +52,91 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
+  const [generatedTicket, setGeneratedTicket] = useState<{ code: string; token: string; name: string; qrDataUrl: string } | null>(null);
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
+
+  const stopScanner = () => {
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    setScannerOpen(false);
+  };
+
+  const startScanner = async () => {
+    setScannerError(null);
+    const BarcodeDetectorConstructor = (window as Window & {
+      BarcodeDetector?: new (options?: { formats?: string[] }) => {
+        detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
+      };
+    }).BarcodeDetector;
+    if (!BarcodeDetectorConstructor) {
+      setScannerError('Este navegador não oferece leitura automática. Digite o token abaixo.');
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      streamRef.current = stream;
+      setScannerOpen(true);
+      const detector = new BarcodeDetectorConstructor({ formats: ['qr_code'] });
+      const scan = async () => {
+        if (!videoRef.current || !streamRef.current) return;
+        const codes = await detector.detect(videoRef.current);
+        if (codes[0]?.rawValue) {
+          setScanToken(codes[0].rawValue.trim());
+          stopScanner();
+          return;
+        }
+        window.requestAnimationFrame(scan);
+      };
+      await new Promise<void>(resolve => window.setTimeout(resolve, 100));
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        scan();
+      }
+    } catch {
+      stopScanner();
+      setScannerError('Não foi possível abrir a câmera. Verifique a permissão e use HTTPS.');
+    }
+  };
 
   // Busca e Edição de Usuários
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState<PurchasedTicket[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    const term = userSearchTerm.trim();
+    if (!term || !adminToken) {
+      setSearchedUsers(null);
+      setSearchLoading(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const response = await fetch(`/api/admin/tickets/search?q=${encodeURIComponent(term)}`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        if (!response.ok) throw new Error('Não foi possível buscar os usuários.');
+        const data = await response.json();
+        setSearchedUsers(data.tickets || []);
+      } catch {
+        setSearchedUsers([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [userSearchTerm, adminToken]);
 
   const fetchMetrics = (tokenToUse?: string) => {
     const token = tokenToUse || adminToken;
@@ -207,8 +290,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
-        body: JSON.stringify({
-          token: verifyResult.data.token,
+          body: JSON.stringify({
+          token: scanToken.trim(),
           type: verifyResult.type
         })
       });
@@ -255,43 +338,21 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
+        console.error('[Tickets] Falha ao cadastrar ingresso', { operation: 'POST /api/admin/tickets/create', status: res.status, response: data });
         throw new Error(data?.error || 'Erro ao cadastrar usuário.');
       }
 
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Token: ${data.ticket.token}`);
+      const code = data.ticket.codigo || data.ticket.publicCode;
+      const qrDataUrl = await QRCode.toDataURL(data.ticket.token, { margin: 1, width: 240, errorCorrectionLevel: 'M' });
+      setGeneratedTicket({ code, token: data.ticket.token, name, qrDataUrl });
+      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Código público: ${data.ticket.codigo || data.ticket.publicCode}`);
       setNewUserName('');
       setNewUserPhone('');
       audioManager.playSuccess();
       fetchMetrics();
     } catch (err: any) {
-      // Fallback local caso backend esteja offline ou estático
-      const localToken = 'CTX-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.floor(100000 + Math.random() * 900000);
-      const localTicket = {
-        id: `local_${Date.now()}`,
-        token: localToken,
-        buyerName: name,
-        buyerPhone: phone,
-        buyerEmail: '',
-        ticketId: 't-open-45',
-        ticketName: 'INGRESSO',
-        category: 'GERAL',
-        price: 45,
-        paymentMethod: 'PIX',
-        status: 'VALIDO',
-        createdAt: new Date().toISOString(),
-        lote: 'ÚNICO'
-      };
-
-      setMetrics((prev: any) => ({
-        ...prev,
-        totalTicketsSold: (prev?.totalTicketsSold || 0) + 1,
-        purchasedTickets: [localTicket, ...(prev?.purchasedTickets || [])]
-      }));
-
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Token: ${localToken}`);
-      setNewUserName('');
-      setNewUserPhone('');
-      audioManager.playSuccess();
+      setCreateUserError(err.message || 'Não foi possível cadastrar o ingresso.');
+      audioManager.playError();
     } finally {
       setCreatingUser(false);
     }
@@ -595,6 +656,31 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </button>
                     </form>
 
+                    <div className="max-w-md mx-auto mt-3 flex gap-2">
+                      {!scannerOpen ? (
+                        <button type="button" onClick={startScanner} className="flex-1 pixel-btn bg-[#065f46] hover:bg-[#047857] text-white py-3 font-pixel text-[12px] font-bold">
+                          ABRIR CÂMERA QR
+                        </button>
+                      ) : (
+                        <button type="button" onClick={stopScanner} className="flex-1 pixel-btn bg-[#7f1d1d] hover:bg-[#991b1b] text-white py-3 font-pixel text-[12px] font-bold">
+                          FECHAR CÂMERA
+                        </button>
+                      )}
+                    </div>
+
+                    {scannerOpen && (
+                      <div className="max-w-md mx-auto mt-3 border-2 border-[#10b981] bg-black p-2">
+                        <video ref={videoRef} className="w-full aspect-square object-cover" muted playsInline />
+                        <p className="font-mono text-[11px] text-[#a7f3d0] mt-2">Aponte a câmera para o QR Code.</p>
+                      </div>
+                    )}
+
+                    {scannerError && (
+                      <div className="mt-3 p-2 bg-[#3b1708] border border-[#f59e0b] text-[#fde68a] text-xs font-mono">
+                        {scannerError}
+                      </div>
+                    )}
+
                     {verifyError && (
                       <div className="mt-3 p-2 bg-[#450a0a] border border-[#ef4444] text-[#fca5a5] text-xs font-mono">
                         ⚠ {verifyError}
@@ -606,7 +692,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   {verifyResult && (
                     <div className="bg-[#160a22] border-2 border-[#9333ea] p-4 space-y-3 font-mono text-xs sm:text-sm">
                       <div className="flex justify-between items-center border-b border-[#3b1754] pb-2">
-                        <span className="font-pixel text-[12px] text-[#c084fc] uppercase">TIPO: {verifyResult.type}</span>
+                        <span className="font-pixel text-[12px] text-[#c084fc] uppercase">{verifyResult.data.status === 'VALIDO' ? '🟢 INGRESSO VÁLIDO' : verifyResult.data.status === 'UTILIZADO' ? '🟠 INGRESSO JÁ UTILIZADO' : '🔴 INGRESSO CANCELADO'}</span>
                         <span className={`px-2 py-0.5 font-pixel text-[11px] font-bold ${verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN'
                             ? 'bg-[#7f1d1d] text-[#fca5a5]'
                             : 'bg-[#15803d] text-[#bbf7d0]'
@@ -618,7 +704,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <div className="space-y-1 text-left">
                         <p><span className="text-[#a855f7]">TITULAR:</span> <strong className="text-white">{verifyResult.data.name}</strong></p>
                         <p><span className="text-[#a855f7]">ITEM:</span> {verifyResult.data.item}</p>
-                        <p><span className="text-[#a855f7]">TOKEN:</span> <code className="bg-[#24083a] text-[#fbbf24] px-1.5 py-0.5">{formatTokenDisplay(verifyResult.data.token)}</code></p>
+                        <p><span className="text-[#a855f7]">CÓDIGO:</span> <code className="bg-[#24083a] text-[#fbbf24] px-1.5 py-0.5">{verifyResult.data.code || verifyResult.data.token}</code></p>
+                        {verifyResult.data.usedAt && <p><span className="text-[#a855f7]">UTILIZADO EM:</span> {new Date(verifyResult.data.usedAt).toLocaleString('pt-BR')}</p>}
                       </div>
 
                       {confirmSuccess ? (
@@ -629,10 +716,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         <div className="pt-2 flex gap-2">
                           <button
                             onClick={handleConfirmCheckin}
-                            disabled={verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN'}
+                            disabled={verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN' || verifyResult.data.status === 'CANCELADO'}
                             className="flex-1 pixel-btn bg-[#16a34a] hover:bg-[#22c55e] disabled:bg-gray-800 disabled:opacity-50 text-white py-3 font-pixel text-[12px] font-bold"
                           >
                             CONFIRMAR ENTRADA / RESGATE 💀
+                          </button>
+                          <button
+                            onClick={() => { setScanToken(''); setVerifyResult(null); setVerifyError(null); setConfirmSuccess(null); startScanner(); }}
+                            className="px-3 py-3 border border-[#10b981] text-[#a7f3d0] font-pixel text-[11px] font-bold"
+                          >
+                            PRÓXIMO QR
                           </button>
                         </div>
                       )}
@@ -705,6 +798,28 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         </button>
                       </div>
                     )}
+                    {generatedTicket && (
+                      <div className="mt-3 p-3 bg-[#071b12] border-2 border-[#22c55e] flex flex-col sm:flex-row items-center gap-3">
+                        <img src={generatedTicket.qrDataUrl} alt={`QR Code do ingresso ${generatedTicket.code}`} className="w-40 h-40 bg-white p-2" />
+                        <div className="font-mono text-xs text-[#bbf7d0] space-y-1 text-center sm:text-left">
+                          <p className="font-pixel text-[#4ade80]">INGRESSO EMITIDO</p>
+                          <p>Nome: <strong>{generatedTicket.name}</strong></p>
+                          <p>Código público: <strong>{generatedTicket.code}</strong></p>
+                          <p>Status: <strong>Disponível para entrada</strong></p>
+                          <p className="text-[#86efac]">O QR contém somente o token seguro.</p>
+                          <div className="mt-2 flex gap-2 justify-center sm:justify-start">
+                            <a
+                              href={generatedTicket.qrDataUrl}
+                              download={`ingresso-${generatedTicket.code}.png`}
+                              className="px-2 py-1 bg-[#15803d] border border-[#4ade80] text-white font-pixel"
+                            >
+                              BAIXAR QR CODE
+                            </a>
+                            <button type="button" onClick={() => setGeneratedTicket(null)} className="px-2 py-1 border border-[#22c55e] text-[#bbf7d0]">FECHAR QR</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {createUserError && (
                       <div className="mt-3 p-2.5 bg-[#450a0a] border-2 border-[#ef4444] text-[#fca5a5] font-mono text-xs">
                         ⚠ {createUserError}
@@ -716,7 +831,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   <div className="space-y-2">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <span className="font-pixel text-[11px] text-[#c084fc]">
-                        RELAÇÃO DE USUÁRIOS CADASTRADOS ({metrics?.purchasedTickets?.length || 0})
+                        RELAÇÃO DE USUÁRIOS CADASTRADOS ({(searchedUsers || metrics?.purchasedTickets || []).length})
                       </span>
                       <div className="w-full sm:w-64">
                         <input
@@ -741,23 +856,21 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[#2a1040]">
-                          {(!metrics?.purchasedTickets || metrics.purchasedTickets.length === 0) && (
+                          {searchLoading && (
+                            <tr>
+                              <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
+                                BUSCANDO...
+                              </td>
+                            </tr>
+                          )}
+                          {!searchLoading && (searchedUsers || metrics?.purchasedTickets || []).length === 0 && (
                             <tr>
                               <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
                                 Nenhum usuário cadastrado ainda. Use o formulário acima para inserir os dados.
                               </td>
                             </tr>
                           )}
-                          {metrics?.purchasedTickets
-                            ?.filter((t: PurchasedTicket) => {
-                              if (!userSearchTerm) return true;
-                              const term = userSearchTerm.toLowerCase();
-                              return (
-                                t.buyerName?.toLowerCase().includes(term) ||
-                                t.buyerPhone?.includes(term) ||
-                                t.token?.toLowerCase().includes(term)
-                              );
-                            })
+                          {!searchLoading && (searchedUsers || metrics?.purchasedTickets || [])
                             ?.map((t: PurchasedTicket) => {
                               const isEditing = editingUserId === t.id;
                               return (

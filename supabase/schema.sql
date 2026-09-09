@@ -44,6 +44,76 @@ CREATE TABLE IF NOT EXISTS public.coupons (
 CREATE INDEX IF NOT EXISTS idx_coupons_phone ON public.coupons(phone);
 CREATE INDEX IF NOT EXISTS idx_coupons_token ON public.coupons(token);
 
+-- 4. Tabela de ingressos emitidos (o token bruto nunca e armazenado)
+CREATE TABLE IF NOT EXISTS public.event_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo TEXT NOT NULL UNIQUE,
+    token_hash TEXT NOT NULL UNIQUE,
+    nome TEXT NOT NULL,
+    telefone TEXT NOT NULL,
+    email TEXT,
+    item TEXT NOT NULL DEFAULT 'INGRESSO OPEN',
+    categoria TEXT NOT NULL DEFAULT 'GERAL',
+    preco NUMERIC(10, 2) NOT NULL DEFAULT 45,
+    lote TEXT NOT NULL DEFAULT 'UNICO',
+    status TEXT NOT NULL DEFAULT 'valido' CHECK (status IN ('valido', 'usado', 'cancelado')),
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT now(),
+    usado_em TIMESTAMPTZ,
+    cancelado_em TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_tickets_token_hash ON public.event_tickets(token_hash);
+CREATE INDEX IF NOT EXISTS idx_event_tickets_status ON public.event_tickets(status);
+
+ALTER TABLE public.event_tickets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service_role_all_event_tickets" ON public.event_tickets;
+CREATE POLICY "service_role_all_event_tickets"
+ON public.event_tickets FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Consumo atomico: somente a primeira confirmacao muda valido para usado.
+CREATE OR REPLACE FUNCTION public.consume_event_ticket(p_token_hash TEXT)
+RETURNS TABLE (
+    id UUID,
+    codigo TEXT,
+    nome TEXT,
+    telefone TEXT,
+    email TEXT,
+    item TEXT,
+    categoria TEXT,
+    preco NUMERIC,
+    lote TEXT,
+    status TEXT,
+    criado_em TIMESTAMPTZ,
+    usado_em TIMESTAMPTZ
+)
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    UPDATE public.event_tickets
+       SET status = 'usado', usado_em = now()
+     WHERE token_hash = p_token_hash
+       AND status = 'valido'
+    RETURNING id, codigo, nome, telefone, email, item, categoria, preco, lote,
+              status, criado_em, usado_em;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.consume_event_ticket(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.consume_event_ticket(TEXT) TO service_role;
+
+-- Campos de persistencia anonima dos resgates do Oraculo.
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS device_id TEXT;
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS redeemed_at TIMESTAMPTZ;
+
+-- Um dispositivo/cookie pode resgatar somente uma vez. NULL preserva registros legados.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_coupons_device_id_unique
+ON public.coupons(device_id)
+WHERE device_id IS NOT NULL;
+
 -- ==============================================================================
 -- 4. Habilitar Row Level Security (RLS) em TODAS as tabelas
 -- ==============================================================================

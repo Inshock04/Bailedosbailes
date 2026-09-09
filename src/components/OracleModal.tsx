@@ -153,7 +153,26 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
       setRevealedCard(null);
       setIsFlipping(false);
       setErrorMsg(null);
+      setClaimedCoupon(null);
+      setQrCodeDataUrl('');
       loadCards();
+
+      fetch('/api/oracle/me', { credentials: 'same-origin' })
+        .then(async res => {
+          const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            console.error('[Oracle] Falha ao recuperar resgate', { operation: 'GET /api/oracle/me', status: res.status, response: data });
+            return null;
+          }
+          return data;
+        })
+        .then(async data => {
+          if (!data?.coupon) return;
+          setClaimedCoupon(data.coupon);
+          const qr = await QRCode.toDataURL(data.coupon.token, { width: 180, margin: 1 });
+          setQrCodeDataUrl(qr);
+        })
+        .catch(error => console.error('[Oracle] Falha de conexão ao recuperar resgate', { operation: 'GET /api/oracle/me', error }));
     }
   }, [isOpen]);
 
@@ -201,6 +220,9 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        console.error('[Oracle] Falha ao registrar resgate', { operation: 'POST /api/oracle/draw', status: res.status, response: data });
+      }
       if (!res.ok) {
         if (data.coupon) {
           setClaimedCoupon(data.coupon);

@@ -76,8 +76,8 @@ const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
 // ----------------------------------------------------
 // AUTENTICAÇÃO SEGURA DO PAINEL ADMINISTRATIVO
 // ----------------------------------------------------
-const ADMIN_USER = process.env.ADMIN_USER || 'triplex@201';
-const ADMIN_SECRET = process.env.ADMIN_KEY || 'G_201';
+const ADMIN_USER = process.env.ADMIN_USER;
+const ADMIN_SECRET = process.env.ADMIN_KEY;
 
 // Comparação em tempo constante para evitar timing attacks
 function safeCompare(a?: string, b?: string): boolean {
@@ -162,6 +162,7 @@ interface Promotion {
 interface PurchasedTicket {
   id: string;
   token: string;
+  publicCode?: string;
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
@@ -394,11 +395,100 @@ function sanitizePhone(phone: string): string {
   return phone.replace(/\D/g, '');
 }
 
+function getCookieValue(req: Request, name: string): string | null {
+  const cookies = String(req.headers.cookie || '').split(';');
+  const entry = cookies.find(cookie => cookie.trim().startsWith(`${name}=`));
+  return entry ? decodeURIComponent(entry.trim().slice(name.length + 1)) : null;
+}
+
+function getOrSetDeviceId(req: Request, res: Response): string {
+  const existing = getCookieValue(req, 'cortez_device_id');
+  if (existing && /^[a-f0-9]{64}$/.test(existing)) return existing;
+
+  const deviceId = crypto.randomBytes(32).toString('hex');
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.setHeader('Set-Cookie', `cortez_device_id=${deviceId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
+  return deviceId;
+}
+
+function mapCouponRow(row: any): Coupon {
+  return {
+    id: row.id,
+    token: row.token,
+    rewardTitle: row.reward_title,
+    rewardValue: row.reward_value,
+    phone: row.phone,
+    userName: row.user_name || undefined,
+    status: row.status,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    usedAt: row.used_at || undefined
+  };
+}
+
+function logSupabaseError(operation: string, error: any): void {
+  console.error('[Supabase]', { operation, code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
+}
+
 // Helper to generate cryptographically secure random tokens
 function generateSecureToken(prefix: string): string {
   const randNum = crypto.randomInt(100000, 999999);
   const randHex = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `${prefix}-${randHex}-${randNum}`;
+}
+
+function generateAccessCode(): string {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const code = `AHS-${crypto.randomInt(1000, 10000)}`;
+    const alreadyUsed = purchasedTickets.some(ticket => ticket.token === code) || guestList.some(guest => guest.token === code);
+    if (!alreadyUsed) return code;
+  }
+
+  throw new Error('Não foi possível gerar um código exclusivo.');
+}
+
+function hashTicketToken(token: string): string {
+  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function generateTicketCredentials(): { code: string; token: string; tokenHash: string } {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const code = `AHS-${crypto.randomInt(1000, 10000)}`;
+  return { code, token, tokenHash: hashTicketToken(token) };
+}
+
+async function createPersistedTicket(name: string, phone: string) {
+  if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { code, token, tokenHash } = generateTicketCredentials();
+    const createdAt = new Date().toISOString();
+    const { data, error } = await supabaseAdmin.from('event_tickets').insert({ codigo: code, token_hash: tokenHash, nome: name, telefone: phone, item: 'INGRESSO OPEN', categoria: 'GERAL', preco: 45, lote: 'UNICO', status: 'valido', criado_em: createdAt }).select('*').single();
+    if (!error && data) return { data, error: null, token, createdAt };
+    if (error?.code !== '23505') return { data: null, error };
+  }
+
+  return { data: null, error: new Error('Não foi possível gerar um código único.') };
+}
+
+function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
+  return {
+    id: row.id,
+    token: token || row.codigo,
+    publicCode: row.codigo,
+    buyerName: row.nome,
+    buyerEmail: row.email || '',
+    buyerPhone: row.telefone,
+    ticketId: 't-open-45',
+    ticketName: row.item,
+    category: row.categoria,
+    price: Number(row.preco),
+    paymentMethod: 'PIX',
+    status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
+    createdAt: row.criado_em,
+    usedAt: row.usado_em || undefined,
+    lote: row.lote
+  };
 }
 
 // ----------------- API ROUTES -----------------
@@ -487,8 +577,17 @@ app.get('/api/oracle/cards', (_req: Request, res: Response) => {
   res.json(getShuffledOracleCards(6));
 });
 
-// Draw Oracle Reward with Strict Backend Validation (1 per phone)
-app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) => {
+app.get('/api/oracle/me', publicWriteLimiter, async (req: Request, res: Response) => {
+  const deviceId = getOrSetDeviceId(req, res);
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de promoções indisponível.' });
+
+  const { data, error } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
+  if (error) { logSupabaseError('GET coupons by device_id', error); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
+  return res.json({ claimed: Boolean(data), coupon: data ? mapCouponRow(data) : null });
+});
+
+// Draw Oracle Reward with server-side device uniqueness and database constraint.
+app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Response) => {
   const { phone, cardId, userName } = req.body;
 
   if (!phone) {
@@ -500,9 +599,13 @@ app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) =
     return res.status(400).json({ error: 'Por favor, informe um telefone válido com DDD.' });
   }
 
-  // Check if this phone already claimed a coupon
-  const existingCoupon = coupons.find(c => sanitizePhone(c.phone) === cleanPhone);
-  if (existingCoupon) {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de promoções indisponível.' });
+  const deviceId = getOrSetDeviceId(req, res);
+
+  const { data: existingRow, error: lookupError } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
+  if (lookupError) { logSupabaseError('POST oracle lookup coupon by device_id', lookupError); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
+  if (existingRow) {
+    const existingCoupon = mapCouponRow(existingRow);
     return res.status(403).json({
       error: 'Você já resgatou sua carta do destino para este evento!',
       coupon: existingCoupon,
@@ -528,27 +631,29 @@ app.post('/api/oracle/draw', publicWriteLimiter, (req: Request, res: Response) =
     expiresAt: '2026-11-01T06:00:00.000Z'
   };
 
-  coupons.unshift(newCoupon);
+  const { error: insertError } = await supabaseAdmin.from('coupons').insert({
+    token: newCoupon.token,
+    reward_title: newCoupon.rewardTitle,
+    reward_value: newCoupon.rewardValue,
+    phone: newCoupon.phone,
+    user_name: newCoupon.userName,
+    status: newCoupon.status,
+    created_at: newCoupon.createdAt,
+    redeemed_at: newCoupon.createdAt,
+    expires_at: newCoupon.expiresAt,
+    device_id: deviceId
+  });
 
-  // Sincronização segura com Supabase em segundo plano
-  if (supabaseAdmin) {
-    Promise.resolve(
-      supabaseAdmin.from('coupons').insert([
-        {
-          token: newCoupon.token,
-          reward_title: newCoupon.rewardTitle,
-          reward_value: newCoupon.rewardValue,
-          phone: newCoupon.phone,
-          user_name: newCoupon.userName,
-          status: newCoupon.status,
-          created_at: newCoupon.createdAt,
-          expires_at: newCoupon.expiresAt
-        }
-      ])
-    ).then(({ error }: any) => {
-      if (error) console.warn('[Supabase coupons Sync Warning]', error.message);
-    }).catch(err => console.warn('[Supabase coupons Sync Exception]', err));
+  if (insertError) {
+    logSupabaseError('POST oracle insert coupon', insertError);
+    if (insertError.code === '23505') {
+      const { data: concurrentCoupon } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
+      if (concurrentCoupon) return res.status(403).json({ error: 'Você já resgatou sua carta do destino para este evento!', coupon: mapCouponRow(concurrentCoupon), alreadyClaimed: true });
+    }
+    return res.status(500).json({ error: 'Não foi possível registrar o resgate.' });
   }
+
+  coupons.unshift(newCoupon);
 
   return res.status(201).json({
     success: true,
@@ -589,7 +694,7 @@ app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => 
     eventName: 'Halloween Party Hotel Cortez 2026',
     status: 'CONFIRMADO',
     createdAt: new Date().toISOString(),
-    token: generateSecureToken('RSVP')
+    token: generateAccessCode()
   };
 
   guestList.unshift(newEntry);
@@ -626,13 +731,38 @@ app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => 
 });
 
 // 6. Verification / Check-in for QR Codes & Tokens (PROTEGIDO)
-app.post('/api/checkin/verify', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Response) => {
   const { token } = req.body;
   if (!token) {
     return res.status(400).json({ error: 'Token ou QR Code não fornecido.' });
   }
 
   const cleanToken = token.trim().toUpperCase();
+
+  if (supabaseAdmin) {
+    const { data: persistedTicket, error } = await supabaseAdmin
+      .from('event_tickets')
+      .select('*')
+      .eq('token_hash', hashTicketToken(token.trim()))
+      .maybeSingle();
+    if (error) return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
+    if (persistedTicket) {
+      const ticket = mapSupabaseTicket(persistedTicket);
+      return res.json({
+        type: 'TICKET', found: true,
+        data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt }
+      });
+    }
+  }
+
+  if (supabaseAdmin) {
+    const { data: persistedCoupon, error } = await supabaseAdmin.from('coupons').select('*').eq('token', cleanToken).maybeSingle();
+    if (error) return res.status(500).json({ error: 'Não foi possível consultar a promoção.' });
+    if (persistedCoupon) {
+      const coupon = mapCouponRow(persistedCoupon);
+      return res.json({ type: 'COUPON', found: true, data: { id: coupon.id, token: coupon.token, name: coupon.userName || 'Portador do Cupom', item: coupon.rewardTitle, value: coupon.rewardValue, status: coupon.status, createdAt: coupon.createdAt, usedAt: coupon.usedAt } });
+    }
+  }
 
   // Check in purchased tickets
   const ticket = purchasedTickets.find(t => t.token.toUpperCase() === cleanToken);
@@ -696,7 +826,7 @@ app.post('/api/checkin/verify', requireAdminAuth, (req: Request, res: Response) 
 });
 
 // Confirm Check-in / Redemption (PROTEGIDO)
-app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Response) => {
   const { token, type } = req.body;
   if (!token) {
     return res.status(400).json({ error: 'Token é obrigatório.' });
@@ -706,6 +836,23 @@ app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response)
   const now = new Date().toISOString();
 
   if (type === 'TICKET') {
+    if (supabaseAdmin) {
+      const tokenHash = hashTicketToken(token.trim());
+      const { data: consumed, error: consumeError } = await supabaseAdmin.rpc('consume_event_ticket', { p_token_hash: tokenHash });
+      if (consumeError) return res.status(500).json({ error: 'Não foi possível registrar a entrada.' });
+      if (consumed?.length) {
+        const ticket = mapSupabaseTicket(consumed[0], token.trim());
+        return res.json({ success: true, message: 'ENTRADA CONFIRMADA! Bem-vindo ao Hotel Cortez.', ticket: { ...ticket, token: ticket.publicCode } });
+      }
+
+      const { data: persistedTicket } = await supabaseAdmin
+        .from('event_tickets')
+        .select('usado_em, status')
+        .eq('token_hash', tokenHash)
+        .maybeSingle();
+      if (persistedTicket?.status === 'usado') return res.status(409).json({ error: 'INGRESSO JÁ UTILIZADO anteriormente!', usedAt: persistedTicket.usado_em });
+      if (persistedTicket?.status === 'cancelado') return res.status(400).json({ error: 'INGRESSO CANCELADO.' });
+    }
     const ticket = purchasedTickets.find(t => t.token.toUpperCase() === cleanToken);
     if (!ticket) return res.status(404).json({ error: 'Ingresso não encontrado.' });
     if (ticket.status === 'UTILIZADO') {
@@ -717,6 +864,13 @@ app.post('/api/checkin/confirm', requireAdminAuth, (req: Request, res: Response)
   }
 
   if (type === 'COUPON') {
+    if (supabaseAdmin) {
+      const { data: updatedCoupon, error } = await supabaseAdmin.from('coupons').update({ status: 'UTILIZADO', used_at: now }).eq('token', cleanToken).eq('status', 'ATIVO').select('*').maybeSingle();
+      if (error) return res.status(500).json({ error: 'Não foi possível registrar o resgate.' });
+      if (updatedCoupon) return res.json({ success: true, message: 'PROMOÇÃO RESGATADA COM SUCESSO!', coupon: mapCouponRow(updatedCoupon) });
+      const { data: persistedCoupon } = await supabaseAdmin.from('coupons').select('used_at, status').eq('token', cleanToken).maybeSingle();
+      if (persistedCoupon?.status === 'UTILIZADO') return res.status(409).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: persistedCoupon.used_at });
+    }
     const coupon = coupons.find(c => c.token.toUpperCase() === cleanToken);
     if (!coupon) return res.status(404).json({ error: 'Cupom não encontrado.' });
     if (coupon.status === 'UTILIZADO') {
@@ -750,8 +904,8 @@ app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) =>
     return res.status(401).json({ error: 'Credenciais de administração incompletas.' });
   }
 
-  const isUserValid = safeCompare(userIdentifier, ADMIN_USER) || safeCompare(userIdentifier, 'triplex@201');
-  const isPassValid = safeCompare(userPassword, ADMIN_SECRET) || safeCompare(userPassword, 'G_201');
+  const isUserValid = safeCompare(userIdentifier, ADMIN_USER);
+  const isPassValid = safeCompare(userPassword, ADMIN_SECRET);
 
   if (!isUserValid || !isPassValid) {
     return res.status(401).json({ error: 'Login ou senha de administração inválidos.' });
@@ -777,7 +931,24 @@ app.post('/api/admin/logout', (req: Request, res: Response) => {
 });
 
 // 8. Admin Metrics & Full Database View (PROTEGIDO)
-app.get('/api/admin/metrics', requireAdminAuth, (_req: Request, res: Response) => {
+app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Response) => {
+  if (supabaseAdmin) {
+    const { data: persistedTickets, error } = await supabaseAdmin.from('event_tickets').select('*').order('criado_em', { ascending: false });
+    if (error) return res.status(500).json({ error: 'Não foi possível carregar os ingressos.' });
+    const { data: persistedCoupons, error: couponsError } = await supabaseAdmin.from('coupons').select('*').order('created_at', { ascending: false });
+    if (couponsError) return res.status(500).json({ error: 'Não foi possível carregar as promoções.' });
+    const safeCoupons = (persistedCoupons || []).map(mapCouponRow);
+    const safeTickets = (persistedTickets || []).map(row => mapSupabaseTicket(row, row.codigo));
+    return res.json({
+      totalTicketsSold: safeTickets.length,
+      totalRevenue: safeTickets.reduce((acc, ticket) => acc + ticket.price, 0),
+      guestListCount: guestList.length,
+      couponsGenerated: safeCoupons.length,
+      couponsUsed: safeCoupons.filter(coupon => coupon.status === 'UTILIZADO').length,
+      checkinsCount: safeTickets.filter(ticket => ticket.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length,
+      tickets, purchasedTickets: safeTickets, guestList, promotions, coupons: safeCoupons
+    });
+  }
   const totalTicketsSold = purchasedTickets.length;
   const totalRevenue = purchasedTickets.reduce((acc, t) => acc + t.price, 0);
   const guestListCount = guestList.length;
@@ -800,17 +971,42 @@ app.get('/api/admin/metrics', requireAdminAuth, (_req: Request, res: Response) =
   });
 });
 
+app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res: Response) => {
+  const term = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : '';
+  if (!term) return res.json({ tickets: [] });
+
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin.from('event_tickets').select('*').or(`codigo.ilike.%${term}%,nome.ilike.%${term}%,telefone.ilike.%${term}%`).limit(50);
+    if (error) return res.status(500).json({ error: 'Não foi possível buscar os ingressos.' });
+    return res.json({ tickets: (data || []).map(row => mapSupabaseTicket(row, row.codigo)) });
+  }
+
+  const tickets = purchasedTickets
+    .filter(ticket => [ticket.token, ticket.buyerName, ticket.buyerPhone].some(value => value.toLowerCase().includes(term)))
+    .slice(0, 50);
+
+  return res.json({ tickets });
+});
+
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
-app.post('/api/admin/tickets/create', requireAdminAuth, (req: Request, res: Response) => {
+app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
   const { name, phone } = req.body;
   if (!name || !phone) {
     return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
   }
 
-  const token = generateSecureToken('CTX');
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
+  const created = await createPersistedTicket(String(name).trim(), String(phone).trim());
+  const persistedTicket = created.data;
+  const error = created.error;
+  const token = created.token;
+  const createdAt = created.createdAt;
+  if (error || !persistedTicket) return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
+  const code = persistedTicket.codigo;
   const newTicket: PurchasedTicket = {
-    id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    id: persistedTicket.id,
     token,
+    publicCode: code,
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
@@ -820,12 +1016,12 @@ app.post('/api/admin/tickets/create', requireAdminAuth, (req: Request, res: Resp
     price: 45,
     paymentMethod: 'PIX',
     status: 'VALIDO',
-    createdAt: new Date().toISOString(),
+    createdAt,
     lote: 'ÚNICO'
   };
 
   purchasedTickets.unshift(newTicket);
-  return res.json({ success: true, ticket: newTicket, message: 'Usuário cadastrado com sucesso!' });
+  return res.json({ success: true, ticket: { ...newTicket, token, codigo: code }, message: 'Usuário cadastrado com sucesso!' });
 });
 
 // Admin: Atualizar Dados do Usuário (Nome / Número)
@@ -833,6 +1029,10 @@ app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response
   const { id } = req.params;
   const { name, phone } = req.body;
   const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
+  if (supabaseAdmin) {
+    return supabaseAdmin.from('event_tickets').update({ nome: name ? String(name).trim() : undefined, telefone: phone ? String(phone).trim() : undefined }).eq('id', id).select('*').single()
+      .then(({ data, error }) => error || !data ? res.status(404).json({ error: 'Usuário não encontrado.' }) : res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' }));
+  }
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
   if (phone) ticket.buyerPhone = String(phone).trim();
@@ -842,6 +1042,10 @@ app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response
 // Admin: Remover Usuário / Ingresso
 app.delete('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
+  if (supabaseAdmin) {
+    return supabaseAdmin.from('event_tickets').update({ status: 'cancelado', cancelado_em: new Date().toISOString() }).eq('id', id).select('id').single()
+      .then(({ data, error }) => error || !data ? res.status(404).json({ error: 'Ingresso não encontrado.' }) : res.json({ success: true, message: 'Ingresso cancelado.' }));
+  }
   purchasedTickets = purchasedTickets.filter(t => t.id !== id && t.token !== id);
   return res.json({ success: true, message: 'Usuário/ingresso removido.' });
 });
