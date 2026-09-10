@@ -1,0 +1,420 @@
+@import url('https://fonts.cdnfonts.com/css/american-horror-story');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-bg-dark: #07050d;
+    --color-bg-card: #120d20;
+    --color-hotel-red: #c01828;
+    --color-hotel-purple: #3f1a63;
+    --color-amber-light: #f59e0b;
+    --color-gold: #d4af37;
+    --color-parchment: #f0e6d2;
+    --font-ahs: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Bellefair', 'Cinzel Decorative', 'Marcellus', 'Cormorant SC', serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    height: 100%;
+  }
+
+  body {
+    background-color: #07050d;
+    color: #f0e6d2;
+    font-family: 'American Horror Story', sans-serif;
+    min-height: 100dvh;
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  #root {
+    min-height: 100dvh;
+    height: 100%;
+  }
+
+  @media (pointer: fine) {
+    body, a, button, input, select, textarea, [role="button"], .cursor-pointer {
+      cursor: none !important;
+    }
+  }
+}
+
+/* Only apply pixelated rendering to the actual pixel art scenery image */
+.image-pixelated {
+  image-rendering: pixelated;
+}
+
+/* GPU layer promotion for animated elements on mobile */
+@media (max-width: 768px) {
+  canvas {
+    will-change: contents;
+    contain: strict;
+  }
+
+  .fixed.pointer-events-none {
+    contain: layout style;
+  }
+}
+
+/* AMERICAN HORROR STORY (OFFICIAL CDNFONTS / KELGE / MACKINTOSH) TYPOGRAPHY */
+.font-ahs,
+.font-kelge,
+.font-american-horror-story {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Bellefair', 'Cinzel Decorative', 'Marcellus', 'Cormorant SC', serif;
+  letter-spacing: 0.12em;
+}
+
+.font-ahs-title {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Cinzel Decorative', 'Bellefair', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-weight: 900;
+}
+
+.font-pixel {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Bellefair', 'Press Start 2P', monospace;
+  letter-spacing: 0.08em;
+}
+
+.font-vintage {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Cinzel Decorative', 'Cinzel', serif;
+  letter-spacing: 0.15em;
+}
+
+.font-retro {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Bellefair', 'VT323', monospace;
+}
+
+/* Pixel Art Borders and Shadows */
+.pixel-box {
+  box-shadow: 
+    0 0 0 2px #1e1333,
+    0 0 0 4px #000000,
+    0 4px 15px rgba(0, 0, 0, 0.7);
+  image-rendering: pixelated;
+}
+
+.pixel-box-red {
+  box-shadow: 
+    0 0 0 2px #dc2626,
+    0 0 0 4px #450a0a,
+    0 0 15px rgba(220, 38, 38, 0.4);
+}
+
+.pixel-box-gold {
+  box-shadow: 
+    0 0 0 2px #d97706,
+    0 0 0 4px #451a03,
+    0 0 15px rgba(217, 119, 6, 0.3);
+}
+
+.pixel-box-purple {
+  box-shadow: 
+    0 0 0 2px #9333ea,
+    0 0 0 4px #3b0764,
+    0 0 15px rgba(147, 51, 234, 0.35);
+}
+
+.pixel-btn {
+  position: relative;
+  border: 3px solid #000;
+  box-shadow: 
+    inset -3px -3px 0px 0px rgba(0, 0, 0, 0.5),
+    inset 3px 3px 0px 0px rgba(255, 255, 255, 0.25),
+    0 4px 0px 0px #000;
+  transition: all 0.08s ease;
+  user-select: none;
+}
+
+.pixel-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    inset -3px -3px 0px 0px rgba(0, 0, 0, 0.5),
+    inset 3px 3px 0px 0px rgba(255, 255, 255, 0.35),
+    0 6px 0px 0px #000;
+}
+
+.pixel-btn:active {
+  transform: translateY(2px);
+  box-shadow: 
+    inset -1px -1px 0px 0px rgba(0, 0, 0, 0.5),
+    inset 1px 1px 0px 0px rgba(255, 255, 255, 0.2),
+    0 1px 0px 0px #000;
+}
+
+/* CRT and VHS Screen Filter */
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  z-index: 9999;
+  background-size: 100% 3px, 4px 100%;
+  pointer-events: none;
+}
+
+.crt-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.98; }
+  50% { opacity: 1; }
+  100% { opacity: 0.99; }
+}
+
+@keyframes neon-glow {
+  0%, 100% {
+    text-shadow: 0 0 5px #ff0033, 0 0 10px #ff0033, 0 0 20px #cc0000, 0 0 40px #880000;
+  }
+  50% {
+    text-shadow: 0 0 2px #ff0033, 0 0 5px #cc0000, 0 0 12px #880000;
+  }
+}
+
+.neon-text-red {
+  animation: neon-glow 2.5s infinite ease-in-out;
+}
+
+@keyframes bat-fly {
+  0% {
+    transform: translate(-50px, 30px) scale(0.7);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(750px, -40px) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.animate-bat-1 {
+  animation: bat-fly 18s infinite linear;
+}
+
+.animate-bat-2 {
+  animation: bat-fly 14s infinite linear;
+  animation-delay: 6s;
+}
+
+.animate-bat-3 {
+  animation: bat-fly 22s infinite linear;
+  animation-delay: 11s;
+}
+
+/* American Horror Story Neon Marquee Typography & Glow */
+.neon-ahs-title {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Cinzel Decorative', 'Bellefair', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  text-shadow: 
+    0 0 4px #ff1e38,
+    0 0 10px #ff1e38,
+    0 0 20px rgba(255, 30, 56, 0.7),
+    0 0 35px rgba(200, 0, 30, 0.5);
+  font-weight: 900;
+}
+
+.neon-triplex-title {
+  font-family: 'American Horror Story', sans-serif, 'Kelge', 'ITC Willow', 'Hill House', 'Cinzel Decorative', 'Bellefair', serif;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  text-shadow: 
+    0 0 4px #f59e0b,
+    0 0 12px #f59e0b,
+    0 0 22px rgba(245, 158, 11, 0.7),
+    0 0 35px rgba(217, 119, 6, 0.5);
+  font-weight: 900;
+}
+
+.ahs-marquee-glow {
+  text-shadow: 0 0 8px rgba(255, 30, 56, 0.8), 0 0 16px rgba(255, 30, 56, 0.4);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090611;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f1a63;
+  border: 1px solid #190a2a;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #991b1b;
+}
+
+/* ==========================================================================
+   GLOBAL FONT SIZE INCREASE (+2px total for Tailwind standard classes)
+   ========================================================================== */
+
+/* Tailwind text-xs = 0.75rem (12px) → 14px */
+.text-xs {
+  font-size: 14px !important;
+}
+
+/* Tailwind text-sm = 0.875rem (14px) → 16px */
+.text-sm {
+  font-size: 16px !important;
+}
+
+/* Tailwind text-base = 1rem (16px) → 18px */
+.text-base {
+  font-size: 18px !important;
+}
+
+/* Tailwind text-lg = 1.125rem (18px) → 20px */
+.text-lg {
+  font-size: 20px !important;
+}
+
+/* Tailwind text-xl = 1.25rem (20px) → 22px */
+.text-xl {
+  font-size: 22px !important;
+}
+
+/* Tailwind text-2xl = 1.5rem (24px) → 26px */
+.text-2xl {
+  font-size: 26px !important;
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS IMPROVEMENTS
+   ========================================================================== */
+
+/* Better touch targets on mobile */
+@media (max-width: 639px) {
+  /* Ensure minimum touch target size for interactive elements */
+  button, a, [role="button"] {
+    min-height: 36px;
+    min-width: 36px;
+  }
+
+  /* Make modals full-width on mobile for better readability */
+  .fixed.inset-0 > div {
+    max-width: 100% !important;
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  /* Improve the main sidebar card on mobile */
+  aside {
+    max-height: calc(100vh - 5rem) !important;
+    max-height: calc(100dvh - 5rem) !important;
+  }
+
+  /* Better spacing for grid items on small screens */
+  .grid.grid-cols-4 {
+    gap: 0.375rem;
+  }
+}
+
+/* Use dynamic viewport height for full-screen layouts */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh !important;
+  }
+}
+
+/* Prevent content from being hidden behind mobile browser chrome */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fixed.bottom-3 {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Improve readability of small text on mobile */
+@media (max-width: 639px) {
+  /* Ensure font-mono text is legible on small screens */
+  .font-mono {
+    letter-spacing: 0.01em;
+    word-spacing: 0.05em;
+  }
+  
+  /* Slightly increase line-height for better readability on small screens */
+  .leading-tight {
+    line-height: 1.35 !important;
+  }
+  
+  .leading-relaxed {
+    line-height: 1.75 !important;
+  }
+}
+
+/* Smooth scrolling for overflow containers */
+.overflow-y-auto,
+.overflow-y-scroll,
+.mobile-scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+}
+
+/* Prevent horizontal overflow on mobile */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(168, 85, 247, 0.8) rgba(12, 6, 20, 0.4);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(12, 6, 20, 0.3);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.8);
+    border-radius: 9999px;
+  }
+
+  .fixed {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
+  /* Ensure images and elements don't overflow */
+  img, svg, video, canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Better card responsiveness on very small screens */
+@media (max-width: 374px) {
+  /* Extra-small devices: reduce padding */
+  .p-4 { padding: 0.75rem !important; }
+  .p-3 { padding: 0.625rem !important; }
+  .px-3 { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+  .py-2\.5 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+  
+  /* Scale down gap for tight layouts */
+  .gap-3 { gap: 0.5rem !important; }
+  .gap-2\.5 { gap: 0.375rem !important; }
+}
