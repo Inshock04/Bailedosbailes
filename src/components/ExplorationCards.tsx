@@ -78,7 +78,7 @@ export const ExplorationCards: React.FC<ExplorationCardsProps> = ({ onSelectSect
     {
       id: 'promocoes',
       title: 'PROMOÇÕES',
-      desc: 'Confira as promoções de bebidas e combos exclusivos da noite.',
+      desc: 'Confira as promoções oficiais do evento.',
       action: 'ENTRAR',
       accentColor: '#f59e0b',
       renderThumbnail: () => (

@@ -406,13 +406,7 @@ let tickets: Ticket[] = [
   }
 ];
 
-let promotions: Promotion[] = [
-  { id: 'promo-1', name: 'BALDE DE HEINEKEN (6 UNID)', description: 'Balde de gelo com 6 long necks 330ml ultra geladas.', quantity: '6 unidades', price: 60, originalPrice: 84, active: true, category: 'BEER', tag: 'MAIS VENDIDO' },
-  { id: 'promo-2', name: 'COMBO SKOL BEATS SENSES (6 UNID)', description: 'Pack com 6 latinhas de Beats geladinhas para esquentar a noite.', quantity: '6 unidades', price: 70, originalPrice: 90, active: true, category: 'BEER', tag: 'POPULAR' },
-  { id: 'promo-3', name: 'COMBO GIN TANQUERAY + 5 RED BULLS', description: '1 Garrafa de Gin Tanqueray London Dry 750ml + 5 latas de Red Bull Tropical ou Tradicional + Gelo com especiarias.', quantity: '1 Garrafa + 5 Latas', price: 210, originalPrice: 280, active: true, category: 'COMBO', tag: 'COMBO VIP' },
-  { id: 'promo-4', name: 'SHOT SANGUE DA CONDESSA (DOSE DUPLA)', description: 'Receita secreta do Hotel Cortez com Tequila Silver, licor de cassis, xarope de romã e borda de açúcar de pimenta.', quantity: '2 shots 50ml', price: 25, originalPrice: 40, active: true, category: 'SHOT', tag: 'EXCLUSIVO' },
-  { id: 'promo-5', name: 'COMBO JACK DANIEL\u2019S + 4 COCA-COLAS', description: '1 Garrafa Jack Daniel\u2019s Old No. 7 1L + 4 latas de Coca-Cola + Balde de Gelo.', quantity: '1 Garrafa + 4 Latas', price: 240, originalPrice: 310, active: true, category: 'COMBO' }
-];
+let promotions: Promotion[] = [];
 
 const allOracleCards = [
   {
