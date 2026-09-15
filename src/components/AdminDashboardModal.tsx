@@ -12,6 +12,16 @@ import {
   PixelKey
 } from './PixelIcons';
 import { audioManager } from '../utils/audio';
+import {
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Plus,
+  Search,
+  ExternalLink,
+  FileText,
+  X
+} from 'lucide-react';
 import type { PurchasedTicket, Coupon } from '../types';
 
 const QR_CANVAS_SIZE = 1024;
@@ -168,7 +178,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
-  const [generatedTicket, setGeneratedTicket] = useState<{ code: string; token: string; name: string; qrDataUrl: string } | null>(null);
+  const [generatedTicket, setGeneratedTicket] = useState<{ code: string; token: string; name: string; qrDataUrl: string; publicUrl?: string } | null>(null);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -462,9 +472,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       }
 
       const code = data.ticket.codigo || data.ticket.publicCode;
-      const qrDataUrl = await generateHalloweenTicketQr(data.ticket.token);
-      setGeneratedTicket({ code, token: data.ticket.token, name, qrDataUrl });
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Código público: ${data.ticket.codigo || data.ticket.publicCode}`);
+      const targetToken = data.ticket.qrToken || data.ticket.token || code;
+      const publicUrl = `${window.location.origin}/ingresso/${targetToken}`;
+      const qrDataUrl = await generateHalloweenTicketQr(publicUrl);
+      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl });
+      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Código público: ${code}`);
       setNewUserName('');
       setNewUserPhone('');
       audioManager.playSuccess();
@@ -474,6 +486,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       audioManager.playError();
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  // View / Download QR Code of any existing ticket
+  const handleViewUserQr = async (t: PurchasedTicket) => {
+    try {
+      const code = t.publicCode || t.token;
+      const targetToken = t.qrToken || t.token || code;
+      const publicUrl = `${window.location.origin}/ingresso/${targetToken}`;
+      const qrDataUrl = await generateHalloweenTicketQr(publicUrl);
+      setGeneratedTicket({ code, token: targetToken, name: t.buyerName, qrDataUrl, publicUrl });
+      audioManager.playClick();
+    } catch (err: any) {
+      alert(err.message || 'Erro ao gerar QR Code.');
     }
   };
 
@@ -670,8 +696,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
               </div>
 
               {authError && (
-                <div className="p-2 bg-[#450a0a] border border-[#ef4444] text-[#fca5a5] text-xs font-mono">
-                  ⚠ {authError}
+                <div className="p-2.5 bg-[#450a0a] border border-[#ef4444] text-[#fca5a5] text-xs font-mono flex items-center gap-2">
+                  <AlertTriangle size={15} className="shrink-0 text-[#ef4444]" />
+                  <span>{authError}</span>
                 </div>
               )}
 
@@ -812,8 +839,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     )}
 
                     {verifyError && (
-                      <div className="mt-3 p-2 bg-[#450a0a] border border-[#ef4444] text-[#fca5a5] text-xs font-mono">
-                        ⚠ {verifyError}
+                      <div className="mt-3 p-2.5 bg-[#450a0a] border border-[#ef4444] text-[#fca5a5] text-xs font-mono flex items-center gap-2">
+                        <AlertTriangle size={15} className="shrink-0 text-[#ef4444]" />
+                        <span>{verifyError}</span>
                       </div>
                     )}
                   </div>
@@ -822,7 +850,18 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   {verifyResult && (
                     <div className="bg-[#160a22] border-2 border-[#9333ea] p-4 space-y-3 font-mono text-xs sm:text-sm">
                       <div className="flex justify-between items-center border-b border-[#3b1754] pb-2">
-                        <span className="font-pixel text-[12px] text-[#c084fc] uppercase">{verifyResult.data.status === 'VALIDO' ? '🟢 INGRESSO VÁLIDO' : verifyResult.data.status === 'UTILIZADO' ? '🟠 INGRESSO JÁ UTILIZADO' : '🔴 INGRESSO CANCELADO'}</span>
+                        <div className="flex items-center gap-1.5">
+                          {verifyResult.data.status === 'VALIDO' ? (
+                            <CheckCircle2 size={16} className="text-[#4ade80]" />
+                          ) : verifyResult.data.status === 'UTILIZADO' ? (
+                            <AlertTriangle size={16} className="text-[#fb923c]" />
+                          ) : (
+                            <XCircle size={16} className="text-[#f87171]" />
+                          )}
+                          <span className="font-pixel text-[12px] text-[#c084fc] uppercase">
+                            {verifyResult.data.status === 'VALIDO' ? 'INGRESSO VÁLIDO' : verifyResult.data.status === 'UTILIZADO' ? 'INGRESSO JÁ UTILIZADO' : 'INGRESSO CANCELADO'}
+                          </span>
+                        </div>
                         <span className={`px-2 py-0.5 font-pixel text-[11px] font-bold ${verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN'
                             ? 'bg-[#7f1d1d] text-[#fca5a5]'
                             : 'bg-[#15803d] text-[#bbf7d0]'
@@ -839,8 +878,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </div>
 
                       {confirmSuccess ? (
-                        <div className="p-2.5 bg-[#064e3b] border border-[#10b981] text-[#a7f3d0] font-pixel text-[12px] text-center font-bold">
-                          ✓ {confirmSuccess}
+                        <div className="p-2.5 bg-[#064e3b] border border-[#10b981] text-[#a7f3d0] font-pixel text-[12px] text-center font-bold flex items-center justify-center gap-1.5">
+                          <CheckCircle2 size={16} />
+                          <span>{confirmSuccess}</span>
                         </div>
                       ) : (
                         <div className="pt-2 flex gap-2">
@@ -849,7 +889,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             disabled={verifyResult.data.status === 'UTILIZADO' || verifyResult.data.status === 'CHECKED_IN' || verifyResult.data.status === 'CANCELADO'}
                             className="flex-1 pixel-btn bg-[#16a34a] hover:bg-[#22c55e] disabled:bg-gray-800 disabled:opacity-50 text-white py-3 font-pixel text-[12px] font-bold"
                           >
-                            CONFIRMAR ENTRADA / RESGATE 💀
+                            <span className="flex items-center justify-center gap-2">
+                              <CheckCircle2 size={16} />
+                              <span>CONFIRMAR ENTRADA / RESGATE</span>
+                            </span>
                           </button>
                           <button
                             onClick={() => { setScanToken(''); setVerifyResult(null); setVerifyError(null); setConfirmSuccess(null); startScanner(); }}
@@ -870,7 +913,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                   {/* Formulário Principal: Inserir Dados dos Usuários */}
                   <div className="bg-[#180924] border-2 border-[#a855f7] shadow-[0_0_20px_rgba(168,85,247,0.25)] p-4 sm:p-5">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-base">📋</span>
+                      <FileText size={16} className="text-[#c084fc]" />
                       <h3 className="font-pixel text-xs sm:text-sm text-[#e9d5ff] font-bold tracking-wide">
                         INSERIR DADOS DOS USUÁRIOS (NOME E NÚMERO)
                       </h3>
@@ -912,46 +955,90 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           disabled={creatingUser}
                           className="w-full pixel-btn bg-[#7e22ce] hover:bg-[#9333ea] active:bg-[#6b21a8] text-white py-2.5 px-4 font-pixel text-[12px] font-bold shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all cursor-pointer"
                         >
-                          {creatingUser ? 'INSERINDO...' : '➕ INSERIR USUÁRIO'}
+                          <span className="flex items-center justify-center gap-1.5">
+                            <Plus size={16} />
+                            <span>{creatingUser ? 'INSERINDO...' : 'INSERIR USUÁRIO'}</span>
+                          </span>
                         </button>
                       </div>
                     </form>
 
                     {createUserSuccess && (
                       <div className="mt-3 p-2.5 bg-[#064e3b] border-2 border-[#10b981] text-[#a7f3d0] font-pixel text-[12px] flex items-center justify-between">
-                        <span>✓ {createUserSuccess}</span>
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 size={16} className="text-[#4ade80] shrink-0" />
+                          <span>{createUserSuccess}</span>
+                        </div>
                         <button
                           onClick={() => setCreateUserSuccess(null)}
-                          className="text-[#a7f3d0] hover:text-white text-xs font-mono ml-2 px-1"
+                          className="text-[#a7f3d0] hover:text-white p-1 rounded hover:bg-[#047857] transition-colors cursor-pointer"
+                          title="Fechar"
                         >
-                          ✕
+                          <X size={14} />
                         </button>
                       </div>
                     )}
                     {generatedTicket && (
-                      <div className="mt-3 p-4 bg-[#071b12] border-2 border-[#22c55e] flex flex-col items-center gap-3 text-center">
-                        <p className="font-pixel text-[#4ade80] text-sm">INGRESSO CRIADO COM SUCESSO</p>
-                        <p className="font-mono text-xs text-[#bbf7d0]">Nome: <strong>{generatedTicket.name}</strong></p>
-                        <div className="p-2 bg-white border-2 border-[#d97706] shadow-[0_0_18px_rgba(245,158,11,0.35)]">
-                          <img src={generatedTicket.qrDataUrl} alt={`QR Code do ingresso ${generatedTicket.code}`} className="w-56 h-56 sm:w-64 sm:h-64 max-w-full" />
+                      <div className="mt-3 p-4 bg-[#071b12] border-2 border-[#22c55e] flex flex-col items-center gap-3 text-center rounded-lg shadow-xl">
+                        <p className="font-pixel text-[#4ade80] text-sm font-bold">INGRESSO OFICIAL EMITIDO</p>
+                        <p className="font-mono text-xs text-[#bbf7d0]">Titular: <strong>{generatedTicket.name}</strong></p>
+                        <div className="p-3 bg-white rounded-md border-2 border-[#d97706] shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+                          <img src={generatedTicket.qrDataUrl} alt={`QR Code ${generatedTicket.code}`} className="w-56 h-56 sm:w-64 sm:h-64 max-w-full" />
                         </div>
-                        <p className="font-pixel text-lg sm:text-xl text-[#fbbf24] tracking-widest">{generatedTicket.code}</p>
-                        <p className="font-mono text-xs text-[#86efac]">QR Code seguro, pronto para leitura.</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            <a
-                              href={generatedTicket.qrDataUrl}
-                              download={`${generatedTicket.code}-QRCode.png`}
-                              className="px-4 py-2.5 bg-[#15803d] border border-[#4ade80] text-white font-pixel text-xs shadow-[0_0_12px_rgba(34,197,94,0.35)]"
+                        <p className="font-pixel text-xl text-[#fbbf24] tracking-widest font-bold">{generatedTicket.code}</p>
+
+                        {generatedTicket.publicUrl && (
+                          <div className="w-full max-w-md bg-[#042413] p-2.5 rounded border border-[#16a34a] flex items-center justify-between gap-2 overflow-hidden">
+                            <span className="text-[11px] font-mono text-[#86efac] truncate select-all">{generatedTicket.publicUrl}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(generatedTicket.publicUrl || '');
+                                audioManager.playSuccess();
+                                alert('Link copiado para a área de transferência!');
+                              }}
+                              className="text-[10px] font-pixel text-white px-2.5 py-1 bg-[#15803d] hover:bg-[#16a34a] rounded shrink-0 cursor-pointer font-bold"
                             >
-                              BAIXAR QR CODE
-                            </a>
-                            <button type="button" onClick={() => setGeneratedTicket(null)} className="px-4 py-2.5 border border-[#22c55e] text-[#bbf7d0] font-pixel text-xs">FECHAR QR</button>
+                              COPIAR LINK
+                            </button>
                           </div>
+                        )}
+
+                        <div className="flex flex-wrap gap-2 justify-center mt-1">
+                          <a
+                            href={generatedTicket.qrDataUrl}
+                            download={`${generatedTicket.code}-QRCode.png`}
+                            className="px-4 py-2.5 bg-[#15803d] hover:bg-[#16a34a] border border-[#4ade80] text-white font-pixel text-xs shadow-[0_0_12px_rgba(34,197,94,0.35)] cursor-pointer font-bold rounded"
+                          >
+                            BAIXAR QR CODE
+                          </a>
+                          {generatedTicket.publicUrl && (
+                            <a
+                              href={generatedTicket.publicUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-4 py-2.5 bg-[#1e1b4b] hover:bg-[#312e81] border border-[#6366f1] text-[#c7d2fe] font-pixel text-xs cursor-pointer font-bold rounded"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <span>VER PÁGINA PÚBLICA</span>
+                                <ExternalLink size={13} />
+                              </span>
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setGeneratedTicket(null)}
+                            className="px-4 py-2.5 border border-[#22c55e] text-[#bbf7d0] hover:bg-[#064e3b] font-pixel text-xs cursor-pointer rounded"
+                          >
+                            FECHAR
+                          </button>
+                        </div>
                       </div>
                     )}
                     {createUserError && (
-                      <div className="mt-3 p-2.5 bg-[#450a0a] border-2 border-[#ef4444] text-[#fca5a5] font-mono text-xs">
-                        ⚠ {createUserError}
+                      <div className="mt-3 p-2.5 bg-[#450a0a] border-2 border-[#ef4444] text-[#fca5a5] font-mono text-xs flex items-center gap-2">
+                        <AlertTriangle size={15} className="shrink-0 text-[#ef4444]" />
+                        <span>{createUserError}</span>
                       </div>
                     )}
                   </div>
@@ -962,13 +1049,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <span className="font-pixel text-[11px] text-[#c084fc]">
                         RELAÇÃO DE USUÁRIOS CADASTRADOS ({(searchedUsers || metrics?.purchasedTickets || []).length})
                       </span>
-                      <div className="w-full sm:w-64">
+                      <div className="relative w-full sm:w-64">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#a855f7]/70" />
                         <input
                           type="text"
-                          placeholder="🔍 Filtrar por nome ou número..."
+                          placeholder="Filtrar por nome, código ou número..."
                           value={userSearchTerm}
                           onChange={e => setUserSearchTerm(e.target.value)}
-                          className="w-full bg-[#11051c] border border-[#a855f7]/50 px-2.5 py-1 text-xs text-white outline-hidden focus:border-[#c084fc] font-mono"
+                          className="w-full bg-[#11051c] border border-[#a855f7]/50 pl-8 pr-2.5 py-1 text-xs text-white outline-hidden focus:border-[#c084fc] font-mono"
                         />
                       </div>
                     </div>
@@ -977,7 +1065,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       <table className="w-full text-left font-mono text-xs border border-[#3b1754]">
                         <thead className="bg-[#24083a] text-[#e9d5ff] font-pixel text-[10px]">
                           <tr>
-                            <th className="p-2">TOKEN</th>
+                            <th className="p-2">CÓDIGO / TOKEN</th>
                             <th className="p-2">NOME</th>
                             <th className="p-2">NÚMERO</th>
                             <th className="p-2">STATUS</th>
@@ -1005,7 +1093,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                               return (
                                 <tr key={t.id} className="hover:bg-[#1f0b30]">
                                   <td className="p-2 font-pixel text-[10px] text-[#fbbf24]">
-                                    {formatTokenDisplay(t.token)}
+                                    {t.publicCode || formatTokenDisplay(t.token)}
                                   </td>
                                   <td className="p-2 text-white font-bold">
                                     {isEditing ? (
@@ -1058,6 +1146,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                       </div>
                                     ) : (
                                       <div className="flex justify-end gap-1">
+                                        <button
+                                          onClick={() => handleViewUserQr(t)}
+                                          className="px-2 py-1 bg-[#065f46] hover:bg-[#047857] border border-[#10b981] text-[#a7f3d0] font-pixel text-[9px] cursor-pointer"
+                                          title="Visualizar e baixar QR Code"
+                                        >
+                                          QR
+                                        </button>
                                         <button
                                           onClick={() => handleStartEdit(t)}
                                           className="px-2 py-1 bg-[#854d0e] hover:bg-[#a16207] border border-[#eab308] text-[#fef08a] font-pixel text-[9px]"

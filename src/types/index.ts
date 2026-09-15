@@ -81,6 +81,8 @@ export interface GuestListEntry {
 export interface PurchasedTicket {
   id: string;
   token: string;
+  publicCode?: string;
+  qrToken?: string;
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
@@ -89,9 +91,10 @@ export interface PurchasedTicket {
   category: string;
   price: number;
   paymentMethod: 'PIX' | 'CARTAO';
-  status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO';
+  status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO' | 'BLOQUEADO';
   createdAt: string;
   usedAt?: string;
+  validadoPor?: string;
   lote: string;
 }
 

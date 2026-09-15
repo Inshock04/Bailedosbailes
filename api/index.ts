@@ -71,8 +71,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 // ----------------------------------------------------
 // AUTENTICAÇÃO ADMIN
 // ----------------------------------------------------
-const ADMIN_USER = process.env.ADMIN_USER || 'triplex@201';
-const ADMIN_SECRET = process.env.ADMIN_KEY || 'G@201';
+const ADMIN_USER = process.env.ADMIN_USER || process.env.admin_user || process.env.ADMINUSER || 'triplex@201';
+const ADMIN_SECRET = process.env.ADMIN_KEY || process.env.admin_key || process.env.ADMINKEY || 'G@201';
 
 // Comparação em tempo constante para evitar timing attacks
 function safeCompare(a?: string, b?: string): boolean {
@@ -219,6 +219,56 @@ function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
     status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
     createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote
   };
+}
+
+function hashTicketToken(token: string): string {
+  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function generateTicketCredentials(): { code: string; token: string; tokenHash: string; qrToken: string } {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const num = crypto.randomInt(0, 10000);
+  const code = `AHS-${String(num).padStart(4, '0')}`;
+  return { code, token, tokenHash: hashTicketToken(token), qrToken: token };
+}
+
+async function createPersistedTicket(name: string, phone: string) {
+  if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const { code, token, tokenHash, qrToken } = generateTicketCredentials();
+    const createdAt = new Date().toISOString();
+
+    const insertPayload: any = {
+      codigo: code,
+      token_hash: tokenHash,
+      qr_token: qrToken,
+      nome: name,
+      telefone: phone,
+      item: 'INGRESSO OPEN',
+      categoria: 'GERAL',
+      preco: 45,
+      lote: 'UNICO',
+      status: 'valido',
+      criado_em: createdAt
+    };
+
+    let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
+
+    if (error?.code === '42703' || (error?.message && error.message.includes('qr_token'))) {
+      delete insertPayload.qr_token;
+      const retryResult = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
+
+    if (!error && data) return { data, error: null, token, qrToken: data.qr_token || token, createdAt };
+    if (error?.code !== '23505') {
+      return { data: null, error };
+    }
+  }
+
+  return { data: null, error: new Error('Não foi possível gerar um código único.') };
 }
 
 interface GuestEntry {
@@ -610,7 +660,275 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
     return res.json({ success: true, message: 'CHECK-IN DA LISTA CONFIRMADO!', guest });
   }
 
-  return res.status(400).json({ error: 'Tipo de validação inválido.' });
+// ============================================================
+// PÁGINA PÚBLICA DO INGRESSO (SOMENTE LEITURA)
+// ============================================================
+app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
+  const { token } = req.params;
+  if (!token) return res.status(400).json({ error: 'Token não fornecido.' });
+
+  const rawToken = token.trim();
+  const tokenHash = hashTicketToken(rawToken);
+
+  if (supabaseAdmin) {
+    let data: any = null;
+
+    const { data: stdData, error: stdError } = await supabaseAdmin
+      .from('event_tickets')
+      .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+      .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
+      .maybeSingle();
+
+    if (!stdError && stdData) {
+      data = stdData;
+    } else {
+      const { data: qrData } = await supabaseAdmin
+        .from('event_tickets')
+        .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+        .eq('qr_token', rawToken)
+        .maybeSingle();
+      if (qrData) data = qrData;
+    }
+
+    if (data) {
+      return res.json({
+        nome: data.nome,
+        codigo: data.codigo,
+        evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
+        local: 'THE TRIPLEX — Rua Manoel Castilho, 201',
+        data: '31 DE OUTUBRO DE 2026',
+        horario: '21:00 ÀS 06:00',
+        status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
+        item: data.item || 'INGRESSO OPEN',
+      });
+    }
+  }
+
+  const local = purchasedTickets.find(t =>
+    t.token === rawToken ||
+    t.publicCode === rawToken.toUpperCase()
+  );
+
+  if (!local) {
+    return res.status(404).json({ error: 'Ingresso não encontrado ou código inválido.' });
+  }
+
+  return res.json({
+    nome: local.buyerName,
+    codigo: local.publicCode || local.token,
+    evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
+    local: 'THE TRIPLEX — Rua Manoel Castilho, 201',
+    data: '31 DE OUTUBRO DE 2026',
+    horario: '21:00 ÀS 06:00',
+    status: local.status,
+    item: local.ticketName || 'INGRESSO OPEN',
+  });
+});
+
+// ============================================================
+// PORTARIA — VERIFICAR INGRESSO POR QR TOKEN OU CÓDIGO
+// ============================================================
+app.post('/api/portaria/verify', requireAdminAuth, async (req: Request, res: Response) => {
+  const { qrToken } = req.body;
+  if (!qrToken) return res.status(400).json({ error: 'Token do QR Code não fornecido.' });
+
+  const rawToken = String(qrToken).trim();
+  const tokenHash = hashTicketToken(rawToken);
+
+  if (supabaseAdmin) {
+    let { data, error } = await supabaseAdmin
+      .from('event_tickets')
+      .select('*')
+      .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
+      .maybeSingle();
+
+    if (!data && !error) {
+      const qrRes = await supabaseAdmin
+        .from('event_tickets')
+        .select('*')
+        .eq('qr_token', rawToken)
+        .maybeSingle();
+      if (!qrRes.error && qrRes.data) {
+        data = qrRes.data;
+      }
+    }
+
+    if (error) {
+      return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
+    }
+
+    if (data) {
+      const ticket = mapSupabaseTicket(data, data.codigo);
+      return res.json({
+        found: true,
+        data: {
+          id: ticket.id,
+          codigo: ticket.publicCode,
+          nome: ticket.buyerName,
+          telefone: ticket.buyerPhone,
+          item: ticket.ticketName,
+          categoria: ticket.category,
+          status: ticket.status,
+          criadoEm: ticket.createdAt,
+          usadoEm: ticket.usedAt,
+          validadoPor: ticket.usedAt ? 'portaria' : undefined,
+          qrToken: data.qr_token || rawToken,
+        }
+      });
+    }
+  }
+
+  const local = purchasedTickets.find(t =>
+    t.token === rawToken ||
+    t.publicCode === rawToken.toUpperCase()
+  );
+
+  if (!local) {
+    return res.status(404).json({ found: false, error: 'QR Code ou código não corresponde a um ingresso válido.' });
+  }
+
+  return res.json({
+    found: true,
+    data: {
+      id: local.id,
+      codigo: local.publicCode || local.token,
+      nome: local.buyerName,
+      telefone: local.buyerPhone,
+      item: local.ticketName,
+      categoria: local.category,
+      status: local.status,
+      criadoEm: local.createdAt,
+      usadoEm: local.usedAt,
+      qrToken: local.token,
+    }
+  });
+});
+
+// ============================================================
+// PORTARIA — CONFIRMAR ENTRADA (ATÔMICO)
+// ============================================================
+app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Response) => {
+  const { qrToken } = req.body;
+  if (!qrToken) return res.status(400).json({ error: 'Token do QR Code não fornecido.' });
+
+  const rawToken = String(qrToken).trim();
+  const tokenHash = hashTicketToken(rawToken);
+
+  if (supabaseAdmin) {
+    let consumedRow: any = null;
+
+    const { data: byQr, error: byQrErr } = await supabaseAdmin.rpc('consume_ticket_by_qr', {
+      p_qr_token: rawToken,
+      p_validado_por: 'portaria'
+    });
+
+    if (!byQrErr && byQr?.length) {
+      consumedRow = byQr[0];
+    }
+
+    if (!consumedRow) {
+      const { data: byHash, error: byHashErr } = await supabaseAdmin.rpc('consume_event_ticket', {
+        p_token_hash: tokenHash
+      });
+      if (!byHashErr && byHash?.length) {
+        consumedRow = byHash[0];
+      }
+    }
+
+    if (!consumedRow) {
+      const updateRes = await supabaseAdmin
+        .from('event_tickets')
+        .update({
+          status: 'usado',
+          usado_em: new Date().toISOString()
+        })
+        .eq('status', 'valido')
+        .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
+        .select('*');
+
+      if (updateRes.data?.length) {
+        consumedRow = updateRes.data[0];
+      }
+    }
+
+    if (consumedRow) {
+      return res.json({
+        success: true,
+        message: 'ENTRADA CONFIRMADA COM SUCESSO',
+        data: {
+          codigo: consumedRow.codigo,
+          nome: consumedRow.nome,
+          status: 'UTILIZADO',
+          usadoEm: consumedRow.usado_em,
+          validadoPor: consumedRow.validado_por || 'portaria',
+        }
+      });
+    }
+
+    const checkRes = await supabaseAdmin
+      .from('event_tickets')
+      .select('status, usado_em, codigo, nome')
+      .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
+      .maybeSingle();
+
+    const current = checkRes.data;
+
+    if (!current) {
+      return res.status(404).json({ error: 'Ingresso não encontrado.' });
+    }
+
+    if (current.status === 'usado') {
+      return res.status(409).json({
+        error: 'INGRESSO JÁ UTILIZADO',
+        data: {
+          codigo: current.codigo,
+          nome: current.nome,
+          status: 'UTILIZADO',
+          usadoEm: current.usado_em,
+          validadoPor: current.validado_por || 'portaria',
+        }
+      });
+    }
+    if (current.status === 'cancelado') {
+      return res.status(400).json({ error: 'INGRESSO CANCELADO', data: { codigo: current.codigo, nome: current.nome, status: 'CANCELADO' } });
+    }
+
+    return res.status(500).json({ error: 'Não foi possível confirmar a entrada.' });
+  }
+
+  const local = purchasedTickets.find(t =>
+    t.token === rawToken ||
+    t.publicCode === rawToken.toUpperCase()
+  );
+
+  if (!local) {
+    return res.status(404).json({ error: 'Ingresso não encontrado.' });
+  }
+
+  if (local.status === 'UTILIZADO') {
+    return res.status(409).json({
+      error: 'INGRESSO JÁ UTILIZADO',
+      data: {
+        codigo: local.publicCode || local.token,
+        nome: local.buyerName,
+        status: 'UTILIZADO',
+        usadoEm: local.usedAt,
+      }
+    });
+  }
+
+  local.status = 'UTILIZADO';
+  local.usedAt = new Date().toISOString();
+  return res.json({
+    success: true,
+    message: 'ENTRADA CONFIRMADA COM SUCESSO',
+    data: {
+      codigo: local.publicCode || local.token,
+      nome: local.buyerName,
+      status: 'UTILIZADO',
+      usadoEm: local.usedAt,
+    }
+  });
 });
 
 // 7. Admin Login (AUTENTICAÇÃO PROTEGIDA com timing-safe comparison e anti-bruteforce)
