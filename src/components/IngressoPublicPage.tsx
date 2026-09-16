@@ -217,7 +217,7 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 <div className="flex items-start gap-2.5">
                   <Clock size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">21:00 ÀS 06:00</span>
+                    <span className="text-white font-bold block">A PARTIR DAS 21:00</span>
                     <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 21h</span>
                   </div>
                 </div>
@@ -242,8 +242,7 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
               {/* Security & Rules Alert */}
               <div className="p-3 bg-[#1e0712] rounded border border-[#481427] text-[11px] font-mono text-gray-400 space-y-1">
                 <p className="text-[#fca5a5] font-bold">AVISOS IMPORTANTES:</p>
-                <p>• Proibida a entrada de menores de 18 anos (obrigatória apresentação de documento original com foto).</p>
-                <p>• Traje temático sombrio, fantasia criativa, gótico, vintage noir ou all-black.</p>
+                <p>• <span className="text-white font-bold">Fantasia opcional</span> — Sem pressão: venha de fantasia, produzidão, básico ou do jeito que quiser. O importante é não perder o Halloween. 🎃🔥</p>
                 <p>• Este ingresso é pessoal e intransferível após a validação na portaria.</p>
               </div>
             </div>
