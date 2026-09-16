@@ -2,6 +2,125 @@ import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { ShieldCheck, AlertTriangle, XCircle, CheckCircle2, MapPin, Calendar, Clock, Wine, RefreshCw, ExternalLink } from 'lucide-react';
 
+/* ── Halloween QR Code com abóbora (mesmo estilo do Admin) ── */
+
+const QR_CANVAS_SIZE = 1024;
+const QR_QUIET_ZONE = 4;
+
+function isFinderModule(row: number, column: number, size: number): boolean {
+  return (row < 7 && column < 7)
+    || (row < 7 && column >= size - 7)
+    || (row >= size - 7 && column < 7);
+}
+
+function drawFinderPattern(ctx: CanvasRenderingContext2D, x: number, y: number, moduleSize: number): void {
+  const patternSize = moduleSize * 7;
+  ctx.fillStyle = '#120b08';
+  ctx.beginPath();
+  ctx.roundRect(x, y, patternSize, patternSize, moduleSize * 0.35);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + moduleSize, y + moduleSize, moduleSize * 5, moduleSize * 5);
+
+  ctx.fillStyle = '#120b08';
+  ctx.beginPath();
+  ctx.roundRect(x + moduleSize * 2, y + moduleSize * 2, moduleSize * 3, moduleSize * 3, moduleSize * 0.18);
+  ctx.fill();
+}
+
+function drawJackOLantern(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, size: number): void {
+  const pumpkinWidth = size * 0.62;
+  const pumpkinHeight = size * 0.48;
+  const pumpkinTop = centerY - pumpkinHeight * 0.3;
+
+  ctx.fillStyle = '#5b2a0a';
+  ctx.fillRect(centerX - size * 0.05, pumpkinTop - size * 0.16, size * 0.1, size * 0.18);
+  ctx.fillStyle = '#d97706';
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY, pumpkinWidth * 0.5, pumpkinHeight * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f59e0b';
+  ctx.beginPath();
+  ctx.ellipse(centerX - pumpkinWidth * 0.2, centerY, pumpkinWidth * 0.22, pumpkinHeight * 0.45, 0, 0, Math.PI * 2);
+  ctx.ellipse(centerX + pumpkinWidth * 0.2, centerY, pumpkinWidth * 0.22, pumpkinHeight * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1a0f0a';
+  ctx.beginPath();
+  ctx.moveTo(centerX - pumpkinWidth * 0.3, centerY - pumpkinHeight * 0.08);
+  ctx.lineTo(centerX - pumpkinWidth * 0.12, centerY - pumpkinHeight * 0.2);
+  ctx.lineTo(centerX - pumpkinWidth * 0.05, centerY - pumpkinHeight * 0.02);
+  ctx.closePath();
+  ctx.moveTo(centerX + pumpkinWidth * 0.3, centerY - pumpkinHeight * 0.08);
+  ctx.lineTo(centerX + pumpkinWidth * 0.12, centerY - pumpkinHeight * 0.2);
+  ctx.lineTo(centerX + pumpkinWidth * 0.05, centerY - pumpkinHeight * 0.02);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(centerX - pumpkinWidth * 0.28, centerY + pumpkinHeight * 0.16);
+  ctx.lineTo(centerX - pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.08);
+  ctx.lineTo(centerX, centerY + pumpkinHeight * 0.18);
+  ctx.lineTo(centerX + pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.08);
+  ctx.lineTo(centerX + pumpkinWidth * 0.28, centerY + pumpkinHeight * 0.16);
+  ctx.lineTo(centerX + pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.3);
+  ctx.lineTo(centerX, centerY + pumpkinHeight * 0.22);
+  ctx.lineTo(centerX - pumpkinWidth * 0.12, centerY + pumpkinHeight * 0.3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+async function generateHalloweenQr(url: string): Promise<string> {
+  const qr = QRCode.create(url, { errorCorrectionLevel: 'H' });
+  const moduleCount = qr.modules.size;
+  const moduleSize = Math.floor(QR_CANVAS_SIZE / (moduleCount + QR_QUIET_ZONE * 2));
+  const qrSize = moduleSize * (moduleCount + QR_QUIET_ZONE * 2);
+  const offset = Math.floor((QR_CANVAS_SIZE - qrSize) / 2);
+  const canvas = document.createElement('canvas');
+  canvas.width = QR_CANVAS_SIZE;
+  canvas.height = QR_CANVAS_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Não foi possível preparar o QR Code.');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, QR_CANVAS_SIZE, QR_CANVAS_SIZE);
+  ctx.fillStyle = '#120b08';
+  const centerStart = Math.floor((moduleCount - 9) / 2);
+
+  for (let row = 0; row < moduleCount; row += 1) {
+    for (let col = 0; col < moduleCount; col += 1) {
+      const inCenter = row >= centerStart && row < centerStart + 9 && col >= centerStart && col < centerStart + 9;
+      if (!qr.modules.get(row, col) || isFinderModule(row, col, moduleCount) || inCenter) continue;
+      const x = offset + (col + QR_QUIET_ZONE) * moduleSize;
+      const y = offset + (row + QR_QUIET_ZONE) * moduleSize;
+      ctx.beginPath();
+      ctx.roundRect(x + moduleSize * 0.08, y + moduleSize * 0.08, moduleSize * 0.84, moduleSize * 0.84, moduleSize * 0.22);
+      ctx.fill();
+    }
+  }
+
+  drawFinderPattern(ctx, offset + QR_QUIET_ZONE * moduleSize, offset + QR_QUIET_ZONE * moduleSize, moduleSize);
+  drawFinderPattern(ctx, offset + (QR_QUIET_ZONE + moduleCount - 7) * moduleSize, offset + QR_QUIET_ZONE * moduleSize, moduleSize);
+  drawFinderPattern(ctx, offset + QR_QUIET_ZONE * moduleSize, offset + (QR_QUIET_ZONE + moduleCount - 7) * moduleSize, moduleSize);
+
+  const cx = offset + (QR_QUIET_ZONE + centerStart + 4.5) * moduleSize;
+  const cy = cx;
+  const badgeSize = moduleSize * 8.3;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(cx - badgeSize / 2, cy - badgeSize / 2, badgeSize, badgeSize, moduleSize * 0.7);
+  ctx.fill();
+  ctx.strokeStyle = '#d97706';
+  ctx.lineWidth = Math.max(3, moduleSize * 0.14);
+  ctx.stroke();
+  drawJackOLantern(ctx, cx, cy, moduleSize * 7.2);
+
+  return canvas.toDataURL('image/png');
+}
+
+/* ── Componente ── */
+
 interface TicketData {
   nome: string;
   codigo: string;
@@ -42,17 +161,9 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
 
       setTicket(data);
 
-      // Gera o QR Code com a URL desta própria página para apresentação na portaria
+      // Gera o QR Code Halloween com abóbora no centro
       const publicUrl = window.location.href;
-      const qrImage = await QRCode.toDataURL(publicUrl, {
-        width: 320,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff',
-        },
-        errorCorrectionLevel: 'H',
-      });
+      const qrImage = await generateHalloweenQr(publicUrl);
       setQrDataUrl(qrImage);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados do ingresso.');
