@@ -68,6 +68,37 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   });
 });
 
+// Diagnóstico de autenticação (NÃO expõe valores reais)
+app.get('/api/auth-debug', (_req: Request, res: Response) => {
+  const envVars: Record<string, string> = {};
+  const checkVars = [
+    'ADMIN_USER', 'admin_user', 'ADMINUSER',
+    'ADMIN_KEY', 'admin_key', 'ADMINKEY',
+    'ADMIN_PASSWORD', 'admin_password',
+    'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'
+  ];
+  for (const key of checkVars) {
+    const val = process.env[key];
+    if (val === undefined) {
+      envVars[key] = 'NOT_SET';
+    } else {
+      const clean = cleanValue(val);
+      envVars[key] = `SET (${clean.length} chars, starts="${clean.slice(0, 2)}...", ends="...${clean.slice(-2)}")`;
+    }
+  }
+
+  // Testa se as credenciais padrão funcionam
+  const defaultLoginWorks = validateAdminCredentials('triplex@201', 'G@201');
+
+  return res.json({
+    envVars,
+    defaultLoginWorks,
+    signingSecretAvailable: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    nodeVersion: process.version,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ----------------------------------------------------
 // AUTENTICAÇÃO ADMIN (ROBUSTA PARA VERCEL SERVERLESS & LOCAL)
 // ----------------------------------------------------
