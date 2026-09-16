@@ -370,24 +370,23 @@ function hashTicketToken(token: string): string {
   return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
 }
 
-function generateTicketCredentials(): { code: string; token: string; tokenHash: string; qrToken: string } {
+function generateTicketCredentials(): { code: string; token: string; tokenHash: string } {
   const token = crypto.randomBytes(32).toString('base64url');
   const num = crypto.randomInt(0, 10000);
   const code = `AHS-${String(num).padStart(4, '0')}`;
-  return { code, token, tokenHash: hashTicketToken(token), qrToken: token };
+  return { code, token, tokenHash: hashTicketToken(token) };
 }
 
 async function createPersistedTicket(name: string, phone: string) {
   if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const { code, token, tokenHash, qrToken } = generateTicketCredentials();
+    const { code, token, tokenHash } = generateTicketCredentials();
     const createdAt = new Date().toISOString();
 
     const insertPayload: any = {
       codigo: code,
       token_hash: tokenHash,
-      qr_token: qrToken,
       nome: name,
       telefone: phone,
       item: 'INGRESSO OPEN',
@@ -677,7 +676,7 @@ app.get('/api/guestlist', (_req: Request, res: Response) => {
   res.json({ totalGuests: guestList.length, eventName: 'Halloween Party Hotel Cortez 2026', status: 'LISTA ABERTA' });
 });
 
-app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => {
+app.post('/api/guestlist', publicWriteLimiter, async (req: Request, res: Response) => {
   const { name, phone } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Nome e telefone são obrigatórios para a lista VIP.' });
 
@@ -694,12 +693,13 @@ app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => 
   guestList.unshift(newEntry);
 
   if (supabaseAdmin) {
-    supabaseAdmin.from('guest_list').insert([{
-      name: newEntry.name, phone: newEntry.phone, token: newEntry.token,
-      event_name: newEntry.eventName, status: newEntry.status, created_at: newEntry.createdAt
-    }]).then(({ error }: any) => {
+    try {
+      const { error } = await supabaseAdmin.from('guest_list').insert([{
+        name: newEntry.name, phone: newEntry.phone, token: newEntry.token,
+        event_name: newEntry.eventName, status: newEntry.status, created_at: newEntry.createdAt
+      }]);
       if (error) console.warn('[Supabase guest_list Sync Warning]', error.message);
-    }).catch((err: any) => console.warn('[Supabase guest_list Sync Exception]', err));
+    } catch (err: any) { console.warn('[Supabase guest_list Sync Exception]', err); }
   }
 
   return res.status(201).json({
@@ -1006,7 +1006,7 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
 
     const checkRes = await supabaseAdmin
       .from('event_tickets')
-      .select('status, usado_em, codigo, nome')
+      .select('status, usado_em, codigo, nome, validado_por')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
@@ -1215,17 +1215,18 @@ app.delete('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Respo
 });
 
 // 9. Contact
-app.post('/api/contact', publicWriteLimiter, (req: Request, res: Response) => {
+app.post('/api/contact', publicWriteLimiter, async (req: Request, res: Response) => {
   const { name, email, message } = req.body;
   if (!name || !email || !message) return res.status(400).json({ error: 'Nome, e-mail e mensagem são obrigatórios.' });
 
   if (supabaseAdmin) {
-    supabaseAdmin.from('contacts').insert([{
-      name: String(name).trim(), email: String(email).trim().toLowerCase(),
-      message: String(message).trim(), created_at: new Date().toISOString()
-    }]).then(({ error }: any) => {
-      if (error) console.warn('[Supabase contacts Sync Warning]', error.message);
-    }).catch((err: any) => console.warn('[Supabase contacts Sync Exception]', err));
+    try {
+      const { error: contactErr } = await supabaseAdmin.from('contacts').insert([{
+        name: String(name).trim(), email: String(email).trim().toLowerCase(),
+        message: String(message).trim(), created_at: new Date().toISOString()
+      }]);
+      if (contactErr) console.warn('[Supabase contacts Sync Warning]', contactErr.message);
+    } catch (err: any) { console.warn('[Supabase contacts Sync Exception]', err); }
   }
 
   return res.status(201).json({ success: true, message: 'Mensagem recebida com sucesso pela recepção!' });
