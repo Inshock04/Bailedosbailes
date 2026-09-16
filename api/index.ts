@@ -306,32 +306,7 @@ function generateAccessCode(): string {
   throw new Error('Não foi possível gerar um código exclusivo.');
 }
 
-function hashTicketToken(token: string): string {
-  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
-}
 
-function generateTicketCredentials(): { code: string; token: string; tokenHash: string } {
-  const token = crypto.randomBytes(32).toString('base64url');
-  const code = `AHS-${crypto.randomInt(1000, 10000)}`;
-  return { code, token, tokenHash: hashTicketToken(token) };
-}
-
-async function createPersistedTicket(name: string, phone: string) {
-  if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
-
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { code, token, tokenHash } = generateTicketCredentials();
-    const createdAt = new Date().toISOString();
-    const { data, error } = await supabaseAdmin.from('event_tickets').insert({ codigo: code, token_hash: tokenHash, nome: name, telefone: phone, item: 'INGRESSO OPEN', categoria: 'GERAL', preco: 45, lote: 'UNICO', status: 'valido', criado_em: createdAt }).select('*').single();
-    if (!error && data) return { data, error: null, token, createdAt };
-    if (error?.code !== '23505') {
-      logSupabaseError('create event ticket', error);
-      return { data: null, error };
-    }
-  }
-
-  return { data: null, error: new Error('Não foi possível gerar um código único.') };
-}
 
 // ----------------------------------------------------
 // IN-MEMORY DATA (idêntico ao server.ts)
@@ -798,6 +773,9 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
     guest.status = 'CHECKED_IN';
     return res.json({ success: true, message: 'CHECK-IN DA LISTA CONFIRMADO!', guest });
   }
+
+  return res.status(400).json({ error: 'Tipo de check-in inválido.' });
+});
 
 // ============================================================
 // PÁGINA PÚBLICA DO INGRESSO (SOMENTE LEITURA)
