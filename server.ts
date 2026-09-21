@@ -1,73 +1,54 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// ----------------------------------------------------
+// EXPRESS APP PARA VERCEL SERVERLESS
+// ----------------------------------------------------
 const app = express();
 
-// ----------------------------------------------------
-// HEADERS DE SEGURANÇA HTTP (Helmet)
-// ----------------------------------------------------
+// Headers de Segurança HTTP
 app.use(helmet({
-  contentSecurityPolicy: false, // Desabilitado para permitir styles inline do React
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 }));
 
 app.use(express.json({ limit: '1mb' }));
 
-// ----------------------------------------------------
-// RATE LIMITING GLOBAL E POR ENDPOINT
-// ----------------------------------------------------
-const isLocalhost = (ip?: string) => !ip || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
-
+// Rate Limiting
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 1000,
+  windowMs: 15 * 60 * 1000,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isLocalhost(req.ip),
   message: { error: 'Muitas requisições. Tente novamente em alguns minutos.' }
 });
 app.use(globalLimiter);
 
-// Rate limiting para login admin (anti brute-force em produção)
 const adminLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 20,
+  windowMs: 15 * 60 * 1000,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => isLocalhost(req.ip),
-  message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' }
+  message: { error: 'Muitas tentativas de login. Tente novamente em alguns minutos.' }
 });
 
-// Rate limiting para endpoints públicos de escrita
 const publicWriteLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutos
-  max: 15, // máximo 15 submissões por IP
+  windowMs: 10 * 60 * 1000,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Muitas submissões. Aguarde alguns minutos.' }
 });
 
 // ----------------------------------------------------
-// SUPABASE BACKEND CLIENT (CHAVES SEGURAS NO SERVIDOR)
+// SUPABASE BACKEND CLIENT
 // ----------------------------------------------------
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('[Hotel Cortez] AVISO: Variáveis SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY não definidas. Sincronização com Supabase desabilitada.');
-}
 
 const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -87,8 +68,39 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   });
 });
 
+// Diagnóstico de autenticação (NÃO expõe valores reais)
+app.get('/api/auth-debug', (_req: Request, res: Response) => {
+  const envVars: Record<string, string> = {};
+  const checkVars = [
+    'ADMIN_USER', 'admin_user', 'ADMINUSER',
+    'ADMIN_KEY', 'admin_key', 'ADMINKEY',
+    'ADMIN_PASSWORD', 'admin_password',
+    'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'
+  ];
+  for (const key of checkVars) {
+    const val = process.env[key];
+    if (val === undefined) {
+      envVars[key] = 'NOT_SET';
+    } else {
+      const clean = cleanValue(val);
+      envVars[key] = `SET (${clean.length} chars, starts="${clean.slice(0, 2)}...", ends="...${clean.slice(-2)}")`;
+    }
+  }
+
+  // Testa se as credenciais padrão funcionam
+  const defaultLoginWorks = validateAdminCredentials('triplex@201', 'G@201');
+
+  return res.json({
+    envVars,
+    defaultLoginWorks,
+    signingSecretAvailable: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    nodeVersion: process.version,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ----------------------------------------------------
-// AUTENTICAÇÃO SEGURA DO PAINEL ADMINISTRATIVO
+// AUTENTICAÇÃO ADMIN (ROBUSTA PARA VERCEL SERVERLESS & LOCAL)
 // ----------------------------------------------------
 function cleanValue(val?: any): string {
   if (!val) return '';
@@ -202,7 +214,7 @@ function verifySessionToken(token: string): boolean {
     if (safeCompare(token, secret)) return true;
   }
 
-  // 2. Validação Stateless HMAC
+  // 2. Validação Stateless HMAC (indispensável em ambiente serverless multi-instâncias Vercel)
   if (token.startsWith('crtz.')) {
     const parts = token.slice(5).split('.');
     if (parts.length === 2) {
@@ -232,16 +244,6 @@ function verifySessionToken(token: string): boolean {
   return false;
 }
 
-// Limpa sessões expiradas periodicamente
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, session] of activeSessions) {
-    if (now - session.createdAt > SESSION_DURATION_MS) {
-      activeSessions.delete(token);
-    }
-  }
-}, 30 * 60 * 1000);
-
 function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
   const token = typeof authHeader === 'string'
@@ -259,89 +261,158 @@ function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Helper functions
+function sanitizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+function getCookieValue(req: Request, name: string): string | null {
+  const cookies = String(req.headers.cookie || '').split(';');
+  const entry = cookies.find(cookie => cookie.trim().startsWith(`${name}=`));
+  return entry ? decodeURIComponent(entry.trim().slice(name.length + 1)) : null;
+}
+
+function getOrSetDeviceId(req: Request, res: Response): string {
+  const existing = getCookieValue(req, 'cortez_device_id');
+  if (existing && /^[a-f0-9]{64}$/.test(existing)) return existing;
+
+  const deviceId = crypto.randomBytes(32).toString('hex');
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.setHeader('Set-Cookie', `cortez_device_id=${deviceId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
+  return deviceId;
+}
+
+function mapCouponRow(row: any): Coupon {
+  return { id: row.id, token: row.token, rewardTitle: row.reward_title, rewardValue: row.reward_value, phone: row.phone, userName: row.user_name || undefined, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at, usedAt: row.used_at || undefined };
+}
+
+function logSupabaseError(operation: string, error: any): void {
+  console.error('[Supabase]', { operation, code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
+}
+
+function generateSecureToken(prefix: string): string {
+  const randNum = crypto.randomInt(100000, 999999);
+  const randHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+  return `${prefix}-${randHex}-${randNum}`;
+}
+
+function generateAccessCode(): string {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const code = `AHS-${crypto.randomInt(1000, 10000)}`;
+    const alreadyUsed = purchasedTickets.some(ticket => ticket.token === code) || guestList.some(guest => guest.token === code);
+    if (!alreadyUsed) return code;
+  }
+
+  throw new Error('Não foi possível gerar um código exclusivo.');
+}
+
+
+
+// ----------------------------------------------------
+// IN-MEMORY DATA (idêntico ao server.ts)
+// ----------------------------------------------------
 interface Ticket {
-  id: string;
-  name: string;
-  category: 'OPEN' | 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE' | string;
-  price: number;
-  originalPrice?: number;
-  batch: string;
-  available: number;
-  total: number;
-  features: string[];
-  drinksIncluded: string[];
-  color: string;
+  id: string; name: string; category: 'OPEN' | 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE' | string;
+  price: number; originalPrice?: number; batch: string; available: number; total: number;
+  features: string[]; drinksIncluded: string[]; color: string;
 }
 
 interface Promotion {
-  id: string;
-  name: string;
-  description: string;
-  quantity: string;
-  price: number;
-  originalPrice?: number;
-  active: boolean;
-  category: 'BEER' | 'COMBO' | 'DRINK' | 'SHOT';
-  tag?: string;
+  id: string; name: string; description: string; quantity: string;
+  price: number; originalPrice?: number; active: boolean;
+  category: 'BEER' | 'COMBO' | 'DRINK' | 'SHOT'; tag?: string;
 }
 
 interface PurchasedTicket {
-  id: string;
-  token: string;
-  publicCode?: string;
-  qrToken?: string;
-  buyerName: string;
-  buyerEmail: string;
-  buyerPhone: string;
-  ticketId: string;
-  ticketName: string;
-  category: string;
-  price: number;
-  paymentMethod: 'PIX' | 'CARTAO';
-  status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO' | 'BLOQUEADO';
-  createdAt: string;
-  usedAt?: string;
-  validadoPor?: string;
-  lote: string;
+  id: string; token: string; buyerName: string; buyerEmail: string; buyerPhone: string;
+  ticketId: string; ticketName: string; category: string; price: number;
+  paymentMethod: 'PIX' | 'CARTAO'; status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO';
+  createdAt: string; usedAt?: string; lote: string; publicCode?: string;
+  ticketType?: 'OPEN_BAR' | 'POS_OPEN';
+}
+
+function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
+  return {
+    id: row.id, token: token || row.codigo, publicCode: row.codigo,
+    buyerName: row.nome, buyerEmail: row.email || '', buyerPhone: row.telefone,
+    ticketId: 't-open-45', ticketName: row.item, category: row.categoria,
+    price: Number(row.preco), paymentMethod: 'PIX',
+    status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
+    createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote,
+    ticketType: row.tipo_ingresso === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR'
+  };
+}
+
+function hashTicketToken(token: string): string {
+  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function generateTicketCredentials(): { code: string; token: string; tokenHash: string } {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const num = crypto.randomInt(0, 10000);
+  const code = `AHS-${String(num).padStart(4, '0')}`;
+  return { code, token, tokenHash: hashTicketToken(token) };
+}
+
+async function createPersistedTicket(name: string, phone: string, ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'OPEN_BAR') {
+  if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const { code, token, tokenHash } = generateTicketCredentials();
+    const createdAt = new Date().toISOString();
+
+    const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+    const priceValue = ticketType === 'POS_OPEN' ? 25 : 45;
+
+    const insertPayload: any = {
+      codigo: code,
+      token_hash: tokenHash,
+      nome: name,
+      telefone: phone,
+      item: itemLabel,
+      categoria: 'GERAL',
+      preco: priceValue,
+      lote: 'UNICO',
+      status: 'valido',
+      criado_em: createdAt,
+      tipo_ingresso: ticketType
+    };
+
+    let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
+
+    if (error?.code === '42703' || (error?.message && (error.message.includes('qr_token') || error.message.includes('tipo_ingresso')))) {
+      delete insertPayload.qr_token;
+      delete insertPayload.tipo_ingresso;
+      const retryResult = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
+
+    if (!error && data) return { data, error: null, token, qrToken: data.qr_token || token, createdAt };
+    if (error?.code !== '23505') {
+      return { data: null, error };
+    }
+  }
+
+  return { data: null, error: new Error('Não foi possível gerar um código único.') };
 }
 
 interface GuestEntry {
-  id: string;
-  name: string;
-  phone: string;
-  eventName: string;
-  status: 'CONFIRMADO' | 'CHECKED_IN' | 'CANCELADO';
-  createdAt: string;
-  token: string;
+  id: string; name: string; phone: string; eventName: string;
+  status: 'CONFIRMADO' | 'CHECKED_IN' | 'CANCELADO'; createdAt: string; token: string;
 }
 
 interface Coupon {
-  id: string;
-  token: string;
-  rewardTitle: string;
-  rewardValue: string;
-  phone: string;
-  userName?: string;
-  status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO';
-  createdAt: string;
-  expiresAt: string;
-  usedAt?: string;
+  id: string; token: string; rewardTitle: string; rewardValue: string;
+  phone: string; userName?: string; status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO';
+  createdAt: string; expiresAt: string; usedAt?: string;
 }
 
-// Initial Database Data (Only 1 Ticket Option: Ingresso Open R$ 50,00)
 let tickets: Ticket[] = [
   {
-    id: 't-open-45',
-    name: 'INGRESSO OPEN',
-    category: 'OPEN',
-    price: 45,
-    originalPrice: 65,
-    batch: '1º LOTE',
-    available: 200,
-    total: 200,
-    features: [
-      'Open Bar das 21:00 às 00:00'
-    ],
+    id: 't-open-45', name: 'INGRESSO OPEN', category: 'OPEN',
+    price: 45, originalPrice: 65, batch: '1º LOTE', available: 200, total: 200,
+    features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   }
@@ -458,159 +529,12 @@ function getShuffledOracleCards(count = 6) {
 }
 
 let purchasedTickets: PurchasedTicket[] = [];
-
 let guestList: GuestEntry[] = [];
-
 let coupons: Coupon[] = [];
 
-// Helper to normalize phone
-function sanitizePhone(phone: string): string {
-  return phone.replace(/\D/g, '');
-}
-
-function getCookieValue(req: Request, name: string): string | null {
-  const cookies = String(req.headers.cookie || '').split(';');
-  const entry = cookies.find(cookie => cookie.trim().startsWith(`${name}=`));
-  return entry ? decodeURIComponent(entry.trim().slice(name.length + 1)) : null;
-}
-
-function getOrSetDeviceId(req: Request, res: Response): string {
-  const existing = getCookieValue(req, 'cortez_device_id');
-  if (existing && /^[a-f0-9]{64}$/.test(existing)) return existing;
-
-  const deviceId = crypto.randomBytes(32).toString('hex');
-  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  res.setHeader('Set-Cookie', `cortez_device_id=${deviceId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
-  return deviceId;
-}
-
-function mapCouponRow(row: any): Coupon {
-  return {
-    id: row.id,
-    token: row.token,
-    rewardTitle: row.reward_title,
-    rewardValue: row.reward_value,
-    phone: row.phone,
-    userName: row.user_name || undefined,
-    status: row.status,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-    usedAt: row.used_at || undefined
-  };
-}
-
-function logSupabaseError(operation: string, error: any): void {
-  console.error('[Supabase]', { operation, code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
-}
-
-// Helper to generate cryptographically secure random tokens
-function generateSecureToken(prefix: string): string {
-  const randNum = crypto.randomInt(100000, 999999);
-  const randHex = crypto.randomBytes(3).toString('hex').toUpperCase();
-  return `${prefix}-${randHex}-${randNum}`;
-}
-
-function generateAccessCode(): string {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const num = crypto.randomInt(0, 10000);
-    const code = `AHS-${String(num).padStart(4, '0')}`;
-    const alreadyUsed = purchasedTickets.some(ticket => ticket.token === code) || guestList.some(guest => guest.token === code);
-    if (!alreadyUsed) return code;
-  }
-
-  throw new Error('Não foi possível gerar um código exclusivo.');
-}
-
-function hashTicketToken(token: string): string {
-  return crypto.createHash('sha256').update(token, 'utf8').digest('hex');
-}
-
-function generateQrToken(): string {
-  return crypto.randomBytes(20).toString('base64url');
-}
-
-function generateTicketCredentials(): { code: string; token: string; tokenHash: string; qrToken: string } {
-  const token = crypto.randomBytes(32).toString('base64url');
-  const num = crypto.randomInt(0, 10000);
-  const code = `AHS-${String(num).padStart(4, '0')}`;
-  const qrToken = generateQrToken();
-  return { code, token, tokenHash: hashTicketToken(token), qrToken };
-}
-
-async function createPersistedTicket(name: string, phone: string) {
-  if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
-
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const { code, token, tokenHash, qrToken } = generateTicketCredentials();
-    const createdAt = new Date().toISOString();
-
-    const insertPayload: any = {
-      codigo: code,
-      token_hash: tokenHash,
-      qr_token: qrToken,
-      nome: name,
-      telefone: phone,
-      item: 'INGRESSO OPEN',
-      categoria: 'GERAL',
-      preco: 45,
-      lote: 'UNICO',
-      status: 'valido',
-      criado_em: createdAt
-    };
-
-    let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
-
-    // Se a coluna qr_token ainda não existir (código 42703), tenta sem ela
-    if (error?.code === '42703' || (error?.message && error.message.includes('qr_token'))) {
-      delete insertPayload.qr_token;
-      const retryResult = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
-      data = retryResult.data;
-      error = retryResult.error;
-    }
-
-    if (!error && data) return { data, error: null, token, qrToken: data.qr_token || token, createdAt };
-    if (error?.code !== '23505') {
-      logSupabaseError('create event ticket', error);
-      return { data: null, error };
-    }
-    // 23505 = unique violation, retry with new code/token
-  }
-
-  return { data: null, error: new Error('Não foi possível gerar um código único.') };
-}
-
-function mapStatusFromDb(dbStatus: string): 'VALIDO' | 'UTILIZADO' | 'CANCELADO' | 'BLOQUEADO' {
-  switch (dbStatus) {
-    case 'usado': return 'UTILIZADO';
-    case 'cancelado': return 'CANCELADO';
-    case 'bloqueado': return 'BLOQUEADO';
-    default: return 'VALIDO';
-  }
-}
-
-function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
-  return {
-    id: row.id,
-    token: token || row.codigo,
-    publicCode: row.codigo,
-    qrToken: row.qr_token || undefined,
-    buyerName: row.nome,
-    buyerEmail: row.email || '',
-    buyerPhone: row.telefone,
-    ticketId: 't-open-45',
-    ticketName: row.item,
-    category: row.categoria,
-    price: Number(row.preco),
-    paymentMethod: 'PIX',
-    status: mapStatusFromDb(row.status),
-    createdAt: row.criado_em,
-    usedAt: row.usado_em || undefined,
-    validadoPor: row.validado_por || undefined,
-    lote: row.lote
-  };
-}
-
-// ----------------- API ROUTES -----------------
+// ----------------------------------------------------
+// ROTAS DA API
+// ----------------------------------------------------
 
 // 1. Event Data
 app.get('/api/event', (_req: Request, res: Response) => {
@@ -635,63 +559,47 @@ app.get('/api/event', (_req: Request, res: Response) => {
   });
 });
 
-// 2. Tickets listing
+// 2. Tickets
 app.get('/api/tickets', (_req: Request, res: Response) => {
   res.json(tickets);
 });
 
-// Purchase Ticket Route - Purchases are handled exclusively via WhatsApp (+55 11 94396-3952)
 app.post('/api/tickets/purchase', publicWriteLimiter, (_req: Request, res: Response) => {
   return res.status(400).json({
-    error: 'Simulações de pagamento no site foram removidas. Para adquirir seu ingresso oficial com total segurança e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
+    error: 'Para adquirir seu ingresso oficial e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
     whatsappUrl: 'https://wa.me/5511943963952'
   });
 });
 
-// 3. Promotions listing
+// 3. Promotions
 app.get('/api/promotions', (_req: Request, res: Response) => {
   res.json(promotions);
 });
 
-// Admin update promotion
 app.post('/api/promotions/update', requireAdminAuth, (req: Request, res: Response) => {
   const { id, price, active, name, description } = req.body;
   const promo = promotions.find(p => p.id === id);
-  if (!promo) {
-    return res.status(404).json({ error: 'Promoção não encontrada.' });
-  }
-
+  if (!promo) return res.status(404).json({ error: 'Promoção não encontrada.' });
   if (price !== undefined) promo.price = Number(price);
   if (active !== undefined) promo.active = Boolean(active);
   if (name) promo.name = name;
   if (description) promo.description = description;
-
   return res.json({ success: true, promotion: promo });
 });
 
-// Admin add promotion
 app.post('/api/promotions/new', requireAdminAuth, (req: Request, res: Response) => {
   const { name, description, quantity, price, category, tag } = req.body;
-  if (!name || !price) {
-    return res.status(400).json({ error: 'Nome e preço são obrigatórios.' });
-  }
-
+  if (!name || !price) return res.status(400).json({ error: 'Nome e preço são obrigatórios.' });
   const newPromo: Promotion = {
-    id: `promo-${Date.now()}`,
-    name,
-    description: description || '',
-    quantity: quantity || '1 unidade',
-    price: Number(price),
-    active: true,
-    category: category || 'BEER',
-    tag
+    id: `promo-${Date.now()}`, name, description: description || '',
+    quantity: quantity || '1 unidade', price: Number(price), active: true,
+    category: category || 'BEER', tag
   };
-
   promotions.push(newPromo);
   return res.status(201).json({ success: true, promotion: newPromo });
 });
 
-// 4. Oracle / Tarot Cards (Returns 6 shuffled cards from the 8 options)
+// 4. Oracle (Returns 6 shuffled cards from the 8 options)
 app.get('/api/oracle/cards', (_req: Request, res: Response) => {
   res.json(getShuffledOracleCards(6));
 });
@@ -699,24 +607,17 @@ app.get('/api/oracle/cards', (_req: Request, res: Response) => {
 app.get('/api/oracle/me', publicWriteLimiter, async (req: Request, res: Response) => {
   const deviceId = getOrSetDeviceId(req, res);
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de promoções indisponível.' });
-
   const { data, error } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
   if (error) { logSupabaseError('GET coupons by device_id', error); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
   return res.json({ claimed: Boolean(data), coupon: data ? mapCouponRow(data) : null });
 });
 
-// Draw Oracle Reward with server-side device uniqueness and database constraint.
 app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Response) => {
   const { phone, cardId, userName } = req.body;
-
-  if (!phone) {
-    return res.status(400).json({ error: 'O número de telefone é obrigatório para resgatar o oráculo.' });
-  }
+  if (!phone) return res.status(400).json({ error: 'O número de telefone é obrigatório para resgatar o oráculo.' });
 
   const cleanPhone = sanitizePhone(phone);
-  if (cleanPhone.length < 10) {
-    return res.status(400).json({ error: 'Por favor, informe um telefone válido com DDD.' });
-  }
+  if (cleanPhone.length < 10) return res.status(400).json({ error: 'Por favor, informe um telefone válido com DDD.' });
 
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de promoções indisponível.' });
   const deviceId = getOrSetDeviceId(req, res);
@@ -724,45 +625,21 @@ app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Respo
   const { data: existingRow, error: lookupError } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
   if (lookupError) { logSupabaseError('POST oracle lookup coupon by device_id', lookupError); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
   if (existingRow) {
-    const existingCoupon = mapCouponRow(existingRow);
-    return res.status(403).json({
-      error: 'Você já resgatou sua carta do destino para este evento!',
-      coupon: existingCoupon,
-      alreadyClaimed: true
-    });
+    return res.status(403).json({ error: 'Você já resgatou sua carta do destino para este evento!', coupon: mapCouponRow(existingRow), alreadyClaimed: true });
   }
 
-  // Pick card or matching cardId from the full pool
   let selectedCard = allOracleCards.find(c => c.id === cardId);
-  if (!selectedCard) {
-    selectedCard = allOracleCards[Math.floor(Math.random() * allOracleCards.length)];
-  }
+  if (!selectedCard) selectedCard = allOracleCards[Math.floor(Math.random() * allOracleCards.length)];
 
   const newCoupon: Coupon = {
     id: `CP-${Math.floor(1000 + Math.random() * 9000)}`,
     token: generateSecureToken(`CORTEZ-${selectedCard.rewardCodePrefix}`),
-    rewardTitle: selectedCard.rewardText,
-    rewardValue: selectedCard.value,
-    phone: phone.trim(),
-    userName: userName ? userName.trim() : 'Visitante do Cortez',
-    status: 'ATIVO',
-    createdAt: new Date().toISOString(),
-    expiresAt: '2026-11-01T06:00:00.000Z'
+    rewardTitle: selectedCard.rewardText, rewardValue: selectedCard.value,
+    phone: phone.trim(), userName: userName ? userName.trim() : 'Visitante do Cortez',
+    status: 'ATIVO', createdAt: new Date().toISOString(), expiresAt: '2026-11-01T06:00:00.000Z'
   };
 
-  const { error: insertError } = await supabaseAdmin.from('coupons').insert({
-    token: newCoupon.token,
-    reward_title: newCoupon.rewardTitle,
-    reward_value: newCoupon.rewardValue,
-    phone: newCoupon.phone,
-    user_name: newCoupon.userName,
-    status: newCoupon.status,
-    created_at: newCoupon.createdAt,
-    redeemed_at: newCoupon.createdAt,
-    expires_at: newCoupon.expiresAt,
-    device_id: deviceId
-  });
-
+  const { error: insertError } = await supabaseAdmin.from('coupons').insert({ token: newCoupon.token, reward_title: newCoupon.rewardTitle, reward_value: newCoupon.rewardValue, phone: newCoupon.phone, user_name: newCoupon.userName, status: newCoupon.status, created_at: newCoupon.createdAt, redeemed_at: newCoupon.createdAt, expires_at: newCoupon.expiresAt, device_id: deviceId });
   if (insertError) {
     logSupabaseError('POST oracle insert coupon', insertError);
     if (insertError.code === '23505') {
@@ -771,106 +648,60 @@ app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Respo
     }
     return res.status(500).json({ error: 'Não foi possível registrar o resgate.' });
   }
-
   coupons.unshift(newCoupon);
 
-  return res.status(201).json({
-    success: true,
-    message: 'Destino revelado! Seu cupom mágico foi gerado.',
-    card: selectedCard,
-    coupon: newCoupon
-  });
+  return res.status(201).json({ success: true, message: 'Destino revelado! Seu cupom mágico foi gerado.', card: selectedCard, coupon: newCoupon });
 });
 
-// 5. RSVP / Guest List
+// 5. Guest List
 app.get('/api/guestlist', (_req: Request, res: Response) => {
-  // Public count or safe list
-  res.json({
-    totalGuests: guestList.length,
-    eventName: 'Halloween Party Hotel Cortez 2026',
-    status: 'LISTA ABERTA'
-  });
+  res.json({ totalGuests: guestList.length, eventName: 'Halloween Party Hotel Cortez 2026', status: 'LISTA ABERTA' });
 });
 
-app.post('/api/guestlist', publicWriteLimiter, (req: Request, res: Response) => {
+app.post('/api/guestlist', publicWriteLimiter, async (req: Request, res: Response) => {
   const { name, phone } = req.body;
-
-  if (!name || !phone) {
-    return res.status(400).json({ error: 'Nome e telefone são obrigatórios para a lista VIP.' });
-  }
+  if (!name || !phone) return res.status(400).json({ error: 'Nome e telefone são obrigatórios para a lista VIP.' });
 
   const cleanPhone = sanitizePhone(phone);
   const alreadyInList = guestList.some(g => sanitizePhone(g.phone) === cleanPhone);
-
-  if (alreadyInList) {
-    return res.status(400).json({ error: 'Este número de telefone já está registrado na Lista VIP.' });
-  }
+  if (alreadyInList) return res.status(400).json({ error: 'Este número de telefone já está registrado na Lista VIP.' });
 
   const newEntry: GuestEntry = {
-    id: `GUEST-${guestList.length + 1}`,
-    name: name.trim(),
-    phone: phone.trim(),
-    eventName: 'Halloween Party Hotel Cortez 2026',
-    status: 'CONFIRMADO',
-    createdAt: new Date().toISOString(),
-    token: generateAccessCode()
+    id: `GUEST-${guestList.length + 1}`, name: name.trim(), phone: phone.trim(),
+    eventName: 'Halloween Party Hotel Cortez 2026', status: 'CONFIRMADO',
+    createdAt: new Date().toISOString(), token: generateAccessCode()
   };
 
   guestList.unshift(newEntry);
 
-  // Sincronização segura com Supabase em segundo plano
   if (supabaseAdmin) {
-    Promise.resolve(
-      supabaseAdmin.from('guest_list').insert([
-        {
-          name: newEntry.name,
-          phone: newEntry.phone,
-          token: newEntry.token,
-          event_name: newEntry.eventName,
-          status: newEntry.status,
-          created_at: newEntry.createdAt
-        }
-      ])
-    ).then(({ error }: any) => {
+    try {
+      const { error } = await supabaseAdmin.from('guest_list').insert([{
+        name: newEntry.name, phone: newEntry.phone, token: newEntry.token,
+        event_name: newEntry.eventName, status: newEntry.status, created_at: newEntry.createdAt
+      }]);
       if (error) console.warn('[Supabase guest_list Sync Warning]', error.message);
-    }).catch(err => console.warn('[Supabase guest_list Sync Exception]', err));
+    } catch (err: any) { console.warn('[Supabase guest_list Sync Exception]', err); }
   }
 
   return res.status(201).json({
-    success: true,
-    message: 'Nome confirmado com sucesso na Lista VIP!',
-    guest: {
-      id: newEntry.id,
-      name: newEntry.name,
-      status: newEntry.status,
-      token: newEntry.token,
-      createdAt: newEntry.createdAt
-    }
+    success: true, message: 'Nome confirmado com sucesso na Lista VIP!',
+    guest: { id: newEntry.id, name: newEntry.name, status: newEntry.status, token: newEntry.token, createdAt: newEntry.createdAt }
   });
 });
 
-// 6. Verification / Check-in for QR Codes & Tokens (PROTEGIDO)
+// 6. Check-in (PROTEGIDO)
 app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Response) => {
   const { token } = req.body;
-  if (!token) {
-    return res.status(400).json({ error: 'Token ou QR Code não fornecido.' });
-  }
-
+  if (!token) return res.status(400).json({ error: 'Token ou QR Code não fornecido.' });
   const cleanToken = token.trim().toUpperCase();
 
   if (supabaseAdmin) {
-    const { data: persistedTicket, error } = await supabaseAdmin
-      .from('event_tickets')
-      .select('*')
-      .eq('token_hash', hashTicketToken(token.trim()))
-      .maybeSingle();
+    const { data: persistedTicket, error } = await supabaseAdmin.from('event_tickets').select('*').eq('token_hash', hashTicketToken(token.trim())).maybeSingle();
     if (error) return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
     if (persistedTicket) {
       const ticket = mapSupabaseTicket(persistedTicket);
-      return res.json({
-        type: 'TICKET', found: true,
-        data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt }
-      });
+      return res.json({ type: 'TICKET', found: true, data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt, ticketType: ticket.ticketType } });
     }
   }
 
@@ -883,103 +714,47 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
     }
   }
 
-  // Check in purchased tickets
   const ticket = purchasedTickets.find(t => t.token.toUpperCase() === cleanToken);
   if (ticket) {
-    return res.json({
-      type: 'TICKET',
-      found: true,
-      data: {
-        id: ticket.id,
-        token: ticket.token,
-        name: ticket.buyerName,
-        item: ticket.ticketName,
-        category: ticket.category,
-        status: ticket.status,
-        createdAt: ticket.createdAt,
-        usedAt: ticket.usedAt
-      }
-    });
+    return res.json({ type: 'TICKET', found: true, data: { id: ticket.id, token: ticket.token, name: ticket.buyerName, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt } });
   }
 
-  // Check in coupons
   const coupon = coupons.find(c => c.token.toUpperCase() === cleanToken);
   if (coupon) {
-    return res.json({
-      type: 'COUPON',
-      found: true,
-      data: {
-        id: coupon.id,
-        token: coupon.token,
-        name: coupon.userName || 'Portador do Cupom',
-        item: coupon.rewardTitle,
-        value: coupon.rewardValue,
-        status: coupon.status,
-        createdAt: coupon.createdAt,
-        usedAt: coupon.usedAt
-      }
-    });
+    return res.json({ type: 'COUPON', found: true, data: { id: coupon.id, token: coupon.token, name: coupon.userName || 'Portador do Cupom', item: coupon.rewardTitle, value: coupon.rewardValue, status: coupon.status, createdAt: coupon.createdAt, usedAt: coupon.usedAt } });
   }
 
-  // Check in guest list
   const guest = guestList.find(g => g.token.toUpperCase() === cleanToken);
   if (guest) {
-    return res.json({
-      type: 'GUEST_LIST',
-      found: true,
-      data: {
-        id: guest.id,
-        token: guest.token,
-        name: guest.name,
-        item: 'Entrada Lista VIP Especial',
-        status: guest.status,
-        createdAt: guest.createdAt
-      }
-    });
+    return res.json({ type: 'GUEST_LIST', found: true, data: { id: guest.id, token: guest.token, name: guest.name, item: 'Entrada Lista VIP Especial', status: guest.status, createdAt: guest.createdAt } });
   }
 
-  return res.status(404).json({
-    found: false,
-    error: 'Código não encontrado ou inválido no sistema do Hotel Cortez.'
-  });
+  return res.status(404).json({ found: false, error: 'Código não encontrado ou inválido no sistema do Hotel Cortez.' });
 });
 
-// Confirm Check-in / Redemption (PROTEGIDO)
 app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Response) => {
   const { token, type } = req.body;
-  if (!token) {
-    return res.status(400).json({ error: 'Token é obrigatório.' });
-  }
-
+  if (!token) return res.status(400).json({ error: 'Token é obrigatório.' });
   const cleanToken = token.trim().toUpperCase();
   const now = new Date().toISOString();
 
   if (type === 'TICKET') {
     if (supabaseAdmin) {
       const tokenHash = hashTicketToken(token.trim());
-      const { data: consumed, error: consumeError } = await supabaseAdmin.rpc('consume_event_ticket', { p_token_hash: tokenHash, p_validado_por: 'admin' });
+      const { data: consumed, error: consumeError } = await supabaseAdmin.rpc('consume_event_ticket', { p_token_hash: tokenHash });
       if (consumeError) return res.status(500).json({ error: 'Não foi possível registrar a entrada.' });
       if (consumed?.length) {
         const ticket = mapSupabaseTicket(consumed[0], token.trim());
         return res.json({ success: true, message: 'ENTRADA CONFIRMADA! Bem-vindo ao Hotel Cortez.', ticket: { ...ticket, token: ticket.publicCode } });
       }
-
-      const { data: persistedTicket } = await supabaseAdmin
-        .from('event_tickets')
-        .select('usado_em, status')
-        .eq('token_hash', tokenHash)
-        .maybeSingle();
+      const { data: persistedTicket } = await supabaseAdmin.from('event_tickets').select('usado_em, status').eq('token_hash', tokenHash).maybeSingle();
       if (persistedTicket?.status === 'usado') return res.status(409).json({ error: 'INGRESSO JÁ UTILIZADO anteriormente!', usedAt: persistedTicket.usado_em });
       if (persistedTicket?.status === 'cancelado') return res.status(400).json({ error: 'INGRESSO CANCELADO.' });
-      if (persistedTicket?.status === 'bloqueado') return res.status(400).json({ error: 'INGRESSO BLOQUEADO.' });
     }
     const ticket = purchasedTickets.find(t => t.token.toUpperCase() === cleanToken);
     if (!ticket) return res.status(404).json({ error: 'Ingresso não encontrado.' });
-    if (ticket.status === 'UTILIZADO') {
-      return res.status(400).json({ error: 'INGRESSO JÁ UTILIZADO anteriormente!', usedAt: ticket.usedAt });
-    }
-    ticket.status = 'UTILIZADO';
-    ticket.usedAt = now;
+    if (ticket.status === 'UTILIZADO') return res.status(400).json({ error: 'INGRESSO JÁ UTILIZADO anteriormente!', usedAt: ticket.usedAt });
+    ticket.status = 'UTILIZADO'; ticket.usedAt = now;
     return res.json({ success: true, message: 'ENTRADA CONFIRMADA! Bem-vindo ao Hotel Cortez.', ticket });
   }
 
@@ -993,25 +768,20 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
     }
     const coupon = coupons.find(c => c.token.toUpperCase() === cleanToken);
     if (!coupon) return res.status(404).json({ error: 'Cupom não encontrado.' });
-    if (coupon.status === 'UTILIZADO') {
-      return res.status(400).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: coupon.usedAt });
-    }
-    coupon.status = 'UTILIZADO';
-    coupon.usedAt = now;
+    if (coupon.status === 'UTILIZADO') return res.status(400).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: coupon.usedAt });
+    coupon.status = 'UTILIZADO'; coupon.usedAt = now;
     return res.json({ success: true, message: 'PROMOÇÃO RESGATADA COM SUCESSO!', coupon });
   }
 
   if (type === 'GUEST_LIST') {
     const guest = guestList.find(g => g.token.toUpperCase() === cleanToken);
     if (!guest) return res.status(404).json({ error: 'Nome na lista não encontrado.' });
-    if (guest.status === 'CHECKED_IN') {
-      return res.status(400).json({ error: 'CHECK-IN DA LISTA JÁ REALIZADO!' });
-    }
+    if (guest.status === 'CHECKED_IN') return res.status(400).json({ error: 'CHECK-IN DA LISTA JÁ REALIZADO!' });
     guest.status = 'CHECKED_IN';
     return res.json({ success: true, message: 'CHECK-IN DA LISTA CONFIRMADO!', guest });
   }
 
-  return res.status(400).json({ error: 'Tipo de validação inválido.' });
+  return res.status(400).json({ error: 'Tipo de check-in inválido.' });
 });
 
 // ============================================================
@@ -1027,20 +797,18 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
   if (supabaseAdmin) {
     let data: any = null;
 
-    // Busca por token_hash ou codigo (colunas sempre presentes no banco)
     const { data: stdData, error: stdError } = await supabaseAdmin
       .from('event_tickets')
-      .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+      .select('*')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
     if (!stdError && stdData) {
       data = stdData;
     } else {
-      // Se não encontrou, tenta buscar por qr_token (caso a coluna exista)
       const { data: qrData } = await supabaseAdmin
         .from('event_tickets')
-        .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+        .select('*')
         .eq('qr_token', rawToken)
         .maybeSingle();
       if (qrData) data = qrData;
@@ -1054,17 +822,16 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
         local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
         data: '31 DE OUTUBRO DE 2026',
         horario: '21:00 ÀS 06:00',
-        status: mapStatusFromDb(data.status),
+        status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
         item: data.item || 'INGRESSO OPEN',
+        tipo_ingresso: data.tipo_ingresso || 'OPEN_BAR',
       });
     }
   }
 
-  // Fallback em memória
   const local = purchasedTickets.find(t =>
     t.token === rawToken ||
-    t.publicCode === rawToken.toUpperCase() ||
-    t.qrToken === rawToken
+    t.publicCode === rawToken.toUpperCase()
   );
 
   if (!local) {
@@ -1080,6 +847,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     horario: '21:00 ÀS 06:00',
     status: local.status,
     item: local.ticketName || 'INGRESSO OPEN',
+    tipo_ingresso: local.ticketType || 'OPEN_BAR',
   });
 });
 
@@ -1094,14 +862,12 @@ app.post('/api/portaria/verify', requireAdminAuth, async (req: Request, res: Res
   const tokenHash = hashTicketToken(rawToken);
 
   if (supabaseAdmin) {
-    // 1. Busca por token_hash ou codigo
     let { data, error } = await supabaseAdmin
       .from('event_tickets')
       .select('*')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
-    // 2. Se não achou, tenta por qr_token
     if (!data && !error) {
       const qrRes = await supabaseAdmin
         .from('event_tickets')
@@ -1114,7 +880,6 @@ app.post('/api/portaria/verify', requireAdminAuth, async (req: Request, res: Res
     }
 
     if (error) {
-      logSupabaseError('portaria verify', error);
       return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
     }
 
@@ -1132,18 +897,16 @@ app.post('/api/portaria/verify', requireAdminAuth, async (req: Request, res: Res
           status: ticket.status,
           criadoEm: ticket.createdAt,
           usadoEm: ticket.usedAt,
-          validadoPor: ticket.validadoPor || (ticket.usedAt ? 'portaria' : undefined),
+          validadoPor: ticket.usedAt ? 'portaria' : undefined,
           qrToken: data.qr_token || rawToken,
         }
       });
     }
   }
 
-  // Fallback em memória
   const local = purchasedTickets.find(t =>
     t.token === rawToken ||
-    t.publicCode === rawToken.toUpperCase() ||
-    t.qrToken === rawToken
+    t.publicCode === rawToken.toUpperCase()
   );
 
   if (!local) {
@@ -1162,8 +925,7 @@ app.post('/api/portaria/verify', requireAdminAuth, async (req: Request, res: Res
       status: local.status,
       criadoEm: local.createdAt,
       usadoEm: local.usedAt,
-      validadoPor: local.validadoPor,
-      qrToken: local.qrToken || local.token,
+      qrToken: local.token,
     }
   });
 });
@@ -1181,7 +943,6 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
   if (supabaseAdmin) {
     let consumedRow: any = null;
 
-    // Tentativa 1: RPC consume_ticket_by_qr (se migration_v2 foi executada)
     const { data: byQr, error: byQrErr } = await supabaseAdmin.rpc('consume_ticket_by_qr', {
       p_qr_token: rawToken,
       p_validado_por: 'portaria'
@@ -1191,7 +952,6 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
       consumedRow = byQr[0];
     }
 
-    // Tentativa 2: RPC consume_event_ticket com tokenHash (função atômica original no banco)
     if (!consumedRow) {
       const { data: byHash, error: byHashErr } = await supabaseAdmin.rpc('consume_event_ticket', {
         p_token_hash: tokenHash
@@ -1201,7 +961,6 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
       }
     }
 
-    // Tentativa 3: Update atômico direto com verificação status = 'valido' (previne race conditions)
     if (!consumedRow) {
       const updateRes = await supabaseAdmin
         .from('event_tickets')
@@ -1232,22 +991,19 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
       });
     }
 
-    // Consumo falhou — consultar estado atual para feedback preciso
-    let current: any = null;
     const checkRes = await supabaseAdmin
       .from('event_tickets')
-      .select('status, usado_em, codigo, nome')
+      .select('status, usado_em, codigo, nome, validado_por')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
-    current = checkRes.data;
+    const current = checkRes.data;
 
     if (!current) {
       return res.status(404).json({ error: 'Ingresso não encontrado.' });
     }
 
-    const currentStatus = mapStatusFromDb(current.status);
-    if (currentStatus === 'UTILIZADO') {
+    if (current.status === 'usado') {
       return res.status(409).json({
         error: 'INGRESSO JÁ UTILIZADO',
         data: {
@@ -1259,21 +1015,16 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
         }
       });
     }
-    if (currentStatus === 'CANCELADO') {
+    if (current.status === 'cancelado') {
       return res.status(400).json({ error: 'INGRESSO CANCELADO', data: { codigo: current.codigo, nome: current.nome, status: 'CANCELADO' } });
-    }
-    if (currentStatus === 'BLOQUEADO') {
-      return res.status(400).json({ error: 'INGRESSO BLOQUEADO', data: { codigo: current.codigo, nome: current.nome, status: 'BLOQUEADO' } });
     }
 
     return res.status(500).json({ error: 'Não foi possível confirmar a entrada.' });
   }
 
-  // Fallback em memória
   const local = purchasedTickets.find(t =>
     t.token === rawToken ||
-    t.publicCode === rawToken.toUpperCase() ||
-    t.qrToken === rawToken
+    t.publicCode === rawToken.toUpperCase()
   );
 
   if (!local) {
@@ -1306,7 +1057,7 @@ app.post('/api/portaria/confirm', requireAdminAuth, async (req: Request, res: Re
   });
 });
 
-// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA com rate limiting anti brute-force e timing-safe comparison)
+// 7. Admin Login (AUTENTICAÇÃO PROTEGIDA com timing-safe comparison e anti-bruteforce)
 app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) => {
   const { username, login, password } = req.body || {};
   const userIdentifier = typeof (login || username) === 'string' ? cleanValue(login || username) : '';
@@ -1323,7 +1074,6 @@ app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) =>
     return res.status(401).json({ error: 'Login ou senha de administração inválidos.' });
   }
 
-  // Gera um token de sessão criptograficamente seguro com assinatura HMAC
   const sessionToken = generateSessionToken(userIdentifier);
   activeSessions.set(sessionToken, { createdAt: Date.now() });
 
@@ -1336,7 +1086,7 @@ app.post('/api/admin/login', adminLoginLimiter, (req: Request, res: Response) =>
   });
 });
 
-// Admin Logout (Invalida a sessão no servidor imediatamente)
+// Admin Logout
 app.post('/api/admin/logout', (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
   const token = typeof authHeader === 'string'
@@ -1348,7 +1098,7 @@ app.post('/api/admin/logout', (req: Request, res: Response) => {
   return res.json({ success: true, message: 'Sessão encerrada com segurança.' });
 });
 
-// 8. Admin Metrics & Full Database View (PROTEGIDO)
+// 8. Admin Metrics
 app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Response) => {
   if (supabaseAdmin) {
     const { data: persistedTickets, error } = await supabaseAdmin.from('event_tickets').select('*').order('criado_em', { ascending: false });
@@ -1357,15 +1107,7 @@ app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Respo
     if (couponsError) return res.status(500).json({ error: 'Não foi possível carregar as promoções.' });
     const safeCoupons = (persistedCoupons || []).map(mapCouponRow);
     const safeTickets = (persistedTickets || []).map(row => mapSupabaseTicket(row, row.codigo));
-    return res.json({
-      totalTicketsSold: safeTickets.length,
-      totalRevenue: safeTickets.reduce((acc, ticket) => acc + ticket.price, 0),
-      guestListCount: guestList.length,
-      couponsGenerated: safeCoupons.length,
-      couponsUsed: safeCoupons.filter(coupon => coupon.status === 'UTILIZADO').length,
-      checkinsCount: safeTickets.filter(ticket => ticket.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length,
-      tickets, purchasedTickets: safeTickets, guestList, promotions, coupons: safeCoupons
-    });
+    return res.json({ totalTicketsSold: safeTickets.length, totalRevenue: safeTickets.reduce((acc, ticket) => acc + ticket.price, 0), guestListCount: guestList.length, couponsGenerated: safeCoupons.length, couponsUsed: safeCoupons.filter(coupon => coupon.status === 'UTILIZADO').length, checkinsCount: safeTickets.filter(ticket => ticket.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length, tickets, purchasedTickets: safeTickets, guestList, promotions, coupons: safeCoupons });
   }
   const totalTicketsSold = purchasedTickets.length;
   const totalRevenue = purchasedTickets.reduce((acc, t) => acc + t.price, 0);
@@ -1374,19 +1116,7 @@ app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Respo
   const couponsUsed = coupons.filter(c => c.status === 'UTILIZADO').length;
   const checkinsCount = purchasedTickets.filter(t => t.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length;
 
-  res.json({
-    totalTicketsSold,
-    totalRevenue,
-    guestListCount,
-    couponsGenerated,
-    couponsUsed,
-    checkinsCount,
-    tickets,
-    purchasedTickets,
-    guestList,
-    promotions,
-    coupons
-  });
+  res.json({ totalTicketsSold, totalRevenue, guestListCount, couponsGenerated, couponsUsed, checkinsCount, tickets, purchasedTickets, guestList, promotions, coupons });
 });
 
 app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res: Response) => {
@@ -1408,69 +1138,78 @@ app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res:
 
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
 app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
-  const { name, phone } = req.body;
-  if (!name || !phone) {
-    return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
-  }
+  const { name, phone, ticketType } = req.body;
+  if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
+
+  const validTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR';
 
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
-  const created = await createPersistedTicket(String(name).trim(), String(phone).trim());
+  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType);
   const persistedTicket = created.data;
   const error = created.error;
-  const token = (created as any).token;
-  const qrToken = (created as any).qrToken;
-  const createdAt = (created as any).createdAt;
+  const token = created.token;
+  const createdAt = created.createdAt;
   if (error || !persistedTicket) {
-    const errMsg = (error as any)?.message || '';
-    const errCode = (error as any)?.code || '';
-    console.error('[Tickets] Falha ao criar ingresso:', { code: errCode, message: errMsg });
-    if (errCode === 'PGRST205' || errCode === '42P01') {
-      return res.status(503).json({ error: 'A tabela de ingressos ainda não foi criada no Supabase. Execute supabase/schema.sql e migration_v2.sql no SQL Editor.' });
+    if (error?.code === 'PGRST205') {
+      return res.status(503).json({ error: 'A tabela de ingressos ainda não foi criada no Supabase. Execute supabase/schema.sql no SQL Editor.' });
     }
-    if (errCode === '42501' || errMsg.includes('permission') || errMsg.includes('RLS')) {
-      return res.status(503).json({ error: 'Erro de permissão no Supabase. Verifique as RLS policies e a service_role key.' });
-    }
-    return res.status(500).json({ error: `Não foi possível emitir o ingresso. ${errMsg}`.trim() });
+    return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
   }
   const code = persistedTicket.codigo;
+  const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+  const priceValue = validTicketType === 'POS_OPEN' ? 25 : 45;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,
     publicCode: code,
-    qrToken: qrToken || persistedTicket.qr_token,
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
     ticketId: 't-open-45',
-    ticketName: 'INGRESSO',
+    ticketName: itemLabel,
     category: 'GERAL',
-    price: 45,
+    price: priceValue,
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: 'ÚNICO'
+    lote: 'ÚNICO',
+    ticketType: validTicketType
   };
 
   purchasedTickets.unshift(newTicket);
-  return res.json({
-    success: true,
-    ticket: { ...newTicket, token, codigo: code, qrToken: newTicket.qrToken },
-    message: 'Usuário cadastrado com sucesso!'
-  });
+  return res.json({ success: true, ticket: { ...newTicket, token, codigo: code }, message: 'Usuário cadastrado com sucesso!' });
 });
 
 // Admin: Atualizar Dados do Usuário (Nome / Número)
 app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, phone } = req.body;
+  const { name, phone, ticketType } = req.body;
   const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
   if (supabaseAdmin) {
-    return supabaseAdmin.from('event_tickets').update({ nome: name ? String(name).trim() : undefined, telefone: phone ? String(phone).trim() : undefined }).eq('id', id).select('*').single()
-      .then(({ data, error }) => error || !data ? res.status(404).json({ error: 'Usuário não encontrado.' }) : res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' }));
+    const updatePayload: any = {};
+    if (name) updatePayload.nome = String(name).trim();
+    if (phone) updatePayload.telefone = String(phone).trim();
+    if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') {
+      updatePayload.tipo_ingresso = ticketType;
+      updatePayload.item = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+      updatePayload.preco = ticketType === 'POS_OPEN' ? 25 : 45;
+    }
+    return supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single()
+      .then(async ({ data, error }) => {
+        if (error?.code === '42703') {
+          delete updatePayload.tipo_ingresso;
+          const retry = await supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single();
+          if (retry.error || !retry.data) return res.status(404).json({ error: 'Usuário não encontrado (fallback).' });
+          return res.json({ success: true, ticket: mapSupabaseTicket(retry.data, retry.data.codigo), message: 'Dados do usuário atualizados (parcialmente)!' });
+        }
+        if (error || !data) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        return res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' });
+      });
   }
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
   if (phone) ticket.buyerPhone = String(phone).trim();
+  if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') ticket.ticketType = ticketType;
   return res.json({ success: true, ticket, message: 'Dados do usuário atualizados!' });
 });
 
@@ -1485,35 +1224,25 @@ app.delete('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Respo
   return res.json({ success: true, message: 'Usuário/ingresso removido.' });
 });
 
-// 9. Contact / Reception Message Submission (com persistência no Supabase)
-app.post('/api/contact', publicWriteLimiter, (req: Request, res: Response) => {
+// 9. Contact
+app.post('/api/contact', publicWriteLimiter, async (req: Request, res: Response) => {
   const { name, email, message } = req.body;
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'Nome, e-mail e mensagem são obrigatórios.' });
-  }
+  if (!name || !email || !message) return res.status(400).json({ error: 'Nome, e-mail e mensagem são obrigatórios.' });
 
-  // Sincronização segura com Supabase em segundo plano
   if (supabaseAdmin) {
-    Promise.resolve(
-      supabaseAdmin.from('contacts').insert([
-        {
-          name: String(name).trim(),
-          email: String(email).trim().toLowerCase(),
-          message: String(message).trim(),
-          created_at: new Date().toISOString()
-        }
-      ])
-    ).then(({ error }: any) => {
-      if (error) console.warn('[Supabase contacts Sync Warning]', error.message);
-    }).catch(err => console.warn('[Supabase contacts Sync Exception]', err));
+    try {
+      const { error: contactErr } = await supabaseAdmin.from('contacts').insert([{
+        name: String(name).trim(), email: String(email).trim().toLowerCase(),
+        message: String(message).trim(), created_at: new Date().toISOString()
+      }]);
+      if (contactErr) console.warn('[Supabase contacts Sync Warning]', contactErr.message);
+    } catch (err: any) { console.warn('[Supabase contacts Sync Exception]', err); }
   }
 
-  return res.status(201).json({
-    success: true,
-    message: 'Mensagem recebida com sucesso pela recepção!'
-  });
+  return res.status(201).json({ success: true, message: 'Mensagem recebida com sucesso pela recepção!' });
 });
 
+// Export para Vercel Serverless
 // Production static assets & Vite handling in dev
 const isProd = process.env.NODE_ENV === 'production';
 

@@ -223,9 +223,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
         await videoRef.current.play();
         scan();
       }
-    } catch {
+    } catch (err: any) {
       stopScanner();
-      setScannerError('Não foi possível abrir a câmera. Verifique a permissão e use HTTPS.');
+      console.error('Falha ao abrir câmera no painel:', err);
+      if (err.name === 'NotAllowedError') {
+        setScannerError('Acesso à câmera negado. Por favor, permita o uso da câmera nas configurações do seu navegador para continuar.');
+      } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setScannerError('Câmera bloqueada. Em celulares, o sistema exige que o site seja acessado com "https://" para exibir a notificação de permissão.');
+      } else {
+        setScannerError('Não foi possível abrir a câmera. Verifique a permissão, feche outros apps que usam a câmera ou use HTTPS.');
+      }
     }
   };
 

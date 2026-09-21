@@ -318,7 +318,13 @@ export const PortariaPage: React.FC = () => {
         );
       } catch (err: any) {
         console.error('Falha ao abrir câmera:', err);
-        setScannerError('Não foi possível acessar a câmera. Verifique as permissões do navegador ou digite o código manualmente.');
+        if (err.name === 'NotAllowedError') {
+          setScannerError('Acesso à câmera negado. Por favor, permita o uso da câmera nas configurações do seu navegador celular.');
+        } else if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setScannerError('Câmera bloqueada pelo celular. Para usar a câmera do celular, o sistema exige que você acesse o link com "https://" e não "http://".');
+        } else {
+          setScannerError('Não foi possível acessar a câmera. Verifique as permissões do navegador ou digite o código manualmente.');
+        }
         setIsScanning(false);
       }
     }, 100);
