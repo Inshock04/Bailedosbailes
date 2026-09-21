@@ -130,6 +130,7 @@ interface TicketData {
   horario: string;
   status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO' | 'BLOQUEADO';
   item?: string;
+  tipo_ingresso?: 'OPEN_BAR' | 'POS_OPEN';
 }
 
 interface IngressoPublicPageProps {
@@ -291,6 +292,34 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 </div>
               </div>
 
+              {/* ═══ TICKET TYPE VISUAL BADGE ═══ */}
+              {ticket.tipo_ingresso === 'POS_OPEN' ? (
+                <div className="bg-gradient-to-b from-[#78350f] via-[#451a03] to-[#1c0a00] p-4 rounded-xl border-2 border-[#f59e0b] shadow-[0_0_30px_rgba(245,158,11,0.4)] text-center space-y-2">
+                  <div className="inline-block px-4 py-1.5 rounded-full bg-[#92400e] border-2 border-[#fbbf24] shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                    <span className="font-pixel text-sm sm:text-base text-[#fde68a] tracking-widest font-bold">🌙 PÓS-OPEN</span>
+                  </div>
+                  <p className="font-pixel text-lg sm:text-xl text-[#fbbf24] tracking-wider font-bold leading-tight">
+                    INGRESSO PÓS-OPEN
+                  </p>
+                  <p className="font-pixel text-base sm:text-lg text-white tracking-wider font-bold">
+                    ENTRADA A PARTIR DAS 00H
+                  </p>
+                  <div className="mt-2 pt-2 border-t-2 border-[#92400e]">
+                    <p className="font-pixel text-sm sm:text-base text-[#fca5a5] tracking-wider font-bold animate-pulse">
+                      ⚠️ SEM DIREITO AO OPEN BAR
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2">
+                    <Wine size={20} className="text-[#4ade80]" />
+                    <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">🍸 INGRESSO OPEN BAR</span>
+                  </div>
+                  <p className="text-xs text-[#86efac] font-mono mt-1">Open Bar Premium das 21h às 00h incluso</p>
+                </div>
+              )}
+
               {/* QR Code Presentation */}
               <div className="bg-[#180715] p-4 rounded-lg border border-[#3b1225] flex flex-col items-center text-center">
                 <div className="p-3 bg-white rounded-lg border-2 border-[#b91c1c] shadow-[0_0_25px_rgba(220,38,38,0.3)]">
@@ -328,8 +357,17 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 <div className="flex items-start gap-2.5">
                   <Clock size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">A PARTIR DAS 21:00</span>
-                    <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 21h</span>
+                    {ticket.tipo_ingresso === 'POS_OPEN' ? (
+                      <>
+                        <span className="text-[#fbbf24] font-bold block">ENTRADA A PARTIR DAS 00:00</span>
+                        <span className="text-gray-400 text-[11px]">Ingresso Pós-Open — Acesso após a meia-noite</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-white font-bold block">A PARTIR DAS 21:00</span>
+                        <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 21h</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -337,17 +375,19 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                   <MapPin size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
                     <span className="text-white font-bold block">THE TRIPLEX</span>
-                    <span className="text-gray-400 text-[11px]">Rua Manoel Castilho, 201 - Itaim Paulista, São Paulo - SP</span>
+                    <span className="text-gray-400 text-[11px]">R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP</span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5 pt-1 border-t border-[#290d1b]">
-                  <Wine size={15} className="text-[#f87171] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-white font-bold block">OPEN BAR PREMIUM INCLUSO</span>
-                    <span className="text-gray-400 text-[11px]">Gin, Vodka, Energético, Caipirinha, Canelinha & ???</span>
+                {ticket.tipo_ingresso !== 'POS_OPEN' && (
+                  <div className="flex items-start gap-2.5 pt-1 border-t border-[#290d1b]">
+                    <Wine size={15} className="text-[#f87171] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-white font-bold block">OPEN BAR PREMIUM INCLUSO</span>
+                      <span className="text-gray-400 text-[11px]">Gin, Vodka, Energético, Caipirinha, Canelinha & ???</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Security & Rules Alert */}

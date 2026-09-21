@@ -66,7 +66,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       `📦 *Lote:* ${batch}\n` +
       `🔢 *Quantidade:* ${quantity} ingresso(s)\n` +
       `💰 *Total:* R$ ${totalFormatted}${nameLine}\n` +
-      `📍 *Local:* The Triplex (Rua Manoel Castilho, 201 - Itaim Paulista, SP)\n\n` +
+      `📍 *Local:* The Triplex (R. Manuel de Castilho, 201 - Itaim Paulista, SP)\n\n` +
       `Poderia me passar a chave PIX oficial e as instruções para confirmação da reserva?`;
 
     const whatsappUrl = `https://wa.me/5511943963952?text=${encodeURIComponent(message)}`;

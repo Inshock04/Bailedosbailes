@@ -96,6 +96,7 @@ export interface PurchasedTicket {
   usedAt?: string;
   validadoPor?: string;
   lote: string;
+  ticketType?: 'OPEN_BAR' | 'POS_OPEN';
 }
 
 export interface AdminMetrics {

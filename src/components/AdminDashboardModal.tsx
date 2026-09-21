@@ -175,10 +175,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   // Inserir Usuário / Ingresso State
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserTicketType, setNewUserTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
-  const [generatedTicket, setGeneratedTicket] = useState<{ code: string; token: string; name: string; qrDataUrl: string; publicUrl?: string } | null>(null);
+  const [generatedTicket, setGeneratedTicket] = useState<{ code: string; token: string; name: string; qrDataUrl: string; publicUrl?: string; ticketType?: string } | null>(null);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -235,6 +236,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editTicketType, setEditTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
   const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
@@ -461,7 +463,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
-        body: JSON.stringify({ name, phone })
+        body: JSON.stringify({ name, phone, ticketType: newUserTicketType })
       });
 
       const data = await res.json().catch(() => null);
@@ -475,10 +477,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       const targetToken = data.ticket.qrToken || data.ticket.token || code;
       const publicUrl = `${window.location.origin}/ingresso/${targetToken}`;
       const qrDataUrl = await generateHalloweenTicketQr(publicUrl);
-      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl });
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Código público: ${code}`);
+      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl, ticketType: newUserTicketType });
+      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Tipo: ${newUserTicketType === 'POS_OPEN' ? 'PÓS-OPEN' : 'OPEN BAR'} — Código público: ${code}`);
       setNewUserName('');
       setNewUserPhone('');
+      setNewUserTicketType('OPEN_BAR');
       audioManager.playSuccess();
       fetchMetrics();
     } catch (err: any) {
@@ -532,6 +535,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     setEditingUserId(t.id);
     setEditName(t.buyerName);
     setEditPhone(t.buyerPhone);
+    setEditTicketType(t.ticketType || 'OPEN_BAR');
     audioManager.playClick();
   };
 
@@ -557,13 +561,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
-        body: JSON.stringify({ name: trimmedName, phone: trimmedPhone })
+        body: JSON.stringify({ name: trimmedName, phone: trimmedPhone, ticketType: editTicketType })
       });
       setMetrics((prev: any) => ({
         ...prev,
         purchasedTickets: prev?.purchasedTickets?.map((t: any) =>
           (t.id === ticketId || t.token === ticketId)
-            ? { ...t, buyerName: trimmedName, buyerPhone: trimmedPhone }
+            ? { ...t, buyerName: trimmedName, buyerPhone: trimmedPhone, ticketType: editTicketType }
             : t
         )
       }));
@@ -574,7 +578,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
         ...prev,
         purchasedTickets: prev?.purchasedTickets?.map((t: any) =>
           (t.id === ticketId || t.token === ticketId)
-            ? { ...t, buyerName: trimmedName, buyerPhone: trimmedPhone }
+            ? { ...t, buyerName: trimmedName, buyerPhone: trimmedPhone, ticketType: editTicketType }
             : t
         )
       }));
@@ -922,7 +926,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       Insira o nome e o número de WhatsApp do participante para emitir o ingresso e gerar o token seguro de acesso.
                     </p>
 
-                    <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                    <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                       <div>
                         <label className="block text-[11px] font-pixel text-[#d8b4fe] mb-1 font-bold">
                           NOME DO USUÁRIO *
@@ -948,6 +952,21 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           onChange={e => setNewUserPhone(e.target.value)}
                           className="w-full bg-[#0d0414] border-2 border-[#a855f7]/70 px-3 py-2.5 text-xs sm:text-sm text-white outline-hidden focus:border-[#c084fc] font-mono shadow-inner"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-pixel text-[#d8b4fe] mb-1 font-bold">
+                          TIPO DE INGRESSO *
+                        </label>
+                        <select
+                          required
+                          value={newUserTicketType}
+                          onChange={e => setNewUserTicketType(e.target.value as 'OPEN_BAR' | 'POS_OPEN')}
+                          className="w-full bg-[#0d0414] border-2 border-[#a855f7]/70 px-3 py-2.5 text-xs sm:text-sm text-white outline-hidden focus:border-[#c084fc] font-mono shadow-inner cursor-pointer appearance-none"
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c084fc' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                        >
+                          <option value="OPEN_BAR">🍸 OPEN BAR</option>
+                          <option value="POS_OPEN">🌙 PÓS-OPEN</option>
+                        </select>
                       </div>
                       <div>
                         <button
@@ -1068,6 +1087,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             <th className="p-2">CÓDIGO / TOKEN</th>
                             <th className="p-2">NOME</th>
                             <th className="p-2">NÚMERO</th>
+                            <th className="p-2">TIPO</th>
                             <th className="p-2">STATUS</th>
                             <th className="p-2 text-right">AÇÕES</th>
                           </tr>
@@ -1075,14 +1095,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         <tbody className="divide-y divide-[#2a1040]">
                           {searchLoading && (
                             <tr>
-                              <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
+                              <td colSpan={6} className="p-4 text-center text-gray-400 font-mono text-xs">
                                 BUSCANDO...
                               </td>
                             </tr>
                           )}
                           {!searchLoading && (searchedUsers || metrics?.purchasedTickets || []).length === 0 && (
                             <tr>
-                              <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
+                              <td colSpan={6} className="p-4 text-center text-gray-400 font-mono text-xs">
                                 Nenhum usuário cadastrado ainda. Use o formulário acima para inserir os dados.
                               </td>
                             </tr>
@@ -1117,6 +1137,26 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                       />
                                     ) : (
                                       t.buyerPhone
+                                    )}
+                                  </td>
+                                  <td className="p-2">
+                                    {isEditing ? (
+                                      <select
+                                        value={editTicketType}
+                                        onChange={e => setEditTicketType(e.target.value as 'OPEN_BAR' | 'POS_OPEN')}
+                                        className="bg-[#0e0417] border border-[#c084fc] px-2 py-0.5 text-xs text-white w-full font-mono cursor-pointer"
+                                      >
+                                        <option value="OPEN_BAR">OPEN BAR</option>
+                                        <option value="POS_OPEN">PÓS-OPEN</option>
+                                      </select>
+                                    ) : (
+                                      <span className={`px-1.5 py-0.5 text-[10px] font-pixel font-bold ${
+                                        t.ticketType === 'POS_OPEN'
+                                          ? 'bg-[#78350f] text-[#fde68a] border border-[#f59e0b]'
+                                          : 'bg-[#064e3b] text-[#6ee7b7] border border-[#10b981]'
+                                      }`}>
+                                        {t.ticketType === 'POS_OPEN' ? '🌙 PÓS-OPEN' : '🍸 OPEN BAR'}
+                                      </span>
                                     )}
                                   </td>
                                   <td className="p-2">

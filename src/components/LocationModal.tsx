@@ -24,7 +24,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
                 LOCALIZAÇÃO • THE TRIPLEX
               </h2>
               <span className="font-mono text-xs text-[#a3e635]">
-                THE TRIPLEX • Rua Manoel Castilho, 201 - Itaim Paulista, São Paulo - SP
+                THE TRIPLEX • R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP
               </span>
             </div>
           </div>
@@ -50,7 +50,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
 
             {/* Simulated Road Lines */}
             <div className="absolute top-1/2 left-0 right-0 h-6 bg-[#1e3a14] -translate-y-1/2 border-y border-[#4d7c0f] flex items-center justify-around">
-              <span className="font-pixel text-[11px] sm:text-[12px] text-[#bef264]">RUA MANOEL CASTILHO, 201</span>
+              <span className="font-pixel text-[11px] sm:text-[12px] text-[#bef264]">R. MANUEL DE CASTILHO, 201</span>
             </div>
 
             {/* Target Pin in center */}
@@ -72,14 +72,14 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
 
           <div className="bg-[#111c0c] border border-[#3f6212] p-3">
             <span className="font-pixel text-[12px] text-[#bef264] block mb-1">🚗 CARRO / APLICATIVO / ESTACIONAMENTO:</span>
-            <p className="leading-relaxed">Ponto de desembarque direto na porta pela <strong className="text-white">Rua Manoel Castilho, 201</strong>.</p>
+            <p className="leading-relaxed">Ponto de desembarque direto na porta pela <strong className="text-white">R. Manuel de Castilho, 201</strong>.</p>
           </div>
         </div>
 
         {/* Quick App Link Buttons */}
         <div className="mt-4 pt-3 border-t border-[#365314] flex flex-col sm:flex-row gap-2">
           <a
-            href="https://maps.google.com/?q=Rua+Manoel+Castilho,+201,+Itaim+Paulista,+Sao+Paulo,+SP"
+            href="https://maps.google.com/?q=R.+Manuel+de+Castilho,+201,+Itaim+Paulista,+Sao+Paulo,+SP"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => audioManager.playClick()}
@@ -88,7 +88,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
             ABRIR NO GOOGLE MAPS
           </a>
           <a
-            href="https://waze.com/ul?q=Rua+Manoel+Castilho+201+Itaim+Paulista"
+            href="https://waze.com/ul?q=R+Manuel+de+Castilho+201+Itaim+Paulista"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => audioManager.playClick()}

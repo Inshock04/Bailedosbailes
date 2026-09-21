@@ -437,14 +437,14 @@ export default function App() {
                     THE TRIPLEX
                   </div>
                   <div className="font-mono text-[13px] sm:text-[14px] text-[#86efac] leading-tight">
-                    Rua Manoel Castilho, 201 - São Paulo
+                    R. Manuel de Castilho, 201 - São Paulo
                   </div>
                 </div>
 
                 {/* Google Maps Actions */}
                 <div className="grid grid-cols-2 gap-1.5 pt-0.5">
                   <a
-                    href="https://maps.google.com/?q=Rua+Manoel+Castilho,+201,+Itaim+Paulista,+Sao+Paulo,+SP"
+                    href="https://maps.google.com/?q=R.+Manuel+de+Castilho,+201,+Itaim+Paulista,+Sao+Paulo,+SP"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 bg-[#052e16] hover:bg-[#14532d] active:bg-[#052e16] border border-[#22c55e] text-[#86efac] hover:text-white font-pixel text-[12px] sm:text-[13px] tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer text-center"

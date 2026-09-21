@@ -328,6 +328,7 @@ interface PurchasedTicket {
   ticketId: string; ticketName: string; category: string; price: number;
   paymentMethod: 'PIX' | 'CARTAO'; status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO';
   createdAt: string; usedAt?: string; lote: string; publicCode?: string;
+  ticketType?: 'OPEN_BAR' | 'POS_OPEN';
 }
 
 function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
@@ -337,7 +338,8 @@ function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
     ticketId: 't-open-45', ticketName: row.item, category: row.categoria,
     price: Number(row.preco), paymentMethod: 'PIX',
     status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
-    createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote
+    createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote,
+    ticketType: row.tipo_ingresso === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR'
   };
 }
 
@@ -352,24 +354,28 @@ function generateTicketCredentials(): { code: string; token: string; tokenHash: 
   return { code, token, tokenHash: hashTicketToken(token) };
 }
 
-async function createPersistedTicket(name: string, phone: string) {
+async function createPersistedTicket(name: string, phone: string, ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'OPEN_BAR') {
   if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const { code, token, tokenHash } = generateTicketCredentials();
     const createdAt = new Date().toISOString();
 
+    const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+    const priceValue = ticketType === 'POS_OPEN' ? 25 : 45;
+
     const insertPayload: any = {
       codigo: code,
       token_hash: tokenHash,
       nome: name,
       telefone: phone,
-      item: 'INGRESSO OPEN',
+      item: itemLabel,
       categoria: 'GERAL',
-      preco: 45,
+      preco: priceValue,
       lote: 'UNICO',
       status: 'valido',
-      criado_em: createdAt
+      criado_em: createdAt,
+      tipo_ingresso: ticketType
     };
 
     let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
@@ -540,7 +546,7 @@ app.get('/api/event', (_req: Request, res: Response) => {
     isoDate: '2026-10-31T21:00:00-03:00',
     time: '21:00 ÀS 06:00',
     location: 'THE TRIPLEX',
-    address: 'THE TRIPLEX • Rua Manoel Castilho, 201 - Itaim Paulista, São Paulo - SP',
+    address: 'THE TRIPLEX • R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP',
     description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',
     theme: 'Horror Psicológico, Gothic Deco & Dark Glamour',
     ageRestriction: '18 ANOS (Obrigatória apresentação de documento original com foto)',
@@ -694,7 +700,7 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
     if (error) return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
     if (persistedTicket) {
       const ticket = mapSupabaseTicket(persistedTicket);
-      return res.json({ type: 'TICKET', found: true, data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt } });
+      return res.json({ type: 'TICKET', found: true, data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt, ticketType: ticket.ticketType } });
     }
   }
 
@@ -792,7 +798,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
 
     const { data: stdData, error: stdError } = await supabaseAdmin
       .from('event_tickets')
-      .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+      .select('nome, codigo, item, categoria, status, criado_em, usado_em, tipo_ingresso')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
@@ -801,7 +807,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     } else {
       const { data: qrData } = await supabaseAdmin
         .from('event_tickets')
-        .select('nome, codigo, item, categoria, status, criado_em, usado_em')
+        .select('nome, codigo, item, categoria, status, criado_em, usado_em, tipo_ingresso')
         .eq('qr_token', rawToken)
         .maybeSingle();
       if (qrData) data = qrData;
@@ -812,11 +818,12 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
         nome: data.nome,
         codigo: data.codigo,
         evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
-        local: 'THE TRIPLEX — Rua Manoel Castilho, 201',
+        local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
         data: '31 DE OUTUBRO DE 2026',
         horario: '21:00 ÀS 06:00',
         status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
         item: data.item || 'INGRESSO OPEN',
+        tipo_ingresso: data.tipo_ingresso || 'OPEN_BAR',
       });
     }
   }
@@ -834,11 +841,12 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     nome: local.buyerName,
     codigo: local.publicCode || local.token,
     evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
-    local: 'THE TRIPLEX — Rua Manoel Castilho, 201',
+    local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
     data: '31 DE OUTUBRO DE 2026',
     horario: '21:00 ÀS 06:00',
     status: local.status,
     item: local.ticketName || 'INGRESSO OPEN',
+    tipo_ingresso: local.ticketType || 'OPEN_BAR',
   });
 });
 
@@ -1129,11 +1137,13 @@ app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res:
 
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
 app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
-  const { name, phone } = req.body;
+  const { name, phone, ticketType } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
 
+  const validTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR';
+
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
-  const created = await createPersistedTicket(String(name).trim(), String(phone).trim());
+  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType);
   const persistedTicket = created.data;
   const error = created.error;
   const token = created.token;
@@ -1145,6 +1155,8 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
   }
   const code = persistedTicket.codigo;
+  const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+  const priceValue = validTicketType === 'POS_OPEN' ? 25 : 45;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,
@@ -1153,13 +1165,14 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
     ticketId: 't-open-45',
-    ticketName: 'INGRESSO',
+    ticketName: itemLabel,
     category: 'GERAL',
-    price: 45,
+    price: priceValue,
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: 'ÚNICO'
+    lote: 'ÚNICO',
+    ticketType: validTicketType
   };
 
   purchasedTickets.unshift(newTicket);
@@ -1169,15 +1182,24 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
 // Admin: Atualizar Dados do Usuário (Nome / Número)
 app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, phone } = req.body;
+  const { name, phone, ticketType } = req.body;
   const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
   if (supabaseAdmin) {
-    return supabaseAdmin.from('event_tickets').update({ nome: name ? String(name).trim() : undefined, telefone: phone ? String(phone).trim() : undefined }).eq('id', id).select('*').single()
+    const updatePayload: any = {};
+    if (name) updatePayload.nome = String(name).trim();
+    if (phone) updatePayload.telefone = String(phone).trim();
+    if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') {
+      updatePayload.tipo_ingresso = ticketType;
+      updatePayload.item = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
+      updatePayload.preco = ticketType === 'POS_OPEN' ? 25 : 45;
+    }
+    return supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single()
       .then(({ data, error }) => error || !data ? res.status(404).json({ error: 'Usuário não encontrado.' }) : res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' }));
   }
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
   if (phone) ticket.buyerPhone = String(phone).trim();
+  if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') ticket.ticketType = ticketType;
   return res.json({ success: true, ticket, message: 'Dados do usuário atualizados!' });
 });
 
