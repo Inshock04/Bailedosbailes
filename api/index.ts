@@ -697,10 +697,23 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
   const cleanToken = token.trim().toUpperCase();
 
   if (supabaseAdmin) {
-    const { data: persistedTicket, error } = await supabaseAdmin.from('event_tickets').select('*').eq('token_hash', hashTicketToken(token.trim())).maybeSingle();
+    const rawToken = token.trim();
+    const tokenHash = hashTicketToken(rawToken);
+    
+    let { data: persistedTicket, error } = await supabaseAdmin
+      .from('event_tickets')
+      .select('*')
+      .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
+      .maybeSingle();
+      
+    if (!persistedTicket && !error) {
+      const qrRes = await supabaseAdmin.from('event_tickets').select('*').eq('qr_token', rawToken).maybeSingle();
+      if (!qrRes.error && qrRes.data) persistedTicket = qrRes.data;
+    }
+
     if (error) return res.status(500).json({ error: 'Não foi possível consultar o ingresso.' });
     if (persistedTicket) {
-      const ticket = mapSupabaseTicket(persistedTicket);
+      const ticket = mapSupabaseTicket(persistedTicket, persistedTicket.codigo);
       return res.json({ type: 'TICKET', found: true, data: { id: ticket.id, token: ticket.publicCode, code: ticket.publicCode, name: ticket.buyerName, phone: ticket.buyerPhone, item: ticket.ticketName, category: ticket.category, status: ticket.status, createdAt: ticket.createdAt, usedAt: ticket.usedAt, ticketType: ticket.ticketType } });
     }
   }
@@ -740,14 +753,35 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
 
   if (type === 'TICKET') {
     if (supabaseAdmin) {
-      const tokenHash = hashTicketToken(token.trim());
-      const { data: consumed, error: consumeError } = await supabaseAdmin.rpc('consume_event_ticket', { p_token_hash: tokenHash });
-      if (consumeError) return res.status(500).json({ error: 'Não foi possível registrar a entrada.' });
+      const rawToken = token.trim();
+      const tokenHash = hashTicketToken(rawToken);
+      
+      // Attempt 1: by QR token
+      let consumed = null;
+      const { data: byQr, error: byQrErr } = await supabaseAdmin.rpc('consume_ticket_by_qr', {
+        p_qr_token: rawToken,
+        p_validado_por: 'admin'
+      });
+      if (byQr && byQr.length > 0) consumed = byQr;
+
+      // Attempt 2: by Hash or Codigo
+      if (!consumed) {
+        // Find the record first to get its hash
+        const { data: findRes } = await supabaseAdmin.from('event_tickets').select('token_hash').or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`).maybeSingle();
+        if (findRes?.token_hash) {
+          const { data: byHash, error: consumeError } = await supabaseAdmin.rpc('consume_event_ticket', { p_token_hash: findRes.token_hash });
+          if (consumeError) return res.status(500).json({ error: 'Não foi possível registrar a entrada.' });
+          if (byHash?.length) consumed = byHash;
+        }
+      }
+      
       if (consumed?.length) {
-        const ticket = mapSupabaseTicket(consumed[0], token.trim());
+        const ticket = mapSupabaseTicket(consumed[0], consumed[0].codigo);
         return res.json({ success: true, message: 'ENTRADA CONFIRMADA! Bem-vindo ao Hotel Cortez.', ticket: { ...ticket, token: ticket.publicCode } });
       }
-      const { data: persistedTicket } = await supabaseAdmin.from('event_tickets').select('usado_em, status').eq('token_hash', tokenHash).maybeSingle();
+
+      // If we are here, it's either used or doesn't exist
+      const { data: persistedTicket } = await supabaseAdmin.from('event_tickets').select('usado_em, status').or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`).maybeSingle();
       if (persistedTicket?.status === 'usado') return res.status(409).json({ error: 'INGRESSO JÁ UTILIZADO anteriormente!', usedAt: persistedTicket.usado_em });
       if (persistedTicket?.status === 'cancelado') return res.status(400).json({ error: 'INGRESSO CANCELADO.' });
     }
