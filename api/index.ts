@@ -799,7 +799,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
 
     const { data: stdData, error: stdError } = await supabaseAdmin
       .from('event_tickets')
-      .select('nome, codigo, item, categoria, status, criado_em, usado_em, tipo_ingresso')
+      .select('*')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
 
@@ -808,7 +808,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     } else {
       const { data: qrData } = await supabaseAdmin
         .from('event_tickets')
-        .select('nome, codigo, item, categoria, status, criado_em, usado_em, tipo_ingresso')
+        .select('*')
         .eq('qr_token', rawToken)
         .maybeSingle();
       if (qrData) data = qrData;
