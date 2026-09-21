@@ -380,8 +380,9 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
 
     let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
 
-    if (error?.code === '42703' || (error?.message && error.message.includes('qr_token'))) {
+    if (error?.code === '42703' || (error?.message && (error.message.includes('qr_token') || error.message.includes('tipo_ingresso')))) {
       delete insertPayload.qr_token;
+      delete insertPayload.tipo_ingresso;
       const retryResult = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
       data = retryResult.data;
       error = retryResult.error;
@@ -1194,7 +1195,16 @@ app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response
       updatePayload.preco = ticketType === 'POS_OPEN' ? 25 : 45;
     }
     return supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single()
-      .then(({ data, error }) => error || !data ? res.status(404).json({ error: 'Usuário não encontrado.' }) : res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' }));
+      .then(async ({ data, error }) => {
+        if (error?.code === '42703') {
+          delete updatePayload.tipo_ingresso;
+          const retry = await supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single();
+          if (retry.error || !retry.data) return res.status(404).json({ error: 'Usuário não encontrado (fallback).' });
+          return res.json({ success: true, ticket: mapSupabaseTicket(retry.data, retry.data.codigo), message: 'Dados do usuário atualizados (parcialmente)!' });
+        }
+        if (error || !data) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        return res.json({ success: true, ticket: mapSupabaseTicket(data, data.codigo), message: 'Dados do usuário atualizados!' });
+      });
   }
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
