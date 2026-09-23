@@ -62,12 +62,16 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     return res.status(503).json({ status: 'degraded', supabaseConfigured: false, eventTicketsTable: false });
   }
 
+  const mpToken = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
   const { error } = await supabaseAdmin.from('event_tickets').select('id').limit(1);
   return res.status(error ? 503 : 200).json({
     status: error ? 'degraded' : 'ok',
     supabaseConfigured: true,
     eventTicketsTable: !error,
     databaseError: error ? error.code : undefined,
+    mpConfigured: !!mpToken,
+    mpTokenPrefix: mpToken ? mpToken.slice(0, 12) + '...' : 'NOT_SET',
+    gmailConfigured: !!process.env.GMAIL_USER,
   });
 });
 
@@ -782,7 +786,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 
     if (!response.ok) {
       console.error('Erro ao gerar pagamento MP:', data);
-      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.' });
+      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
     }
 
     const checkoutUrl = data.sandbox_init_point || data.init_point;
