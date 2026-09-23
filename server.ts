@@ -765,9 +765,9 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         order_id: orderId
       },
       back_urls: {
-        success: `${req.protocol}://${req.get('host')}/?payment=success`,
-        failure: `${req.protocol}://${req.get('host')}/?payment=failure`,
-        pending: `${req.protocol}://${req.get('host')}/?payment=pending`
+        success: `https://${req.get('host')}/?payment=success`,
+        failure: `https://${req.get('host')}/?payment=failure`,
+        pending: `https://${req.get('host')}/?payment=pending`
       },
       auto_return: 'approved'
     };
