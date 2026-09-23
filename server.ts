@@ -832,8 +832,8 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   let SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
   if (SECRET) SECRET = SECRET.trim();
 
-  const dataIdFromBody = req.body?.data?.id;
-  const dataIdFromQuery = req.query?.data?.id || req.query?.id;
+  const dataIdFromBody = req.body?.data?.id ? String(req.body.data.id) : undefined;
+  const dataIdFromQuery = (req.query?.['data.id'] || req.query?.data?.id || req.query?.id) ? String(req.query?.['data.id'] || req.query?.data?.id || req.query?.id) : undefined;
   const topic = req.body?.type || req.body?.topic || req.query?.topic || req.query?.type;
 
   // 1. Simulação ID 123456
