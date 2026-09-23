@@ -166,6 +166,23 @@ export default function App() {
   // Referral Link & Tickets Logic
   useEffect(() => {
     const checkUrlRouting = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentStatus = urlParams.get('payment');
+      const externalRef = urlParams.get('external_reference') || urlParams.get('preference_id');
+
+      if (paymentStatus === 'success' && externalRef) {
+        try {
+          const res = await fetch(`/api/orders/${externalRef}/status`, { cache: 'no-store' });
+          const data = await res.json();
+          if (data.status === 'aprovado' && data.accessToken) {
+            window.location.href = `/meus-ingressos/${data.accessToken}`;
+            return;
+          }
+        } catch(e) {
+          console.error('Erro ao processar retorno do checkout pro:', e);
+        }
+      }
+
       const path = window.location.pathname;
       if (path && path.length > 1 && !path.startsWith('/api') && path !== '/index.html') {
         if (path.startsWith('/meus-ingressos/')) {

@@ -74,7 +74,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
     if (pixData?.orderId && paymentStatus !== 'aprovado') {
       interval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/orders/${pixData.orderId}/status`);
+          const res = await fetch(`/api/orders/${pixData.orderId}/status`, { cache: 'no-store' });
           const data = await res.json();
           if (data.status === 'aprovado' && data.accessToken) {
             setPaymentStatus('aprovado');

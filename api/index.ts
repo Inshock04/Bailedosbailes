@@ -784,7 +784,8 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         failure: `https://${req.get('host')}/?payment=failure`,
         pending: `https://${req.get('host')}/?payment=pending`
       },
-      auto_return: 'approved'
+      auto_return: 'approved',
+      notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
     };
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
