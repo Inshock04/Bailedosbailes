@@ -718,10 +718,6 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     return res.status(404).json({ error: 'Ingresso não encontrado.' });
   }
 
-  if (!buyerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
-    return res.status(400).json({ error: 'E-mail válido é obrigatório para pagamento Pix.' });
-  }
-
   const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
   const totalPrice = ticket.price * validQuantity;
   let orderId = crypto.randomUUID();
@@ -745,7 +741,10 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 
     if (orderError) {
       console.error('Erro ao criar pedido no banco:', orderError);
-      if (orderError.code === '42P01') {
+      // Fallback gracioso: logar mas permitir gerar pagamento? 
+      // Ou travar a venda se não gravar? A instrução diz: "Registrar o pedido como Aguardando pagamento"
+      // Se não tem banco configurado local, podemos avisar:
+      if (orderError.code === '42P01') { // table does not exist
          console.warn('Tabela ticket_orders não encontrada. Certifique-se de executar o migration_v4.sql');
       } else {
          return res.status(500).json({ error: 'Erro ao registrar o pedido no sistema.' });
@@ -755,18 +754,23 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     }
   }
 
-  const idempotencyKey = orderId;
+  const idempotencyKey = orderId; // Usar ID do pedido para garantir idempotência
 
   try {
-    // ── Checkout Transparente Pix ──
-    const pixPaymentData: any = {
-      transaction_amount: totalPrice,
-      description: `${ticket.name} (${ticket.batch}) x${validQuantity} — Hotel Cortez Halloween`,
-      payment_method_id: 'pix',
+    const preferenceData = {
+      items: [
+        {
+          id: ticket.id,
+          title: ticket.name,
+          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
+          quantity: validQuantity,
+          currency_id: 'BRL',
+          unit_price: ticket.price
+        }
+      ],
       payer: {
-        email: buyerEmail,
-        first_name: (buyerName || 'Visitante').split(' ')[0],
-        last_name: (buyerName || 'Visitante').split(' ').slice(1).join(' ') || 'Cortez',
+        name: buyerName || 'Visitante',
+        email: buyerEmail || undefined,
       },
       external_reference: orderId,
       metadata: {
@@ -774,58 +778,44 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         phone: buyerPhone || null,
         order_id: orderId
       },
-      notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
+      back_urls: {
+        success: `https://${req.get('host')}/?payment=success`,
+        failure: `https://${req.get('host')}/?payment=failure`,
+        pending: `https://${req.get('host')}/?payment=pending`
+      },
+      auto_return: 'approved'
     };
 
-    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'X-Idempotency-Key': idempotencyKey
       },
-      body: JSON.stringify(pixPaymentData)
+      body: JSON.stringify(preferenceData)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Erro ao gerar pagamento Pix MP:', data);
-      return res.status(500).json({
-        error: 'Falha ao gerar QR Code Pix.',
-        mpError: data?.message || data?.error || 'Erro desconhecido',
-        mpStatus: response.status
-      });
+      console.error('Erro ao gerar pagamento MP:', data);
+      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
     }
 
-    const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
-    const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
-    const ticketUrl = data.point_of_interaction?.transaction_data?.ticket_url;
-    const mpPaymentId = String(data.id);
-
-    if (!qrCodeBase64 && !qrCode) {
-      console.error('Pix gerado sem QR Code:', JSON.stringify(data).slice(0, 500));
-      return res.status(500).json({ error: 'Pix gerado, mas sem QR Code. Contate o suporte.' });
-    }
-
-    // 2. Atualizar pedido com a referência do pagamento MP
+    const checkoutUrl = data.init_point || data.sandbox_init_point;
+    
+    // 2. Atualizar pedido com a referência do MP
     if (supabaseAdmin && orderId) {
        await supabaseAdmin.from('ticket_orders')
          .update({
-            mp_payment_id: mpPaymentId,
-            mp_payment_link: ticketUrl || null
+            mp_preference_id: data.id,
+            mp_payment_link: checkoutUrl
          })
          .eq('id', orderId);
     }
 
-    return res.json({
-      orderId,
-      mpPaymentId,
-      qrCodeBase64,
-      qrCode,
-      ticketUrl,
-      expiresIn: 1800 // 30 minutos padrão do Pix
-    });
+    return res.json({ checkoutUrl, orderId });
   } catch (error) {
     console.error('Erro de requisição MP:', error);
     return res.status(500).json({ error: 'Falha na comunicação com o provedor de pagamento.' });
@@ -976,123 +966,6 @@ app.get('/api/orders/:accessToken', async (req: Request, res: Response) => {
   const mappedTickets = tickets.map(t => mapSupabaseTicket(t, t.qr_token || t.codigo));
 
   res.json({ order, tickets: mappedTickets });
-});
-
-// ==============================================================================
-// POLLING DE STATUS DO PEDIDO (para o frontend consultar enquanto aguarda Pix)
-// ==============================================================================
-app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
-  const { orderId } = req.params;
-  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase indisponível' });
-
-  // UUID validation
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
-    return res.status(400).json({ error: 'ID de pedido inválido.' });
-  }
-
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from('ticket_orders')
-    .select('id, payment_status, tickets_generated, access_token, created_at')
-    .eq('id', orderId)
-    .single();
-
-  if (orderError || !order) {
-    return res.status(404).json({ error: 'Pedido não encontrado.' });
-  }
-
-  // Se já está aprovado, retorna direto com o access_token
-  if (order.payment_status === 'aprovado' && order.tickets_generated) {
-    return res.json({
-      status: 'aprovado',
-      accessToken: order.access_token
-    });
-  }
-
-  // Se recusado ou expirado, retorna direto
-  if (order.payment_status === 'recusado' || order.payment_status === 'expirado') {
-    return res.json({ status: order.payment_status });
-  }
-
-  // ── Reconciliação: Se ainda está pendente, verificar na API do Mercado Pago ──
-  const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
-  if (MP_ACCESS_TOKEN && order.payment_status === 'aguardando_pagamento') {
-    try {
-      // Buscar pagamento pelo external_reference (orderId)
-      const searchRes = await fetch(
-        `https://api.mercadopago.com/v1/payments/search?external_reference=${orderId}&sort=date_created&criteria=desc&limit=1`,
-        { headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` } }
-      );
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const payment = searchData?.results?.[0];
-        if (payment) {
-          const mpStatus = payment.status;
-          const newPaymentStatus = mpStatus === 'approved' ? 'aprovado'
-            : (mpStatus === 'rejected' || mpStatus === 'cancelled') ? 'recusado'
-            : 'aguardando_pagamento';
-
-          if (newPaymentStatus !== order.payment_status) {
-            // Atualizar o status no banco
-            await supabaseAdmin.from('ticket_orders')
-              .update({
-                payment_status: newPaymentStatus,
-                mp_payment_id: String(payment.id),
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', orderId);
-
-            // Se aprovado e ingressos ainda não foram gerados, gerar agora (reconciliação)
-            if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
-              const { data: fullOrder } = await supabaseAdmin
-                .from('ticket_orders').select('*').eq('id', orderId).single();
-
-              if (fullOrder && !fullOrder.tickets_generated) {
-                const accessToken = crypto.randomBytes(16).toString('hex');
-                for (let i = 0; i < fullOrder.quantity; i++) {
-                  const resTicket = await createPersistedTicket(
-                    fullOrder.buyer_name, fullOrder.buyer_phone,
-                    fullOrder.ticket_type, fullOrder.seller_ref
-                  );
-                  if (resTicket.data) {
-                    await supabaseAdmin.from('event_tickets')
-                      .update({ order_id: orderId }).eq('id', resTicket.data.id);
-                  }
-                }
-                await supabaseAdmin.from('ticket_orders')
-                  .update({ tickets_generated: true, access_token: accessToken })
-                  .eq('id', orderId);
-
-                sendTicketsEmail(fullOrder, accessToken);
-                console.log(`[Reconciliação] Pedido ${orderId} aprovado via polling. Ingressos gerados.`);
-
-                return res.json({
-                  status: 'aprovado',
-                  accessToken
-                });
-              }
-            }
-
-            return res.json({ status: newPaymentStatus });
-          }
-        }
-
-        // Verificar expiração (30 minutos)
-        const createdAt = new Date(order.created_at).getTime();
-        const now = Date.now();
-        if (now - createdAt > 30 * 60 * 1000) {
-          await supabaseAdmin.from('ticket_orders')
-            .update({ payment_status: 'expirado', updated_at: new Date().toISOString() })
-            .eq('id', orderId)
-            .eq('payment_status', 'aguardando_pagamento');
-          return res.json({ status: 'expirado' });
-        }
-      }
-    } catch (err) {
-      console.error('[Polling] Erro na reconciliação MP:', err);
-    }
-  }
-
-  return res.json({ status: order.payment_status });
 });
 
 // 3. Promotions

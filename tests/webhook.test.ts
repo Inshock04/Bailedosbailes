@@ -1,9 +1,10 @@
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // Este script simula requisições para o Webhook do Mercado Pago localmente (ou no servidor).
-// Para testar em produção, substitua a URL abaixo:
 const WEBHOOK_URL = process.env.TEST_WEBHOOK_URL || 'http://localhost:3000/api/webhooks/mercadopago';
-const SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || 'test_secret';
+const SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET || 'test_secret';
 
 async function sendWebhook(body: any, headers: any = {}, query: string = '') {
   const url = `${WEBHOOK_URL}${query ? '?' + query : ''}`;
@@ -33,12 +34,19 @@ function generateSignature(dataId: string, requestId: string, ts: string) {
 
 async function runTests() {
   console.log('--- INICIANDO TESTES DO WEBHOOK ---');
+  console.log(`Usando SECRET: ${SECRET.substring(0, 5)}...`);
 
-  // 1. Simulação ID 123456
-  await sendWebhook({}, {}, 'id=123456');
-
-  // 2. IPN sem assinatura (deve aceitar e buscar na API)
+  // 1. Simulação IPN (Deve ser ignorada com 200 OK silencioso)
   await sendWebhook({}, {}, 'topic=payment&id=999999999');
+
+  // 2. Simulação ID 123456 (Webhook de teste padrão do painel MP)
+  const tsSim = Math.floor(Date.now() / 1000).toString();
+  const requestIdSim = 'req-sim';
+  const v1Sim = generateSignature('123456', requestIdSim, tsSim);
+  await sendWebhook(
+    { type: 'payment', data: { id: '123456' } },
+    { 'x-signature': `ts=${tsSim},v1=${v1Sim}`, 'x-request-id': requestIdSim }
+  );
 
   // 3. Webhook com Assinatura Inválida
   await sendWebhook(
@@ -46,7 +54,7 @@ async function runTests() {
     { 'x-signature': 'ts=123,v1=badhash', 'x-request-id': 'req-1' }
   );
 
-  // 4. Webhook com Assinatura Válida
+  // 4. Webhook com Assinatura Válida (Mas ID que não existe na API vai dar Payment not found)
   const ts = Math.floor(Date.now() / 1000).toString();
   const requestId = 'req-valid';
   const dataId = '888888888';
@@ -56,7 +64,7 @@ async function runTests() {
     { 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': requestId }
   );
 
-  console.log('--- TESTES CONCLUÍDOS ---');
+  console.log('\n--- TESTES CONCLUÍDOS ---');
 }
 
 runTests();

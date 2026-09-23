@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PixelClose, PixelSkull, PixelCheck } from './PixelIcons';
+import { WhatsAppIcon } from './OfficialSocialButtons';
 import { audioManager } from '../utils/audio';
 import type { TicketTier } from '../types';
 
@@ -9,15 +10,23 @@ interface TicketModalProps {
   preselectedTierId?: string | null;
 }
 
-type PixStage = 'form' | 'qrcode' | 'approved' | 'error' | 'expired';
-
-interface PixData {
-  orderId: string;
-  qrCodeBase64: string;
-  qrCode: string;
-  ticketUrl?: string;
-  expiresIn: number;
-}
+const DEFAULT_TIERS: TicketTier[] = [
+  {
+    id: 't-open-45',
+    name: 'INGRESSO OPEN',
+    category: 'OPEN',
+    price: 45,
+    originalPrice: 65,
+    batch: '1º LOTE',
+    available: 200,
+    total: 200,
+    features: [
+      'Open Bar das 21:00 às 00:00'
+    ],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
+    color: '#991b1b'
+  }
+];
 
 export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, preselectedTierId }) => {
   const [tiers, setTiers] = useState<TicketTier[]>([
@@ -51,25 +60,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   const [buyerName, setBuyerName] = useState<string>('');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerPhone, setBuyerPhone] = useState<string>('');
-  const isIntegrationReady = true;
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // ── Estado do Pix ──
-  const [pixStage, setPixStage] = useState<PixStage>('form');
-  const [pixData, setPixData] = useState<PixData | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isIntegrationReady = true; // Habilita a integração Mercado Pago
 
   useEffect(() => {
+    // Tiers are now hardcoded or fetched, but we initialize with both options.
     fetch('/api/tickets')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
+          // If backend has the updated tickets, use them, otherwise use the local ones
           if (data.some(t => t.id === 't-normal-10')) {
              setTiers(data);
           }
@@ -78,67 +77,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       .catch(() => {});
   }, [isOpen, preselectedTierId]);
 
-  // Limpar intervalos ao desmontar ou fechar
-  const clearIntervals = useCallback(() => {
-    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
-    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) {
-      clearIntervals();
-      // Resetar ao fechar o modal (mas manter dados se aprovado)
-      if (pixStage !== 'approved') {
-        setPixStage('form');
-        setPixData(null);
-        setError(null);
-      }
-    }
-    return clearIntervals;
-  }, [isOpen, clearIntervals, pixStage]);
-
-  // ── Polling do status do pedido ──
-  const startPolling = useCallback((orderId: string, expiresIn: number) => {
-    clearIntervals();
-    setSecondsLeft(expiresIn);
-
-    // Countdown
-    countdownRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          clearIntervals();
-          setPixStage('expired');
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    // Polling a cada 4 segundos
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/orders/${orderId}/status`);
-        if (!res.ok) return;
-        const data = await res.json();
-
-        if (data.status === 'aprovado') {
-          clearIntervals();
-          setAccessToken(data.accessToken || null);
-          setPixStage('approved');
-          audioManager.playSuccess();
-        } else if (data.status === 'recusado') {
-          clearIntervals();
-          setPixStage('error');
-          setError('Pagamento recusado pelo Mercado Pago.');
-        } else if (data.status === 'expirado') {
-          clearIntervals();
-          setPixStage('expired');
-        }
-      } catch {
-        // Falha na rede, continua tentando
-      }
-    }, 4000);
-  }, [clearIntervals]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -151,11 +91,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
     if (!buyerName || !buyerEmail || !buyerPhone) {
       setError('Por favor, preencha todos os campos obrigatórios.');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
-      setError('Por favor, informe um e-mail válido.');
       return;
     }
 
@@ -189,19 +124,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         throw new Error(data.error || 'Erro ao gerar pagamento.');
       }
 
-      // ── Pix Transparente: exibir QR Code inline ──
-      if (data.qrCodeBase64 || data.qrCode) {
-        setPixData({
-          orderId: data.orderId,
-          qrCodeBase64: data.qrCodeBase64,
-          qrCode: data.qrCode,
-          ticketUrl: data.ticketUrl,
-          expiresIn: data.expiresIn || 1800
-        });
-        setPixStage('qrcode');
-        startPolling(data.orderId, data.expiresIn || 1800);
+      if (data.checkoutUrl) {
+        audioManager.playSuccess();
+        window.location.href = data.checkoutUrl;
       } else {
-        throw new Error('QR Code não recebido do servidor.');
+        throw new Error('Link de pagamento não recebido.');
       }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao processar o pagamento.');
@@ -210,254 +137,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
     }
   };
 
-  const handleCopyPixCode = async () => {
-    if (!pixData?.qrCode) return;
-    try {
-      await navigator.clipboard.writeText(pixData.qrCode);
-      setCopied(true);
-      audioManager.playClick();
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      // Fallback para mobile
-      const ta = document.createElement('textarea');
-      ta.value = pixData.qrCode;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
-  const handleNewPurchase = () => {
-    clearIntervals();
-    setPixStage('form');
-    setPixData(null);
-    setAccessToken(null);
-    setError(null);
-    setBuyerName('');
-    setBuyerEmail('');
-    setBuyerPhone('');
-    setQuantity(1);
-  };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // ══════════════════════════════════════════════
-  // TELA: PAGAMENTO APROVADO
-  // ══════════════════════════════════════════════
-  if (pixStage === 'approved') {
-    return (
-      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#22c55e] shadow-[0_0_45px_rgba(34,197,94,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
-
-          <div className="flex items-center justify-between border-b-2 border-[#14532d] pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <PixelCheck size={20} color="#22c55e" />
-              <h2 className="font-pixel text-xs sm:text-sm font-bold text-[#86efac] tracking-wider">
-                PAGAMENTO APROVADO!
-              </h2>
-            </div>
-            <button onClick={() => { audioManager.playClick(); onClose(); }} className="p-1 hover:bg-[#14532d] text-[#86efac] cursor-pointer" aria-label="Fechar">
-              <PixelClose size={18} />
-            </button>
-          </div>
-
-          <div className="text-center space-y-4 py-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#052e16] border-2 border-[#22c55e] shadow-[0_0_30px_rgba(34,197,94,0.4)] mx-auto animate-pulse">
-              <PixelCheck size={40} color="#4ade80" />
-            </div>
-
-            <h3 className="font-pixel text-lg text-[#4ade80] font-bold">
-              COMPRA CONFIRMADA!
-            </h3>
-
-            <p className="text-sm text-[#bbf7d0] font-mono">
-              Seus ingressos foram gerados com sucesso.<br />
-              Você também receberá um e-mail com o link de acesso.
-            </p>
-
-            {accessToken && (
-              <a
-                href={`/meus-ingressos/${accessToken}`}
-                className="inline-block mt-4 px-6 py-3 bg-[#15803d] hover:bg-[#16a34a] text-white font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold border-2 border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] transition-all"
-              >
-                VER MEUS INGRESSOS
-              </a>
-            )}
-
-            <button
-              onClick={handleNewPurchase}
-              className="block mx-auto mt-3 text-xs text-[#6ee7b7] hover:text-white font-mono underline underline-offset-4 cursor-pointer"
-            >
-              Comprar mais ingressos
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════
-  // TELA: QR CODE PIX (AGUARDANDO PAGAMENTO)
-  // ══════════════════════════════════════════════
-  if (pixStage === 'qrcode' && pixData) {
-    return (
-      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="relative w-full max-w-md bg-[#0e0a17] border-2 border-[#f59e0b] shadow-[0_0_35px_rgba(245,158,11,0.4)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
-
-          {/* Header */}
-          <div className="flex items-center justify-between border-b-2 border-[#78350f] pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📱</span>
-              <div>
-                <h2 className="font-pixel text-xs sm:text-sm font-bold text-[#fbbf24] tracking-wider">
-                  PAGUE COM PIX
-                </h2>
-                <span className="font-mono text-[11px] text-[#fde68a]">
-                  Escaneie ou copie o código abaixo
-                </span>
-              </div>
-            </div>
-            <button onClick={() => { clearIntervals(); setPixStage('form'); audioManager.playClick(); }} className="p-1 hover:bg-[#78350f] text-[#fbbf24] cursor-pointer" aria-label="Voltar">
-              <PixelClose size={18} />
-            </button>
-          </div>
-
-          {/* Valor */}
-          <div className="text-center mb-4">
-            <span className="text-xs text-[#9ca3af] font-mono block">VALOR TOTAL</span>
-            <span className="font-pixel text-2xl text-[#22c55e] font-bold">
-              R$ {totalPrice.toFixed(2)}
-            </span>
-          </div>
-
-          {/* QR Code */}
-          <div className="flex flex-col items-center space-y-4">
-            {pixData.qrCodeBase64 ? (
-              <div className="bg-white p-3 rounded-lg shadow-[0_0_25px_rgba(245,158,11,0.3)]">
-                <img
-                  src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-                  alt="QR Code Pix"
-                  className="w-52 h-52 sm:w-60 sm:h-60"
-                />
-              </div>
-            ) : (
-              <div className="bg-white p-4 rounded-lg text-center text-black text-sm">
-                <p>QR Code indisponível. Use o código Copia e Cola abaixo.</p>
-              </div>
-            )}
-
-            {/* Copia e Cola */}
-            {pixData.qrCode && (
-              <button
-                onClick={handleCopyPixCode}
-                className={`w-full py-3 px-4 font-pixel text-[11px] sm:text-[12px] tracking-wider font-bold border-2 transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  copied
-                    ? 'bg-[#052e16] border-[#22c55e] text-[#86efac] shadow-[0_0_20px_rgba(34,197,94,0.4)]'
-                    : 'bg-[#1c1917] border-[#f59e0b] text-[#fde68a] hover:bg-[#292524] shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                }`}
-              >
-                {copied ? (
-                  <>
-                    <PixelCheck size={14} color="#4ade80" />
-                    CÓDIGO COPIADO!
-                  </>
-                ) : (
-                  <>
-                    📋 COPIAR CÓDIGO PIX (COPIA E COLA)
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Countdown & Status */}
-            <div className="w-full bg-[#1c1917] border border-[#44403c] p-3 space-y-2">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-[#fbbf24] flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-[#fbbf24] animate-pulse" />
-                  AGUARDANDO PAGAMENTO...
-                </span>
-                <span className={`font-pixel font-bold ${secondsLeft < 120 ? 'text-[#ef4444]' : 'text-[#fde68a]'}`}>
-                  {formatTime(secondsLeft)}
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-[#292524] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#f59e0b] to-[#22c55e] rounded-full transition-all duration-1000"
-                  style={{ width: `${Math.max(0, (secondsLeft / (pixData.expiresIn || 1800)) * 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-[#a8a29e] font-mono text-center">
-                O status será atualizado automaticamente após o pagamento.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════
-  // TELA: PIX EXPIRADO
-  // ══════════════════════════════════════════════
-  if (pixStage === 'expired') {
-    return (
-      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="relative w-full max-w-md bg-[#0e0a17] border-2 border-[#ef4444] shadow-[0_0_35px_rgba(239,68,68,0.4)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
-          <div className="text-center space-y-4 py-4">
-            <span className="text-5xl block">⏰</span>
-            <h3 className="font-pixel text-base text-[#ef4444] font-bold">PIX EXPIRADO</h3>
-            <p className="text-sm text-[#fca5a5] font-mono">
-              O tempo para pagamento expirou.<br />Nenhuma cobrança foi efetuada.
-            </p>
-            <button
-              onClick={handleNewPurchase}
-              className="mt-4 px-6 py-3 bg-[#b91c1c] hover:bg-[#dc2626] text-white font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold border-2 border-[#ef4444] shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all cursor-pointer"
-            >
-              TENTAR NOVAMENTE
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════
-  // TELA: ERRO
-  // ══════════════════════════════════════════════
-  if (pixStage === 'error') {
-    return (
-      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="relative w-full max-w-md bg-[#0e0a17] border-2 border-[#ef4444] shadow-[0_0_35px_rgba(239,68,68,0.4)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
-          <div className="text-center space-y-4 py-4">
-            <span className="text-5xl block">❌</span>
-            <h3 className="font-pixel text-base text-[#ef4444] font-bold">PAGAMENTO RECUSADO</h3>
-            <p className="text-sm text-[#fca5a5] font-mono">
-              {error || 'O pagamento foi recusado pelo processador.'}
-            </p>
-            <button
-              onClick={handleNewPurchase}
-              className="mt-4 px-6 py-3 bg-[#b91c1c] hover:bg-[#dc2626] text-white font-pixel text-[12px] sm:text-[13px] tracking-wider font-bold border-2 border-[#ef4444] shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all cursor-pointer"
-            >
-              TENTAR NOVAMENTE
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════
-  // TELA: FORMULÁRIO (padrão)
-  // ══════════════════════════════════════════════
   return (
     <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
       <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
@@ -471,7 +150,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 BILHETERIA OFICIAL • THE TRIPLEX
               </h2>
               <span className="font-mono text-[12px] text-[#fca5a5]">
-                Ingresso Open R$ 45,00 • Pagamento via PIX
+                Ingresso Open R$ 45,00 • Atendimento Direto via WhatsApp
               </span>
             </div>
           </div>
@@ -491,11 +170,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         <div className="mb-4 bg-[#1b0814] border border-[#7f1d1d] p-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-xs text-[#fca5a5] font-mono leading-tight">
-              Pague com segurança via <strong>PIX</strong> pelo Mercado Pago. QR Code gerado na hora.
+              Pague com segurança através do <strong>Mercado Pago</strong> (PIX ou Cartão).
             </span>
           </div>
           <span className="shrink-0 bg-[#052e16] border border-[#22c55e] text-[#86efac] font-pixel text-[10px] px-2 py-1">
-            PIX INSTANTÂNEO
+            CHECKOUT OFICIAL
           </span>
         </div>
 
@@ -560,7 +239,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               </div>
 
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {currentTier?.drinksIncluded?.map((drink: string, i: number) => (
+                {currentTier?.drinksIncluded?.map((drink, i) => (
                   <span
                     key={i}
                     className={`text-xs px-2.5 py-1 border font-mono ${
@@ -674,8 +353,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 {!isIntegrationReady 
                   ? 'PAGAMENTO INDISPONÍVEL' 
                   : isLoading 
-                    ? 'GERANDO PIX...' 
-                    : 'PAGAR COM PIX'}
+                    ? 'GERANDO...' 
+                    : 'COMPRAR INGRESSO'}
               </span>
             </button>
           </div>
