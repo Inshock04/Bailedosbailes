@@ -706,7 +706,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
 }
 
 app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: Response) => {
-  const { ticketId, quantity, buyerName, buyerEmail, buyerPhone, sellerSlug, paymentMethod } = req.body;
+  const { ticketId, quantity, buyerName, buyerEmail, buyerPhone, sellerSlug } = req.body;
   const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
 
   if (!MP_ACCESS_TOKEN) {
@@ -758,121 +758,66 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
   const idempotencyKey = orderId; // Usar ID do pedido para garantir idempotência
 
   try {
-    if (paymentMethod === 'pix') {
-      const pixPaymentData: any = {
-        transaction_amount: totalPrice,
-        description: `Baile dos Bailes - Hotel Cortez | Ingresso: ${ticket.name} | Lote: ${ticket.batch}`,
-        payment_method_id: 'pix',
-        payer: {
-          email: buyerEmail,
-          first_name: (buyerName || 'Visitante').split(' ')[0],
-          last_name: (buyerName || 'Visitante').split(' ').slice(1).join(' ') || 'Cortez',
-        },
-        external_reference: orderId,
-        metadata: {
-          seller: sellerSlug || null,
-          phone: buyerPhone || null,
-          order_id: orderId
-        },
-        notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
-      };
+    const preferenceData = {
+      items: [
+        {
+          id: ticket.id,
+          title: ticket.name,
+          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
+          quantity: validQuantity,
+          currency_id: 'BRL',
+          unit_price: ticket.price
+        }
+      ],
+      payer: {
+        name: buyerName || 'Visitante',
+        email: buyerEmail || 'nao-informado@email.com',
+      },
+      external_reference: orderId,
+      metadata: {
+        seller: sellerSlug || null,
+        phone: buyerPhone || null,
+        order_id: orderId
+      },
+      back_urls: {
+        success: `https://${req.get('host')}/?payment=success`,
+        failure: `https://${req.get('host')}/?payment=failure`,
+        pending: `https://${req.get('host')}/?payment=pending`
+      },
+      auto_return: 'approved',
+      notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
+    };
 
-      const response = await fetch('https://api.mercadopago.com/v1/payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-          'X-Idempotency-Key': idempotencyKey
-        },
-        body: JSON.stringify(pixPaymentData)
-      });
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'X-Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify(preferenceData)
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        console.error('Erro ao gerar pagamento Pix MP:', data);
-        return res.status(500).json({
-          error: 'Falha ao gerar QR Code Pix.',
-          mpError: data?.message || data?.error || 'Erro desconhecido',
-          mpStatus: response.status
-        });
-      }
-
-      const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
-      const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
-
-      if (supabaseAdmin && orderId) {
-         await supabaseAdmin.from('ticket_orders')
-           .update({ mp_payment_id: String(data.id) })
-           .eq('id', orderId);
-      }
-
-      return res.json({ qrCodeBase64, qrCode, orderId });
-
-    } else {
-      const preferenceData = {
-        items: [
-          {
-            id: ticket.id,
-            title: ticket.name,
-            description: `Baile dos Bailes - Hotel Cortez | Ingresso: ${ticket.name} | Lote: ${ticket.batch}`,
-            quantity: validQuantity,
-            currency_id: 'BRL',
-            unit_price: ticket.price
-          }
-        ],
-        payer: {
-          name: buyerName || 'Visitante',
-          email: buyerEmail || 'nao-informado@email.com',
-        },
-        external_reference: orderId,
-        statement_descriptor: 'BAILE DOS BAILES',
-        metadata: {
-          seller: sellerSlug || null,
-          phone: buyerPhone || null,
-          order_id: orderId
-        },
-        back_urls: {
-          success: `https://${req.get('host')}/?payment=success`,
-          failure: `https://${req.get('host')}/?payment=failure`,
-          pending: `https://${req.get('host')}/?payment=pending`
-        },
-        auto_return: 'approved',
-        notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
-      };
-
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-          'X-Idempotency-Key': idempotencyKey
-        },
-        body: JSON.stringify(preferenceData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Erro ao gerar pagamento MP:', data);
-        return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
-      }
-
-      const isTestToken = MP_ACCESS_TOKEN.startsWith('TEST-');
-      const checkoutUrl = isTestToken ? data.sandbox_init_point : data.init_point;
-      
-      // 2. Atualizar pedido com a referência do MP
-      if (supabaseAdmin && orderId) {
-         await supabaseAdmin.from('ticket_orders')
-           .update({
-              mp_preference_id: data.id,
-              mp_payment_link: checkoutUrl
-           })
-           .eq('id', orderId);
-      }
-
-      return res.json({ checkoutUrl, orderId });
+    if (!response.ok) {
+      console.error('Erro ao gerar pagamento MP:', data);
+      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
     }
+
+    const checkoutUrl = data.init_point || data.sandbox_init_point;
+    
+    // 2. Atualizar pedido com a referência do MP
+    if (supabaseAdmin && orderId) {
+       await supabaseAdmin.from('ticket_orders')
+         .update({
+            mp_preference_id: data.id,
+            mp_payment_link: checkoutUrl
+         })
+         .eq('id', orderId);
+    }
+
+    return res.json({ checkoutUrl, orderId });
   } catch (error) {
     console.error('Erro de requisição MP:', error);
     return res.status(500).json({ error: 'Falha na comunicação com o provedor de pagamento.' });

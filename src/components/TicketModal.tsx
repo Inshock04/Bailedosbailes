@@ -138,14 +138,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         throw new Error(data.error || 'Erro ao gerar pagamento.');
       }
 
-      if (paymentMethod === 'cartao' && data.checkoutUrl) {
+      if (data.checkoutUrl) {
         audioManager.playSuccess();
         window.location.href = data.checkoutUrl;
-      } else if (paymentMethod === 'pix' && data.qrCodeBase64) {
-        audioManager.playSuccess();
-        setPixData({ qrCodeBase64: data.qrCodeBase64, qrCode: data.qrCode, orderId: data.orderId });
       } else {
-        throw new Error('Link ou código de pagamento não recebido.');
+        throw new Error('Link de pagamento não recebido.');
       }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao processar o pagamento.');
