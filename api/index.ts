@@ -788,7 +788,6 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         phone: buyerPhone || null,
         order_id: orderId
       },
-      },
       notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
     };
 
