@@ -649,7 +649,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
     return;
   }
   try {
-    const publicUrl = `${process.env.VITE_PUBLIC_URL || 'https://bailedosbailes.vercel.app'}/ingresso/${access_token}`;
+    const publicUrl = `${process.env.VITE_PUBLIC_URL || 'https://bailedosbailes.vercel.app'}/meus-ingressos/${access_token}`;
     await transporter.sendMail({
       from: `"Baile dos Bailes - Hotel Cortez" <${process.env.GMAIL_USER}>`,
       to: order.buyer_email,
