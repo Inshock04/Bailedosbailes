@@ -48,7 +48,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   const [buyerName, setBuyerName] = useState<string>('');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerPhone, setBuyerPhone] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao'>('pix');
+  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao'>('cartao');
   const [pixData, setPixData] = useState<{ qrCodeBase64: string, qrCode: string, orderId: string } | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const isIntegrationReady = true; // Habilita a integração Mercado Pago
@@ -389,42 +389,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 </button>
               </div>
             </div>
-
-            </div>
-            
-          {/* 4. Forma de Pagamento */}
-          <div className="pt-2">
-            <label className="block font-pixel text-[12px] text-[#fca5a5] mb-2 uppercase font-bold">
-              FORMA DE PAGAMENTO
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => { audioManager.playClick(); setPaymentMethod('pix'); }}
-                className={`p-2 border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
-                  paymentMethod === 'pix'
-                    ? 'border-[#22c55e] bg-[#0c2414] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
-                    : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
-                }`}
-              >
-                <span className={`font-pixel text-[13px] ${paymentMethod === 'pix' ? 'text-[#22c55e]' : 'text-gray-400'}`}>PIX</span>
-                <span className="font-mono text-[10px] text-gray-400 mt-1">Aprovação Imediata</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { audioManager.playClick(); setPaymentMethod('cartao'); }}
-                className={`p-2 border-2 flex flex-col items-center justify-center transition-all cursor-pointer text-center ${
-                  paymentMethod === 'cartao'
-                    ? 'border-[#22c55e] bg-[#0c2414] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
-                    : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
-                }`}
-              >
-                <span className={`font-pixel text-[13px] ${paymentMethod === 'cartao' ? 'text-[#22c55e]' : 'text-gray-400'}`}>CARTÃO / OUTROS</span>
-                <span className="font-mono text-[10px] text-gray-400 mt-1">Checkout Oficial MP</span>
-              </button>
-            </div>
-          </div>
-
           </div>
 
           {/* 5. Total & Botão Oficial de Checkout */}
