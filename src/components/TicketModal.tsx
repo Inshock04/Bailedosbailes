@@ -41,18 +41,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       features: ['Open Bar das 21:00 às 00:00'],
       drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
       color: '#991b1b'
-    },
-    {
-      id: 't-normal-10',
-      name: 'INGRESSO NORMAL (SEM OPEN)',
-      category: 'PISTA',
-      price: 10,
-      batch: '1º LOTE',
-      available: 200,
-      total: 200,
-      features: ['Acesso ao evento'],
-      drinksIncluded: [],
-      color: '#2563eb'
     }
   ]);
   const [selectedTierId, setSelectedTierId] = useState<string>('t-open-45');
@@ -60,6 +48,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   const [buyerName, setBuyerName] = useState<string>('');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerPhone, setBuyerPhone] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao'>('pix');
+  const [pixData, setPixData] = useState<{ qrCodeBase64: string, qrCode: string, orderId: string } | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const isIntegrationReady = true; // Habilita a integração Mercado Pago
 
   useEffect(() => {
@@ -76,6 +67,27 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       })
       .catch(() => {});
   }, [isOpen, preselectedTierId]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (pixData?.orderId && paymentStatus !== 'aprovado') {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/orders/${pixData.orderId}/status`);
+          const data = await res.json();
+          if (data.status === 'aprovado' && data.accessToken) {
+            setPaymentStatus('aprovado');
+            audioManager.playSuccess();
+            clearInterval(interval);
+            setTimeout(() => {
+              window.location.href = `/meus-ingressos/${data.accessToken}`;
+            }, 2000);
+          }
+        } catch (e) {}
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [pixData?.orderId, paymentStatus]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +126,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           buyerName,
           buyerEmail,
           buyerPhone,
-          sellerSlug
+          sellerSlug,
+          paymentMethod
         })
       });
 
@@ -124,11 +137,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         throw new Error(data.error || 'Erro ao gerar pagamento.');
       }
 
-      if (data.checkoutUrl) {
+      if (paymentMethod === 'cartao' && data.checkoutUrl) {
         audioManager.playSuccess();
         window.location.href = data.checkoutUrl;
+      } else if (paymentMethod === 'pix' && data.qrCodeBase64) {
+        audioManager.playSuccess();
+        setPixData({ qrCodeBase64: data.qrCodeBase64, qrCode: data.qrCode, orderId: data.orderId });
       } else {
-        throw new Error('Link de pagamento não recebido.');
+        throw new Error('Link ou código de pagamento não recebido.');
       }
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao processar o pagamento.');
@@ -136,6 +152,48 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       setIsLoading(false);
     }
   };
+
+  if (pixData) {
+    return (
+      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="relative w-full max-w-md bg-[#0e0a17] border-2 border-[#22c55e] shadow-[0_0_35px_rgba(34,197,94,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto text-center">
+          <div className="flex items-center justify-between border-b-2 border-[#14532d] pb-3 mb-4">
+             <div className="flex items-center gap-2">
+               <PixelCheck size={20} color="#22c55e" />
+               <h2 className="font-pixel text-xs sm:text-sm font-bold text-[#4ade80] tracking-wider">
+                 PAGAMENTO VIA PIX
+               </h2>
+             </div>
+             <button onClick={() => { audioManager.playClick(); onClose(); }} className="p-1 hover:bg-[#14532d] text-[#86efac] cursor-pointer"><PixelClose size={18} /></button>
+          </div>
+          <p className="font-mono text-sm text-gray-300 mb-4">Escaneie o QR Code abaixo ou utilize o código Copia e Cola para finalizar a compra de <strong>{currentTier.name}</strong>.</p>
+          <div className="bg-white p-4 rounded-xl mx-auto w-fit mb-4 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+             <img src={`data:image/jpeg;base64,${pixData.qrCodeBase64}`} alt="QR Code Pix" className="w-48 h-48 object-contain" />
+          </div>
+          <div className="bg-[#120718] border border-[#14532d] p-3 mb-4 rounded text-left overflow-hidden">
+             <span className="block font-pixel text-[10px] text-[#4ade80] mb-1">CÓDIGO COPIA E COLA</span>
+             <code className="text-xs text-gray-300 break-all select-all">{pixData.qrCode}</code>
+          </div>
+          <button onClick={() => { 
+            navigator.clipboard.writeText(pixData.qrCode); 
+            audioManager.playClick();
+          }} className="pixel-btn w-full bg-[#15803d] hover:bg-[#16a34a] text-white border-[#4ade80] shadow-[0_0_15px_rgba(34,197,94,0.4)] py-3 font-pixel text-xs transition-all cursor-pointer">
+            COPIAR CÓDIGO PIX
+          </button>
+          {paymentStatus === 'aprovado' ? (
+             <div className="mt-4 p-3 bg-[#064e3b] border-2 border-[#34d399] text-[#a7f3d0] font-pixel text-xs animate-pulse">
+               PAGAMENTO CONFIRMADO! REDIRECIONANDO...
+             </div>
+          ) : (
+             <div className="mt-4 text-[10px] font-mono text-gray-400 flex items-center justify-center gap-2">
+               <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></span>
+               AGUARDANDO PAGAMENTO...
+             </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -333,9 +391,43 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
             </div>
 
             </div>
+            
+          {/* 4. Forma de Pagamento */}
+          <div className="pt-2">
+            <label className="block font-pixel text-[12px] text-[#fca5a5] mb-2 uppercase font-bold">
+              FORMA DE PAGAMENTO
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { audioManager.playClick(); setPaymentMethod('pix'); }}
+                className={`p-2 border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                  paymentMethod === 'pix'
+                    ? 'border-[#22c55e] bg-[#0c2414] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
+                    : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
+                }`}
+              >
+                <span className={`font-pixel text-[13px] ${paymentMethod === 'pix' ? 'text-[#22c55e]' : 'text-gray-400'}`}>PIX</span>
+                <span className="font-mono text-[10px] text-gray-400 mt-1">Aprovação Imediata</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { audioManager.playClick(); setPaymentMethod('cartao'); }}
+                className={`p-2 border-2 flex flex-col items-center justify-center transition-all cursor-pointer text-center ${
+                  paymentMethod === 'cartao'
+                    ? 'border-[#22c55e] bg-[#0c2414] shadow-[0_0_10px_rgba(34,197,94,0.3)]'
+                    : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
+                }`}
+              >
+                <span className={`font-pixel text-[13px] ${paymentMethod === 'cartao' ? 'text-[#22c55e]' : 'text-gray-400'}`}>CARTÃO / OUTROS</span>
+                <span className="font-mono text-[10px] text-gray-400 mt-1">Checkout Oficial MP</span>
+              </button>
+            </div>
           </div>
 
-          {/* 4. Total & Botão Oficial de Checkout */}
+          </div>
+
+          {/* 5. Total & Botão Oficial de Checkout */}
           <div className="pt-3 border-t-2 border-[#381622] flex flex-row items-center justify-between gap-2 sm:gap-3">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs text-[#9ca3af] block font-mono">VALOR TOTAL</span>
