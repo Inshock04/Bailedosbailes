@@ -763,7 +763,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         {
           id: ticket.id,
           title: ticket.name,
-          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
+          description: `Baile dos Bailes - Hotel Cortez | Ingresso: ${ticket.name} | Lote: ${ticket.batch}`,
           quantity: validQuantity,
           currency_id: 'BRL',
           unit_price: ticket.price
@@ -774,6 +774,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         email: buyerEmail || 'nao-informado@email.com',
       },
       external_reference: orderId,
+      statement_descriptor: 'BAILE DOS BAILES',
       metadata: {
         seller: sellerSlug || null,
         phone: buyerPhone || null,
@@ -804,7 +805,8 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
       return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
     }
 
-    const checkoutUrl = data.init_point || data.sandbox_init_point;
+    const isTestToken = MP_ACCESS_TOKEN.startsWith('TEST-');
+    const checkoutUrl = isTestToken ? data.sandbox_init_point : data.init_point;
     
     // 2. Atualizar pedido com a referência do MP
     if (supabaseAdmin && orderId) {
