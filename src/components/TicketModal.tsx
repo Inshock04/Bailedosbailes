@@ -132,47 +132,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
     }
   };
 
-  if (pixData) {
-    return (
-      <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="relative w-full max-w-md bg-[#0e0a17] border-2 border-[#22c55e] shadow-[0_0_35px_rgba(34,197,94,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto text-center">
-          <div className="flex items-center justify-between border-b-2 border-[#14532d] pb-3 mb-4">
-             <div className="flex items-center gap-2">
-               <PixelCheck size={20} color="#22c55e" />
-               <h2 className="font-pixel text-xs sm:text-sm font-bold text-[#4ade80] tracking-wider">
-                 PAGAMENTO VIA PIX
-               </h2>
-             </div>
-             <button onClick={() => { audioManager.playClick(); onClose(); }} className="p-1 hover:bg-[#14532d] text-[#86efac] cursor-pointer"><PixelClose size={18} /></button>
-          </div>
-          <p className="font-mono text-sm text-gray-300 mb-4">Escaneie o QR Code abaixo ou utilize o código Copia e Cola para finalizar a compra de <strong>{currentTier.name}</strong>.</p>
-          <div className="bg-white p-4 rounded-xl mx-auto w-fit mb-4 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-             <img src={`data:image/jpeg;base64,${pixData.qrCodeBase64}`} alt="QR Code Pix" className="w-48 h-48 object-contain" />
-          </div>
-          <div className="bg-[#120718] border border-[#14532d] p-3 mb-4 rounded text-left overflow-hidden">
-             <span className="block font-pixel text-[10px] text-[#4ade80] mb-1">CÓDIGO COPIA E COLA</span>
-             <code className="text-xs text-gray-300 break-all select-all">{pixData.qrCode}</code>
-          </div>
-          <button onClick={() => { 
-            navigator.clipboard.writeText(pixData.qrCode); 
-            audioManager.playClick();
-          }} className="pixel-btn w-full bg-[#15803d] hover:bg-[#16a34a] text-white border-[#4ade80] shadow-[0_0_15px_rgba(34,197,94,0.4)] py-3 font-pixel text-xs transition-all cursor-pointer">
-            COPIAR CÓDIGO PIX
-          </button>
-          {paymentStatus === 'aprovado' ? (
-             <div className="mt-4 p-3 bg-[#064e3b] border-2 border-[#34d399] text-[#a7f3d0] font-pixel text-xs animate-pulse">
-               PAGAMENTO CONFIRMADO! REDIRECIONANDO...
-             </div>
-          ) : (
-             <div className="mt-4 text-[10px] font-mono text-gray-400 flex items-center justify-center gap-2">
-               <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping"></span>
-               AGUARDANDO PAGAMENTO...
-             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
