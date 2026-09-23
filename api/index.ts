@@ -771,7 +771,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
       ],
       payer: {
         name: buyerName || 'Visitante',
-        email: buyerEmail || undefined,
+        email: buyerEmail || 'nao-informado@email.com',
       },
       external_reference: orderId,
       metadata: {
@@ -791,8 +791,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
-        'X-Idempotency-Key': idempotencyKey
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`
       },
       body: JSON.stringify(preferenceData)
     });
