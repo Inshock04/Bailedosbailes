@@ -61,8 +61,7 @@ export default function App() {
   const [isCardMinimized, setIsCardMinimized] = useState<boolean>(false);
   const [currentScene, setCurrentScene] = useState<'circus' | 'hotel'>('circus');
   const [myTicketsToken, setMyTicketsToken] = useState<string | null>(null);
-  const [paymentProcessing, setPaymentProcessing] = useState<boolean>(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [showPaymentToast, setShowPaymentToast] = useState<boolean>(false);
 
   // Real-Time Countdown to October 31, 2026, 21:00
   const [timeLeft, setTimeLeft] = useState({
@@ -173,43 +172,9 @@ export default function App() {
       const externalRef = urlParams.get('external_reference') || urlParams.get('preference_id');
 
       if ((paymentStatus === 'success' || paymentStatus === 'pending') && externalRef) {
-        setPaymentProcessing(true);
-        let attempts = 0;
-        const maxAttempts = 20; // up to 60 seconds of polling
-
-        const pollPayment = async () => {
-          try {
-            const res = await fetch(`/api/orders/${externalRef}/status`, { cache: 'no-store' });
-            const data = await res.json();
-            
-            if (data.status === 'aprovado' && data.accessToken) {
-              window.location.href = `/meus-ingressos/${data.accessToken}`;
-              return;
-            } else if (data.status === 'recusado' || data.status === 'expirado') {
-              setPaymentError('Seu pagamento foi recusado ou expirou. Tente novamente.');
-              setPaymentProcessing(false);
-              return;
-            }
-            
-            attempts++;
-            if (attempts < maxAttempts) {
-              setTimeout(pollPayment, 3000);
-            } else {
-              setPaymentError('O processamento está demorando. Por favor, verifique seu e-mail em alguns minutos para acessar seus ingressos.');
-              setPaymentProcessing(false);
-            }
-          } catch(e) {
-            attempts++;
-            if (attempts < maxAttempts) {
-              setTimeout(pollPayment, 3000);
-            } else {
-              setPaymentError('Erro de conexão ao verificar o pagamento.');
-              setPaymentProcessing(false);
-            }
-          }
-        };
-
-        pollPayment();
+        setShowPaymentToast(true);
+        window.history.replaceState({}, '', '/');
+        setTimeout(() => setShowPaymentToast(false), 8000);
       }
 
       const path = window.location.pathname;
@@ -309,26 +274,6 @@ export default function App() {
       action: () => handleOpenSection('admin'),
     },
   ];
-
-  if (paymentProcessing) {
-    return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 bg-[#0a0510] text-[#f3edf9]">
-        <div className="w-12 h-12 border-4 border-[#22c55e] border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="font-pixel text-lg sm:text-xl text-[#4ade80] animate-pulse mb-2 text-center">PROCESSANDO PAGAMENTO...</h2>
-        <p className="font-mono text-xs sm:text-sm text-gray-400 text-center max-w-md">
-          Aguarde enquanto validamos a transação com o Mercado Pago. Isso pode levar alguns segundos.
-        </p>
-        {paymentError && (
-           <div className="mt-6 p-4 border-2 border-red-500 bg-[#450a0a] text-[#fca5a5] text-xs font-mono text-center max-w-md rounded-lg shadow-2xl">
-             <p>{paymentError}</p>
-             <button onClick={() => window.location.href='/'} className="inline-block mt-4 px-4 py-2 bg-red-900 hover:bg-red-800 text-white rounded transition-colors uppercase tracking-wider font-bold">
-               Voltar ao início
-             </button>
-           </div>
-        )}
-      </div>
-    );
-  }
 
   if (myTicketsToken) {
     return <MyTicketsPage token={myTicketsToken} />;
@@ -725,6 +670,17 @@ export default function App() {
         isOpen={activeModal === 'admin'}
         onClose={() => setActiveModal(null)}
       />
+
+      {/* Discret Payment Success Toast */}
+      {showPaymentToast && (
+        <div className="fixed top-4 right-4 z-[120] bg-[#0c0514] border border-[#22c55e] shadow-[0_0_20px_rgba(34,197,94,0.3)] p-4 rounded-lg flex flex-col gap-1 max-w-sm animate-[slideIn_0.5s_ease-out]">
+          <h3 className="font-pixel text-[#4ade80] text-sm uppercase">Retorno do Pagamento</h3>
+          <p className="font-mono text-gray-300 text-xs">
+            Seu pagamento está sendo processado. A confirmação e os ingressos serão enviados diretamente para o seu e-mail.
+          </p>
+          <button onClick={() => setShowPaymentToast(false)} className="absolute top-2 right-2 text-gray-500 hover:text-white">✕</button>
+        </div>
+      )}
 
     </div>
   );

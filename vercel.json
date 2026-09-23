@@ -10,7 +10,9 @@
     { "source": "/api/ingresso/:path*", "destination": "/api" },
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/ingresso/:path*", "destination": "/index.html" },
+    { "source": "/meus-ingressos/:path*", "destination": "/index.html" },
     { "source": "/portaria", "destination": "/index.html" },
-    { "source": "/portaria/(.*)", "destination": "/index.html" }
+    { "source": "/portaria/(.*)", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
