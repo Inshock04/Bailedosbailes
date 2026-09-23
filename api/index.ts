@@ -791,7 +791,8 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'X-Idempotency-Key': idempotencyKey
       },
       body: JSON.stringify(preferenceData)
     });
