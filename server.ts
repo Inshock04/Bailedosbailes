@@ -877,10 +877,9 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   // Se passou na segurança validamos a notificação
   if (topic === 'payment') {
     const paymentId = dataIdFromBody || dataIdFromQuery;
-    if (!paymentId) return res.sendStatus(200);
-
-    // Responder rapidamente que recebemos a notificação (recomendação oficial)
-    res.status(200).send('Notification received');
+    if (!paymentId) {
+       return res.sendStatus(200);
+    }
 
     try {
       // 3. Consulta Oficial na API do Mercado Pago
@@ -890,26 +889,28 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       
       if (!mpRes.ok) {
         console.error(`[Webhook] Pagamento ${paymentId} não encontrado na API oficial do MP.`);
-        return; 
+        return res.status(200).send('Payment not found'); 
       }
 
       const paymentData = await mpRes.json();
       const orderId = paymentData.external_reference;
       const status = paymentData.status;
       
-      if (!orderId || !supabaseAdmin) return;
+      if (!orderId || !supabaseAdmin) {
+        return res.status(200).send('No order ID or Supabase admin');
+      }
 
       // 4. Buscar o Pedido (Order) correspondente
       const { data: order } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
       if (!order) {
          console.warn(`[Webhook] Pedido ${orderId} não encontrado no banco de dados.`);
-         return;
+         return res.status(200).send('Order not found');
       }
       
       // 5. Idempotência: Checar se os ingressos já foram gerados
       if (order.tickets_generated && status === 'approved') {
          console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
-         return;
+         return res.status(200).send('Already processed');
       }
 
       const newPaymentStatus = status === 'approved' ? 'aprovado' : (status === 'rejected' || status === 'cancelled') ? 'recusado' : 'aguardando_pagamento';
@@ -939,8 +940,13 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos e e-mail disparados.`);
       }
 
+      // Após todo o processamento assíncrono, retornamos sucesso
+      return res.status(200).send('Notification received and processed');
+
     } catch (err) {
       console.error('[Webhook] Falha interna ao processar notificação:', err);
+      // Sempre retornar 200 no final para o MP não ficar tentando eternamente
+      return res.sendStatus(200);
     }
   } else {
     // Tópico desconhecido
