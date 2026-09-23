@@ -826,70 +826,102 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 // WEBHOOK MERCADO PAGO E PÁGINA DO PEDIDO
 // ==============================================================================
 
-app.all('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
+app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   const signatureHeader = req.headers['x-signature'] as string;
   const requestId = req.headers['x-request-id'] as string;
   let SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
   if (SECRET) SECRET = SECRET.trim();
 
-  // O botão de teste do Mercado Pago envia id=123456 via query
-  if (req.query.id === '123456' || req.body?.data?.id === '123456') {
+  const dataIdFromBody = req.body?.data?.id;
+  const dataIdFromQuery = req.query?.data?.id || req.query?.id;
+  const topic = req.body?.type || req.body?.topic || req.query?.topic || req.query?.type;
+
+  // 1. Simulação ID 123456
+  if (dataIdFromBody === '123456' || dataIdFromQuery === '123456') {
+    console.log('[Webhook] Simulação Mercado Pago recebida (ID 123456). Retornando 200 OK.');
     return res.status(200).send('Test successful');
   }
 
-  // Verifica assinatura para Webhooks modernos (se vier o header)
-  if (signatureHeader && requestId && SECRET) {
+  // 2. Validação de Segurança Rigorosa para Webhooks
+  const isWebhook = !!signatureHeader;
+  
+  if (isWebhook) {
+    if (!requestId || !SECRET) {
+      console.error('[Webhook] Falha de segurança: x-request-id ou SECRET ausente.');
+      return res.status(401).send('Missing signature requirements');
+    }
+    
     const tsPart = signatureHeader.split(',').find(p => p.trim().startsWith('ts='));
     const v1Part = signatureHeader.split(',').find(p => p.trim().startsWith('v1='));
-    if (tsPart && v1Part) {
-      const ts = tsPart.split('=')[1];
-      const v1 = v1Part.split('=')[1];
-      const dataId = req.body?.data?.id || req.query?.id || '';
-      
-      const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-      const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
-      
-      if (hash !== v1) {
-        console.error('Assinatura MP invalida', { hash, v1 });
-        return res.status(401).send('Invalid signature');
-      }
+    if (!tsPart || !v1Part) {
+      console.error('[Webhook] Falha de segurança: Formato do x-signature inválido.');
+      return res.status(401).send('Invalid signature format');
     }
+    
+    const ts = tsPart.split('=')[1];
+    const v1 = v1Part.split('=')[1];
+    const dataId = dataIdFromBody || dataIdFromQuery || '';
+    
+    const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+    const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
+    
+    if (hash !== v1) {
+      console.error('[Webhook] Falha de segurança: Assinatura MP inválida.', { hash, v1 });
+      return res.status(401).send('Invalid signature');
+    }
+  } else if (!dataIdFromQuery) {
+    // Rejeitar se não houver assinatura nem query IPN válida
+    return res.status(400).send('Bad Request: Not a valid Webhook or IPN');
   }
 
-  // Handle payment
-  const topic = req.body.type || req.body.topic || req.query.topic || req.query.type;
+  // Se passou na segurança validamos a notificação
   if (topic === 'payment') {
-    const paymentId = req.body.data?.id || req.query.data?.id || req.query.id;
+    const paymentId = dataIdFromBody || dataIdFromQuery;
     if (!paymentId) return res.sendStatus(200);
 
+    // Responder rapidamente que recebemos a notificação (recomendação oficial)
+    res.status(200).send('Notification received');
+
     try {
-      // 1. Fetch real payment data
+      // 3. Consulta Oficial na API do Mercado Pago
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN}` }
       });
-      const paymentData = await mpRes.json();
       
-      if (!mpRes.ok) return res.sendStatus(200);
+      if (!mpRes.ok) {
+        console.error(`[Webhook] Pagamento ${paymentId} não encontrado na API oficial do MP.`);
+        return; 
+      }
 
+      const paymentData = await mpRes.json();
       const orderId = paymentData.external_reference;
       const status = paymentData.status;
       
-      if (!orderId || !supabaseAdmin) return res.sendStatus(200);
+      if (!orderId || !supabaseAdmin) return;
 
-      // 2. Fetch order
+      // 4. Buscar o Pedido (Order) correspondente
       const { data: order } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
-      if (!order) return res.sendStatus(200);
+      if (!order) {
+         console.warn(`[Webhook] Pedido ${orderId} não encontrado no banco de dados.`);
+         return;
+      }
       
+      // 5. Idempotência: Checar se os ingressos já foram gerados
+      if (order.tickets_generated && status === 'approved') {
+         console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
+         return;
+      }
+
       const newPaymentStatus = status === 'approved' ? 'aprovado' : (status === 'rejected' || status === 'cancelled') ? 'recusado' : 'aguardando_pagamento';
 
       if (order.payment_status !== newPaymentStatus) {
-        // 3. Update order
+        // 6. Atualizar Status do Pedido
         await supabaseAdmin.from('ticket_orders')
           .update({ payment_status: newPaymentStatus, mp_payment_id: paymentId, updated_at: new Date().toISOString() })
           .eq('id', orderId);
       }
 
-      // 4. Generate tickets if approved and not yet generated
+      // 7. Gerar Ingressos (Apenas uma vez)
       if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
         const accessToken = crypto.randomBytes(16).toString('hex');
         
@@ -904,14 +936,16 @@ app.all('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         
         order.access_token = accessToken;
         sendTicketsEmail(order, accessToken);
+        console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos e e-mail disparados.`);
       }
 
     } catch (err) {
-      console.error('Webhook error:', err);
+      console.error('[Webhook] Falha interna ao processar notificação:', err);
     }
+  } else {
+    // Tópico desconhecido
+    if (!res.headersSent) res.sendStatus(200);
   }
-
-  res.sendStatus(200);
 });
 
 app.get('/api/orders/:accessToken', async (req: Request, res: Response) => {
