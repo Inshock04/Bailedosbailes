@@ -911,6 +911,12 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       // 6. Idempotência: Checar se os ingressos já foram gerados
       if (order.tickets_generated && status === 'approved') {
          console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
+         
+         if (order.email_status !== 'enviado' && order.access_token) {
+           console.log(`[Webhook] E-mail não havia sido enviado. Tentando reenviar agora...`);
+           await sendTicketsEmail(order, order.access_token).catch(err => console.error('[Webhook] Erro no reenvio de e-mail:', err));
+         }
+         
          return res.status(200).send('Already processed');
       }
 
@@ -938,8 +944,8 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         
         order.access_token = accessToken;
         
-        // Envio de e-mail assíncrono para não travar a resposta do webhook
-        sendTicketsEmail(order, accessToken).catch(err => console.error('[Webhook] Erro no catch do sendTicketsEmail:', err));
+        // Envio de e-mail aguardado para garantir execução no ambiente serverless (Vercel)
+        await sendTicketsEmail(order, accessToken).catch(err => console.error('[Webhook] Erro no catch do sendTicketsEmail:', err));
         
         console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos criados e e-mail disparado.`);
       }
@@ -1056,7 +1062,8 @@ app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
                   .update({ tickets_generated: true, access_token: accessToken })
                   .eq('id', orderId);
 
-                sendTicketsEmail(fullOrder, accessToken);
+                // Aguardar o envio de e-mail no polling
+                await sendTicketsEmail(fullOrder, accessToken).catch(err => console.error('[Polling] Erro no catch do sendTicketsEmail:', err));
                 console.log(`[Reconciliação] Pedido ${orderId} aprovado via polling. Ingressos gerados.`);
 
                 return res.json({
