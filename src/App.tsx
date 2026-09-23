@@ -43,6 +43,7 @@ import { DressCodeModal } from './components/DressCodeModal';
 import { AboutModal, FaqModal, ContactModal } from './components/InfoModals';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { OfficialSocialButtons } from './components/OfficialSocialButtons';
+import { MyTicketsPage } from './components/MyTicketsPage';
 import { audioManager } from './utils/audio';
 
 gsap.registerPlugin(useGSAP);
@@ -59,6 +60,7 @@ export default function App() {
   const [isCrtOn, setIsCrtOn] = useState<boolean>(false);
   const [isCardMinimized, setIsCardMinimized] = useState<boolean>(false);
   const [currentScene, setCurrentScene] = useState<'circus' | 'hotel'>('circus');
+  const [myTicketsToken, setMyTicketsToken] = useState<string | null>(null);
 
   // Real-Time Countdown to October 31, 2026, 21:00
   const [timeLeft, setTimeLeft] = useState({
@@ -161,6 +163,33 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Referral Link & Tickets Logic
+  useEffect(() => {
+    const checkUrlRouting = async () => {
+      const path = window.location.pathname;
+      if (path && path.length > 1 && !path.startsWith('/api') && path !== '/index.html') {
+        if (path.startsWith('/meus-ingressos/')) {
+           const token = path.replace('/meus-ingressos/', '');
+           if (token) setMyTicketsToken(token);
+           return;
+        }
+
+        const slug = path.slice(1).toLowerCase();
+        try {
+          const res = await fetch(`/api/sellers/${slug}`);
+          if (res.ok) {
+            localStorage.setItem('referral_seller', slug);
+            // Clear URL to preserve normal routing and avoid 404 on refresh
+            window.history.replaceState({}, '', '/');
+          }
+        } catch (error) {
+          console.error('Erro ao verificar link de afiliado:', error);
+        }
+      }
+    };
+    checkUrlRouting();
+  }, []);
+
   // Audio Toggle
   const toggleAudio = () => {
     audioManager.playClick();
@@ -234,6 +263,10 @@ export default function App() {
       action: () => handleOpenSection('admin'),
     },
   ];
+
+  if (myTicketsToken) {
+    return <MyTicketsPage token={myTicketsToken} />;
+  }
 
   return (
     <div 

@@ -1,9 +1,12 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import nodemailer from 'nodemailer';
 
 // ----------------------------------------------------
 // EXPRESS APP PARA VERCEL SERVERLESS
@@ -67,6 +70,8 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     databaseError: error ? error.code : undefined,
   });
 });
+
+
 
 // Diagnóstico de autenticação (NÃO expõe valores reais)
 app.get('/api/auth-debug', (_req: Request, res: Response) => {
@@ -329,17 +334,20 @@ interface PurchasedTicket {
   paymentMethod: 'PIX' | 'CARTAO'; status: 'VALIDO' | 'UTILIZADO' | 'CANCELADO';
   createdAt: string; usedAt?: string; lote: string; publicCode?: string;
   ticketType?: 'OPEN_BAR' | 'POS_OPEN';
+  vendedor?: string;
 }
 
 function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
   return {
     id: row.id, token: token || row.codigo, publicCode: row.codigo,
     buyerName: row.nome, buyerEmail: row.email || '', buyerPhone: row.telefone,
-    ticketId: 't-open-45', ticketName: row.item, category: row.categoria,
+    ticketId: row.tipo_ingresso === 'POS_OPEN' ? 't-normal-10' : 't-open-45', 
+    ticketName: row.item, category: row.categoria,
     price: Number(row.preco), paymentMethod: 'PIX',
     status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
     createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote,
-    ticketType: row.tipo_ingresso === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR'
+    ticketType: row.tipo_ingresso === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR',
+    vendedor: row.vendedor
   };
 }
 
@@ -354,15 +362,15 @@ function generateTicketCredentials(): { code: string; token: string; tokenHash: 
   return { code, token, tokenHash: hashTicketToken(token) };
 }
 
-async function createPersistedTicket(name: string, phone: string, ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'OPEN_BAR') {
+async function createPersistedTicket(name: string, phone: string, ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'OPEN_BAR', vendedor?: string) {
   if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const { code, token, tokenHash } = generateTicketCredentials();
     const createdAt = new Date().toISOString();
 
-    const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
-    const priceValue = ticketType === 'POS_OPEN' ? 25 : 45;
+    const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
+    const priceValue = ticketType === 'POS_OPEN' ? 10 : 45;
 
     const insertPayload: any = {
       codigo: code,
@@ -370,19 +378,21 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
       nome: name,
       telefone: phone,
       item: itemLabel,
-      categoria: 'GERAL',
+      categoria: ticketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
       preco: priceValue,
-      lote: 'UNICO',
+      lote: '1º LOTE',
       status: 'valido',
       criado_em: createdAt,
-      tipo_ingresso: ticketType
+      tipo_ingresso: ticketType,
+      vendedor: vendedor || null
     };
 
     let { data, error } = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
 
-    if (error?.code === '42703' || (error?.message && (error.message.includes('qr_token') || error.message.includes('tipo_ingresso')))) {
+    if (error?.code === '42703' || (error?.message && (error.message.includes('qr_token') || error.message.includes('tipo_ingresso') || error.message.includes('vendedor')))) {
       delete insertPayload.qr_token;
       delete insertPayload.tipo_ingresso;
+      delete insertPayload.vendedor; // Fallback se a coluna não existir no BD
       const retryResult = await supabaseAdmin.from('event_tickets').insert(insertPayload).select('*').single();
       data = retryResult.data;
       error = retryResult.error;
@@ -410,11 +420,16 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-open-45', name: 'INGRESSO OPEN', category: 'OPEN',
+    id: 't-open-45', name: 'INGRESSO OPEN BAR', category: 'OPEN',
     price: 45, originalPrice: 65, batch: '1º LOTE', available: 200, total: 200,
     features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
+  },
+  {
+    id: 't-normal-10', name: 'INGRESSO NORMAL (SEM OPEN)', category: 'PISTA',
+    price: 10, batch: '1º LOTE', available: 200, total: 200,
+    features: ['Acesso ao evento'], drinksIncluded: [], color: '#2563eb'
   }
 ];
 
@@ -533,6 +548,39 @@ let guestList: GuestEntry[] = [];
 let coupons: Coupon[] = [];
 
 // ----------------------------------------------------
+// VENDEDORES (SELLERS)
+// ----------------------------------------------------
+interface Seller {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
+// In-memory sellers list. Add specific ones as needed.
+let sellers: Seller[] = [
+  { id: 's-1', name: 'Rafael', slug: 'rafael', createdAt: new Date().toISOString() }
+];
+
+app.get('/api/sellers', requireAdminAuth, (_req, res) => {
+  res.json(sellers);
+});
+
+app.get('/api/sellers/:slug', (req, res) => {
+  const seller = sellers.find(s => s.slug === req.params.slug.toLowerCase());
+  if (seller) return res.json({ id: seller.id, name: seller.name, slug: seller.slug });
+  return res.status(404).json({ error: 'Vendedor não encontrado' });
+});
+
+app.post('/api/admin/sellers', requireAdminAuth, (req, res) => {
+  const { name, slug } = req.body;
+  if (!name || !slug) return res.status(400).json({ error: 'Nome e slug são obrigatórios' });
+  const newSeller = { id: `s-${Date.now()}`, name, slug: slug.toLowerCase(), createdAt: new Date().toISOString() };
+  sellers.push(newSeller);
+  res.json({ success: true, seller: newSeller });
+});
+
+// ----------------------------------------------------
 // ROTAS DA API
 // ----------------------------------------------------
 
@@ -564,11 +612,297 @@ app.get('/api/tickets', (_req: Request, res: Response) => {
   res.json(tickets);
 });
 
-app.post('/api/tickets/purchase', publicWriteLimiter, (_req: Request, res: Response) => {
-  return res.status(400).json({
-    error: 'Para adquirir seu ingresso oficial e confirmação imediata, fale diretamente com a organização no WhatsApp: https://wa.me/5511943963952 (+55 11 94396-3952).',
-    whatsappUrl: 'https://wa.me/5511943963952'
-  });
+// ==============================================================================
+// CONFIGURAÇÃO DE E-MAIL (NODEMAILER)
+// ==============================================================================
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT) || 465,
+  secure: true,
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD
+  }
+});
+
+async function sendTicketsEmail(order: any, access_token: string) {
+  if (!process.env.GMAIL_USER) {
+    console.warn('Nodemailer SMTP não configurado. Pulo do envio de e-mail.');
+    return;
+  }
+  try {
+    const publicUrl = `${process.env.VITE_PUBLIC_URL || 'https://www.thetriplex.com.br'}/meus-ingressos/${access_token}`;
+    await transporter.sendMail({
+      from: `"Baile dos Bailes - Hotel Cortez" <${process.env.GMAIL_USER}>`,
+      to: order.buyer_email,
+      subject: 'Seus Ingressos - Baile dos Bailes: Hotel Cortez',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #090510; color: #fff; padding: 20px; border: 2px solid #ef4444;">
+          <h1 style="color: #ff4455; text-align: center;">SEUS INGRESSOS ESTÃO AQUI!</h1>
+          <p>Olá <strong>${order.buyer_name}</strong>,</p>
+          <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Baile dos Bailes - Hotel Cortez</strong>.</p>
+          <p><strong>Detalhes do Pedido:</strong></p>
+          <ul>
+            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'OPEN BAR' : 'NORMAL (SEM OPEN)'}</li>
+            <li>Quantidade: ${order.quantity}</li>
+            <li>Total pago: R$ ${order.total_price}</li>
+          </ul>
+          <p><strong>Informações do Evento:</strong></p>
+          <ul>
+            <li>Data: 31 de Outubro de 2026, das 21:00 às 06:00</li>
+            <li>Local: THE TRIPLEX - R. Manuel de Castilho, 201</li>
+            <li>Traje: Gótico retrô, all-black ou fantasia</li>
+          </ul>
+          <p style="color: #ff4455;"><strong>ATENÇÃO:</strong> Ao chegar no evento, apresente os <strong>QR Codes</strong> pelo link abaixo na recepção. Sugerimos deixar a página aberta ou printar os códigos antecipadamente.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${publicUrl}" style="background-color: #15803d; color: #fff; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">
+              ACESSAR MEUS INGRESSOS
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #9ca3af; text-align: center;">Não compartilhe este link com ninguém. Ele é o seu acesso exclusivo aos QR Codes.</p>
+        </div>
+      `
+    });
+    console.log('E-mail enviado para:', order.buyer_email);
+    
+    // Atualiza status para enviado no Supabase
+    if (supabaseAdmin) {
+      await supabaseAdmin
+        .from('ticket_orders')
+        .update({ 
+          email_status: 'enviado',
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
+    }
+  } catch (err) {
+    console.error('Erro ao enviar email:', err);
+    // Atualiza status para falha no Supabase
+    if (supabaseAdmin) {
+      await supabaseAdmin
+        .from('ticket_orders')
+        .update({ email_status: 'falha' })
+        .eq('id', order.id);
+    }
+  }
+}
+
+app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: Response) => {
+  const { ticketId, quantity, buyerName, buyerEmail, buyerPhone, sellerSlug } = req.body;
+  const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
+
+  if (!MP_ACCESS_TOKEN) {
+    return res.status(500).json({ error: 'Configuração de pagamento indisponível no momento.' });
+  }
+
+  const ticket = tickets.find(t => t.id === ticketId);
+  if (!ticket) {
+    return res.status(404).json({ error: 'Ingresso não encontrado.' });
+  }
+
+  const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
+  const totalPrice = ticket.price * validQuantity;
+  let orderId = crypto.randomUUID();
+
+  // 1. Criar o Pedido Pendente no Supabase
+  if (supabaseAdmin) {
+    const { data: orderData, error: orderError } = await supabaseAdmin
+      .from('ticket_orders')
+      .insert({
+        buyer_name: buyerName || 'Visitante',
+        buyer_email: buyerEmail || 'nao-informado@email.com',
+        buyer_phone: buyerPhone || '00000000000',
+        ticket_type: ticket.category === 'PISTA' ? 'POS_OPEN' : 'OPEN_BAR',
+        quantity: validQuantity,
+        total_price: totalPrice,
+        seller_ref: sellerSlug || null,
+        payment_status: 'aguardando_pagamento'
+      })
+      .select('id')
+      .single();
+
+    if (orderError) {
+      console.error('Erro ao criar pedido no banco:', orderError);
+      // Fallback gracioso: logar mas permitir gerar pagamento? 
+      // Ou travar a venda se não gravar? A instrução diz: "Registrar o pedido como Aguardando pagamento"
+      // Se não tem banco configurado local, podemos avisar:
+      if (orderError.code === '42P01') { // table does not exist
+         console.warn('Tabela ticket_orders não encontrada. Certifique-se de executar o migration_v4.sql');
+      } else {
+         return res.status(500).json({ error: 'Erro ao registrar o pedido no sistema.' });
+      }
+    } else if (orderData) {
+      orderId = orderData.id;
+    }
+  }
+
+  const idempotencyKey = orderId; // Usar ID do pedido para garantir idempotência
+
+  try {
+    const preferenceData = {
+      items: [
+        {
+          id: ticket.id,
+          title: ticket.name,
+          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
+          quantity: validQuantity,
+          currency_id: 'BRL',
+          unit_price: ticket.price
+        }
+      ],
+      payer: {
+        name: buyerName || 'Visitante',
+        email: buyerEmail || undefined,
+      },
+      external_reference: orderId,
+      metadata: {
+        seller: sellerSlug || null,
+        phone: buyerPhone || null,
+        order_id: orderId
+      },
+      back_urls: {
+        success: `${req.protocol}://${req.get('host')}/?payment=success`,
+        failure: `${req.protocol}://${req.get('host')}/?payment=failure`,
+        pending: `${req.protocol}://${req.get('host')}/?payment=pending`
+      },
+      auto_return: 'approved'
+    };
+
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+        'X-Idempotency-Key': idempotencyKey
+      },
+      body: JSON.stringify(preferenceData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Erro ao gerar pagamento MP:', data);
+      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.' });
+    }
+
+    const checkoutUrl = data.sandbox_init_point || data.init_point;
+    
+    // 2. Atualizar pedido com a referência do MP
+    if (supabaseAdmin && orderId) {
+       await supabaseAdmin.from('ticket_orders')
+         .update({
+            mp_preference_id: data.id,
+            mp_payment_link: checkoutUrl
+         })
+         .eq('id', orderId);
+    }
+
+    return res.json({ checkoutUrl, orderId });
+  } catch (error) {
+    console.error('Erro de requisição MP:', error);
+    return res.status(500).json({ error: 'Falha na comunicação com o provedor de pagamento.' });
+  }
+});
+
+// ==============================================================================
+// WEBHOOK MERCADO PAGO E PÁGINA DO PEDIDO
+// ==============================================================================
+
+app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
+  const signatureHeader = req.headers['x-signature'] as string;
+  const requestId = req.headers['x-request-id'] as string;
+  const SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
+
+  if (!signatureHeader || !requestId || !SECRET) {
+    return res.status(401).send('Missing signature or secret');
+  }
+
+  const tsPart = signatureHeader.split(',').find(p => p.trim().startsWith('ts='));
+  const v1Part = signatureHeader.split(',').find(p => p.trim().startsWith('v1='));
+  if (tsPart && v1Part) {
+    const ts = tsPart.split('=')[1];
+    const v1 = v1Part.split('=')[1];
+    const dataId = req.body?.data?.id || '';
+    
+    const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+    const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
+    
+    if (hash !== v1) {
+      return res.status(401).send('Invalid signature');
+    }
+  } else {
+    return res.status(401).send('Invalid signature format');
+  }
+
+  // Handle payment
+  if (req.body.type === 'payment' || req.body.topic === 'payment') {
+    const paymentId = req.body.data?.id;
+    if (!paymentId) return res.sendStatus(200);
+
+    try {
+      // 1. Fetch real payment data
+      const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN}` }
+      });
+      const paymentData = await mpRes.json();
+      
+      if (!mpRes.ok) return res.sendStatus(200);
+
+      const orderId = paymentData.external_reference;
+      const status = paymentData.status;
+      
+      if (!orderId || !supabaseAdmin) return res.sendStatus(200);
+
+      // 2. Fetch order
+      const { data: order } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
+      if (!order) return res.sendStatus(200);
+      
+      const newPaymentStatus = status === 'approved' ? 'aprovado' : (status === 'rejected' || status === 'cancelled') ? 'recusado' : 'aguardando_pagamento';
+
+      if (order.payment_status !== newPaymentStatus) {
+        // 3. Update order
+        await supabaseAdmin.from('ticket_orders')
+          .update({ payment_status: newPaymentStatus, mp_payment_id: paymentId, updated_at: new Date().toISOString() })
+          .eq('id', orderId);
+      }
+
+      // 4. Generate tickets if approved and not yet generated
+      if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
+        const accessToken = crypto.randomBytes(16).toString('hex');
+        
+        for (let i = 0; i < order.quantity; i++) {
+          const resTicket = await createPersistedTicket(order.buyer_name, order.buyer_phone, order.ticket_type, order.seller_ref);
+          if (resTicket.data) {
+            await supabaseAdmin.from('event_tickets').update({ order_id: orderId }).eq('id', resTicket.data.id);
+          }
+        }
+
+        await supabaseAdmin.from('ticket_orders').update({ tickets_generated: true, access_token: accessToken }).eq('id', orderId);
+        
+        order.access_token = accessToken;
+        sendTicketsEmail(order, accessToken);
+      }
+
+    } catch (err) {
+      console.error('Webhook error:', err);
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+app.get('/api/orders/:accessToken', async (req: Request, res: Response) => {
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase indisponível' });
+  
+  const { data: order, error: orderError } = await supabaseAdmin.from('ticket_orders').select('*').eq('access_token', req.params.accessToken).single();
+  if (orderError || !order) return res.status(404).json({ error: 'Pedido não encontrado ou access token inválido' });
+
+  const { data: tickets, error: ticketsError } = await supabaseAdmin.from('event_tickets').select('*').eq('order_id', order.id);
+  if (ticketsError) return res.status(500).json({ error: 'Erro ao buscar ingressos' });
+
+  const mappedTickets = tickets.map(t => mapSupabaseTicket(t, t.qr_token || t.codigo));
+
+  res.json({ order, tickets: mappedTickets });
 });
 
 // 3. Promotions
@@ -1132,6 +1466,59 @@ app.post('/api/admin/logout', (req: Request, res: Response) => {
   return res.json({ success: true, message: 'Sessão encerrada com segurança.' });
 });
 
+// 7.5 Automação de Emails
+app.post('/api/admin/test-email', requireAdminAuth, async (req: Request, res: Response) => {
+  const { to } = req.body;
+  if (!to) return res.status(400).json({ error: 'E-mail de destino é obrigatório' });
+  if (!process.env.GMAIL_USER) {
+    return res.status(500).json({ error: 'Nodemailer SMTP não configurado' });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: `"Baile dos Bailes - Hotel Cortez" <${process.env.GMAIL_USER}>`,
+      to,
+      subject: 'Teste de Envio SMTP - Halloween Party Hotel Cortez',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #090510; color: #fff; padding: 20px; border: 2px solid #ef4444;">
+          <h1 style="color: #ff4455; text-align: center;">TESTE DE SMTP CONCLUÍDO!</h1>
+          <p>Olá,</p>
+          <p>Este é um e-mail de teste disparado pelo painel administrativo da The Triplex.</p>
+          <p>Se você está recebendo isso, as configurações SMTP do Gmail estão <strong>perfeitas</strong>.</p>
+        </div>
+      `
+    });
+    return res.json({ success: true, message: 'E-mail de teste enviado com sucesso!' });
+  } catch (err: any) {
+    console.error('Erro no test-email:', err);
+    return res.status(500).json({ error: 'Falha no envio de teste', details: err.message });
+  }
+});
+
+app.post('/api/admin/orders/:id/resend-email', requireAdminAuth, async (req: Request, res: Response) => {
+  const orderId = req.params.id;
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'Banco de dados não configurado' });
+  }
+  
+  try {
+    const { data: order, error } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
+    if (error || !order) {
+      return res.status(404).json({ error: 'Pedido não encontrado no banco' });
+    }
+    if (!order.access_token) {
+      return res.status(400).json({ error: 'Pedido sem access_token gerado' });
+    }
+
+    await sendTicketsEmail(order, order.access_token);
+    
+    return res.json({ success: true, message: 'Reenvio agendado com sucesso!' });
+  } catch (err: any) {
+    console.error('Erro no resend-email:', err);
+    return res.status(500).json({ error: 'Falha ao reenviar e-mail', details: err.message });
+  }
+});
+
 // 8. Admin Metrics
 app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Response) => {
   if (supabaseAdmin) {
@@ -1172,13 +1559,13 @@ app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res:
 
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
 app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
-  const { name, phone, ticketType } = req.body;
+  const { name, phone, ticketType, seller } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
 
   const validTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR';
 
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
-  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType);
+  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType, seller ? String(seller).trim() : undefined);
   const persistedTicket = created.data;
   const error = created.error;
   const token = created.token;
@@ -1190,8 +1577,8 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
   }
   const code = persistedTicket.codigo;
-  const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
-  const priceValue = validTicketType === 'POS_OPEN' ? 25 : 45;
+  const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
+  const priceValue = validTicketType === 'POS_OPEN' ? 10 : 45;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,
@@ -1199,15 +1586,16 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
-    ticketId: 't-open-45',
+    ticketId: validTicketType === 'POS_OPEN' ? 't-normal-10' : 't-open-45',
     ticketName: itemLabel,
-    category: 'GERAL',
+    category: validTicketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
     price: priceValue,
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: 'ÚNICO',
-    ticketType: validTicketType
+    lote: '1º LOTE',
+    ticketType: validTicketType,
+    vendedor: seller ? String(seller).trim() : undefined
   };
 
   purchasedTickets.unshift(newTicket);
@@ -1278,3 +1666,10 @@ app.post('/api/contact', publicWriteLimiter, async (req: Request, res: Response)
 
 // Export para Vercel Serverless
 export default app;
+
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Backend local rodando na porta ${PORT} 🎃`);
+  });
+}

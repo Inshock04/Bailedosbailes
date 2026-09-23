@@ -176,6 +176,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserTicketType, setNewUserTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
+  const [newUserSeller, setNewUserSeller] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
   const [createUserError, setCreateUserError] = useState<string | null>(null);
@@ -470,7 +471,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${adminToken}`
         },
-        body: JSON.stringify({ name, phone, ticketType: newUserTicketType })
+        body: JSON.stringify({ name, phone, ticketType: newUserTicketType, seller: newUserSeller })
       });
 
       const data = await res.json().catch(() => null);
@@ -489,6 +490,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       setNewUserName('');
       setNewUserPhone('');
       setNewUserTicketType('OPEN_BAR');
+      setNewUserSeller('');
       audioManager.playSuccess();
       fetchMetrics();
     } catch (err: any) {
@@ -1096,6 +1098,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                             <th className="p-2">NÚMERO</th>
                             <th className="p-2">TIPO</th>
                             <th className="p-2">STATUS</th>
+                            <th className="p-2">VENDEDOR</th>
                             <th className="p-2 text-right">AÇÕES</th>
                           </tr>
                         </thead>
@@ -1171,6 +1174,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                       }`}>
                                       {t.status}
                                     </span>
+                                  </td>
+                                  <td className="p-2 text-[#a855f7] font-mono font-bold">
+                                    {t.vendedor ? `@${t.vendedor}` : '-'}
                                   </td>
                                   <td className="p-2 text-right whitespace-nowrap">
                                     {isEditing ? (
