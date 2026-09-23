@@ -13,6 +13,9 @@ import nodemailer from 'nodemailer';
 // ----------------------------------------------------
 const app = express();
 
+// Confiança de proxy na Vercel (evita crash no express-rate-limit)
+app.set('trust proxy', 1);
+
 // Headers de Segurança HTTP
 app.use(helmet({
   contentSecurityPolicy: false,
