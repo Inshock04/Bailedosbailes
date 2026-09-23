@@ -755,18 +755,23 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     }
   }
 
-  const idempotencyKey = orderId;
+  const idempotencyKey = orderId; // Usar ID do pedido para garantir idempotência
 
   try {
-    // ── Checkout Transparente Pix ──
-    const pixPaymentData: any = {
-      transaction_amount: totalPrice,
-      description: `${ticket.name} (${ticket.batch}) x${validQuantity} — Hotel Cortez Halloween`,
-      payment_method_id: 'pix',
+    const preferenceData = {
+      items: [
+        {
+          id: ticket.id,
+          title: ticket.name,
+          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
+          quantity: validQuantity,
+          currency_id: 'BRL',
+          unit_price: ticket.price
+        }
+      ],
       payer: {
-        email: buyerEmail,
-        first_name: (buyerName || 'Visitante').split(' ')[0],
-        last_name: (buyerName || 'Visitante').split(' ').slice(1).join(' ') || 'Cortez',
+        name: buyerName || 'Visitante',
+        email: buyerEmail || undefined,
       },
       external_reference: orderId,
       metadata: {
@@ -774,58 +779,44 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         phone: buyerPhone || null,
         order_id: orderId
       },
-      notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
+      back_urls: {
+        success: `https://${req.get('host')}/?payment=success`,
+        failure: `https://${req.get('host')}/?payment=failure`,
+        pending: `https://${req.get('host')}/?payment=pending`
+      },
+      auto_return: 'approved'
     };
 
-    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'X-Idempotency-Key': idempotencyKey
       },
-      body: JSON.stringify(pixPaymentData)
+      body: JSON.stringify(preferenceData)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Erro ao gerar pagamento Pix MP:', data);
-      return res.status(500).json({
-        error: 'Falha ao gerar QR Code Pix.',
-        mpError: data?.message || data?.error || 'Erro desconhecido',
-        mpStatus: response.status
-      });
+      console.error('Erro ao gerar pagamento MP:', data);
+      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
     }
 
-    const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
-    const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
-    const ticketUrl = data.point_of_interaction?.transaction_data?.ticket_url;
-    const mpPaymentId = String(data.id);
-
-    if (!qrCodeBase64 && !qrCode) {
-      console.error('Pix gerado sem QR Code:', JSON.stringify(data).slice(0, 500));
-      return res.status(500).json({ error: 'Pix gerado, mas sem QR Code. Contate o suporte.' });
-    }
-
-    // 2. Atualizar pedido com a referência do pagamento MP
+    const checkoutUrl = data.init_point || data.sandbox_init_point;
+    
+    // 2. Atualizar pedido com a referência do MP
     if (supabaseAdmin && orderId) {
        await supabaseAdmin.from('ticket_orders')
          .update({
-            mp_payment_id: mpPaymentId,
-            mp_payment_link: ticketUrl || null
+            mp_preference_id: data.id,
+            mp_payment_link: checkoutUrl
          })
          .eq('id', orderId);
     }
 
-    return res.json({
-      orderId,
-      mpPaymentId,
-      qrCodeBase64,
-      qrCode,
-      ticketUrl,
-      expiresIn: 1800 // 30 minutos padrão do Pix
-    });
+    return res.json({ checkoutUrl, orderId });
   } catch (error) {
     console.error('Erro de requisição MP:', error);
     return res.status(500).json({ error: 'Falha na comunicação com o provedor de pagamento.' });

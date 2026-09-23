@@ -124,9 +124,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         throw new Error(data.error || 'Erro ao gerar pagamento.');
       }
 
-      if (data.ticketUrl) {
+      if (data.checkoutUrl) {
         audioManager.playSuccess();
-        window.location.href = data.ticketUrl;
+        window.location.href = data.checkoutUrl;
       } else {
         throw new Error('Link de pagamento não recebido.');
       }
