@@ -649,7 +649,24 @@ async function sendTicketsEmail(order: any, access_token: string) {
     return;
   }
   try {
-    const publicUrl = `${process.env.VITE_PUBLIC_URL || 'https://bailedosbailes.vercel.app'}/meus-ingressos/${access_token}`;
+    const baseUrl = process.env.VITE_PUBLIC_URL || 'https://bailedosbailes.vercel.app';
+    let ticketsHtml = '';
+
+    if (supabaseAdmin) {
+      const { data: tickets } = await supabaseAdmin.from('event_tickets').select('*').eq('order_id', order.id);
+      if (tickets && tickets.length > 0) {
+        ticketsHtml = tickets.map((t, idx) => `
+          <div style="margin: 20px 0; padding: 15px; border: 1px solid #ef4444; background: #130612; border-radius: 5px; text-align: center;">
+            <p style="color: #fca5a5; font-weight: bold; margin-bottom: 5px;">Ingresso ${idx + 1}</p>
+            <p style="font-family: monospace; font-size: 18px; color: #fbbf24; margin-top: 0;">${t.codigo}</p>
+            <a href="${baseUrl}/ingresso/${t.qr_token || t.codigo}" style="background-color: #7f1d1d; color: #fff; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; margin-top: 10px;">
+              ABRIR INGRESSO
+            </a>
+          </div>
+        `).join('');
+      }
+    }
+
     await transporter.sendMail({
       from: `"Baile dos Bailes - Hotel Cortez" <${process.env.GMAIL_USER}>`,
       to: order.buyer_email,
@@ -665,19 +682,11 @@ async function sendTicketsEmail(order: any, access_token: string) {
             <li>Quantidade: ${order.quantity}</li>
             <li>Total pago: R$ ${order.total_price}</li>
           </ul>
-          <p><strong>Informações do Evento:</strong></p>
-          <ul>
-            <li>Data: 31 de Outubro de 2026, das 21:00 às 06:00</li>
-            <li>Local: THE TRIPLEX - R. Manuel de Castilho, 201</li>
-            <li>Traje: Gótico retrô, all-black ou fantasia</li>
-          </ul>
-          <p style="color: #ff4455;"><strong>ATENÇÃO:</strong> Ao chegar no evento, apresente os <strong>QR Codes</strong> pelo link abaixo na recepção. Sugerimos deixar a página aberta ou printar os códigos antecipadamente.</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${publicUrl}" style="background-color: #15803d; color: #fff; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">
-              ACESSAR MEUS INGRESSOS
-            </a>
-          </div>
-          <p style="font-size: 12px; color: #9ca3af; text-align: center;">Não compartilhe este link com ninguém. Ele é o seu acesso exclusivo aos QR Codes.</p>
+          <p style="color: #ff4455; text-align: center; margin-top: 30px;"><strong>ATENÇÃO:</strong> Ao chegar no evento, apresente os <strong>QR Codes</strong> pelo(s) link(s) abaixo na recepção. Sugerimos deixar a página aberta ou printar os códigos antecipadamente.</p>
+          
+          ${ticketsHtml}
+
+          <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 30px;">Não compartilhe os links com ninguém. Eles são o seu acesso exclusivo aos ingressos.</p>
         </div>
       `
     });
@@ -779,12 +788,6 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         phone: buyerPhone || null,
         order_id: orderId
       },
-      back_urls: {
-        success: `https://${req.get('host')}/?payment=success`,
-        failure: `https://${req.get('host')}/?payment=failure`,
-        pending: `https://${req.get('host')}/?payment=pending`
-      },
-      auto_return: 'approved',
       notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
     };
 
