@@ -829,7 +829,8 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 app.all('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   const signatureHeader = req.headers['x-signature'] as string;
   const requestId = req.headers['x-request-id'] as string;
-  const SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
+  let SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
+  if (SECRET) SECRET = SECRET.trim();
 
   // O botão de teste do Mercado Pago envia id=123456 via query
   if (req.query.id === '123456' || req.body?.data?.id === '123456') {
