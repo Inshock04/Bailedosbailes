@@ -59,9 +59,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          // If backend has the updated tickets, use them, otherwise use the local ones
-          if (data.some(t => t.id === 't-normal-10')) {
-             setTiers(data);
+          // Filtramos o t-normal-10 para não exibir na UI conforme solicitado
+          const filtered = data.filter((t: any) => t.id !== 't-normal-10');
+          if (filtered.length > 0) {
+             setTiers(filtered);
           }
         }
       })

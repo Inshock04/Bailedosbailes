@@ -443,12 +443,12 @@ let tickets: Ticket[] = [
     features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
+  },
+  {
+    id: 't-normal-10', name: 'INGRESSO NORMAL (SEM OPEN)', category: 'PISTA',
+    price: 10, batch: '1º LOTE', available: 200, total: 200,
+    features: ['Acesso ao evento'], drinksIncluded: [], color: '#2563eb'
   }
-  // {
-  //   id: 't-normal-10', name: 'INGRESSO NORMAL (SEM OPEN)', category: 'PISTA',
-  //   price: 10, batch: '1º LOTE', available: 200, total: 200,
-  //   features: ['Acesso ao evento'], drinksIncluded: [], color: '#2563eb'
-  // }
 ];
 
 let promotions: Promotion[] = [];
