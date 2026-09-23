@@ -718,6 +718,10 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     return res.status(404).json({ error: 'Ingresso não encontrado.' });
   }
 
+  if (!buyerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+    return res.status(400).json({ error: 'E-mail válido é obrigatório para pagamento Pix.' });
+  }
+
   const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
   const totalPrice = ticket.price * validQuantity;
   let orderId = crypto.randomUUID();
@@ -741,10 +745,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 
     if (orderError) {
       console.error('Erro ao criar pedido no banco:', orderError);
-      // Fallback gracioso: logar mas permitir gerar pagamento? 
-      // Ou travar a venda se não gravar? A instrução diz: "Registrar o pedido como Aguardando pagamento"
-      // Se não tem banco configurado local, podemos avisar:
-      if (orderError.code === '42P01') { // table does not exist
+      if (orderError.code === '42P01') {
          console.warn('Tabela ticket_orders não encontrada. Certifique-se de executar o migration_v4.sql');
       } else {
          return res.status(500).json({ error: 'Erro ao registrar o pedido no sistema.' });
@@ -754,23 +755,18 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     }
   }
 
-  const idempotencyKey = orderId; // Usar ID do pedido para garantir idempotência
+  const idempotencyKey = orderId;
 
   try {
-    const preferenceData = {
-      items: [
-        {
-          id: ticket.id,
-          title: ticket.name,
-          description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
-          quantity: validQuantity,
-          currency_id: 'BRL',
-          unit_price: ticket.price
-        }
-      ],
+    // ── Checkout Transparente Pix ──
+    const pixPaymentData: any = {
+      transaction_amount: totalPrice,
+      description: `${ticket.name} (${ticket.batch}) x${validQuantity} — Hotel Cortez Halloween`,
+      payment_method_id: 'pix',
       payer: {
-        name: buyerName || 'Visitante',
-        email: buyerEmail || undefined,
+        email: buyerEmail,
+        first_name: (buyerName || 'Visitante').split(' ')[0],
+        last_name: (buyerName || 'Visitante').split(' ').slice(1).join(' ') || 'Cortez',
       },
       external_reference: orderId,
       metadata: {
@@ -778,44 +774,58 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         phone: buyerPhone || null,
         order_id: orderId
       },
-      back_urls: {
-        success: `https://${req.get('host')}/?payment=success`,
-        failure: `https://${req.get('host')}/?payment=failure`,
-        pending: `https://${req.get('host')}/?payment=pending`
-      },
-      auto_return: 'approved'
+      notification_url: `https://${req.get('host')}/api/webhooks/mercadopago`
     };
 
-    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
         'X-Idempotency-Key': idempotencyKey
       },
-      body: JSON.stringify(preferenceData)
+      body: JSON.stringify(pixPaymentData)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Erro ao gerar pagamento MP:', data);
-      return res.status(500).json({ error: 'Falha ao gerar link de pagamento.', mpError: data?.message || data?.error || 'Erro desconhecido', mpStatus: response.status });
+      console.error('Erro ao gerar pagamento Pix MP:', data);
+      return res.status(500).json({
+        error: 'Falha ao gerar QR Code Pix.',
+        mpError: data?.message || data?.error || 'Erro desconhecido',
+        mpStatus: response.status
+      });
     }
 
-    const checkoutUrl = data.init_point || data.sandbox_init_point;
-    
-    // 2. Atualizar pedido com a referência do MP
+    const qrCodeBase64 = data.point_of_interaction?.transaction_data?.qr_code_base64;
+    const qrCode = data.point_of_interaction?.transaction_data?.qr_code;
+    const ticketUrl = data.point_of_interaction?.transaction_data?.ticket_url;
+    const mpPaymentId = String(data.id);
+
+    if (!qrCodeBase64 && !qrCode) {
+      console.error('Pix gerado sem QR Code:', JSON.stringify(data).slice(0, 500));
+      return res.status(500).json({ error: 'Pix gerado, mas sem QR Code. Contate o suporte.' });
+    }
+
+    // 2. Atualizar pedido com a referência do pagamento MP
     if (supabaseAdmin && orderId) {
        await supabaseAdmin.from('ticket_orders')
          .update({
-            mp_preference_id: data.id,
-            mp_payment_link: checkoutUrl
+            mp_payment_id: mpPaymentId,
+            mp_payment_link: ticketUrl || null
          })
          .eq('id', orderId);
     }
 
-    return res.json({ checkoutUrl, orderId });
+    return res.json({
+      orderId,
+      mpPaymentId,
+      qrCodeBase64,
+      qrCode,
+      ticketUrl,
+      expiresIn: 1800 // 30 minutos padrão do Pix
+    });
   } catch (error) {
     console.error('Erro de requisição MP:', error);
     return res.status(500).json({ error: 'Falha na comunicação com o provedor de pagamento.' });
@@ -832,57 +842,57 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   let SECRET = process.env.MERCADOPAGO_WEBHOOK_SECRET || process.env.MP_WEBHOOK_SECRET;
   if (SECRET) SECRET = SECRET.trim();
 
-  const dataIdFromBody = req.body?.data?.id ? String(req.body.data.id) : undefined;
-  const dataIdFromQuery = (req.query?.['data.id'] || req.query?.data?.id || req.query?.id) ? String(req.query?.['data.id'] || req.query?.data?.id || req.query?.id) : undefined;
-  const topic = req.body?.type || req.body?.topic || req.query?.topic || req.query?.type;
+  // 1. Apenas Webhooks oficiais são aceitos (remove IPN)
+  if (!signatureHeader) {
+    // Retorna 200 silencioso para IPN antigo não travar ou 400. Vamos retornar 400 explícito ou 200 ignorando.
+    // Como queremos desativar IPN mas o MP pode continuar tentando se configurado, um 200 OK com msg de skip
+    // evitará re-tentativas desnecessárias.
+    console.log('[Webhook] Recebida requisição sem assinatura (possível IPN). Ignorando.');
+    return res.status(200).send('Ignored: Use Webhooks instead of IPN');
+  }
 
-  // 1. Simulação ID 123456
-  if (dataIdFromBody === '123456' || dataIdFromQuery === '123456') {
-    console.log('[Webhook] Simulação Mercado Pago recebida (ID 123456). Retornando 200 OK.');
+  const topic = req.body?.type || req.body?.action;
+  const dataId = req.body?.data?.id ? String(req.body.data.id) : '';
+
+  // 2. Simulação ID 123456
+  if (dataId === '123456' || dataId === '123456789') {
+    console.log(`[Webhook] Simulação Mercado Pago recebida (ID ${dataId}). Retornando 200 OK.`);
     return res.status(200).send('Test successful');
   }
 
-  // 2. Validação de Segurança Rigorosa para Webhooks
-  const isWebhook = !!signatureHeader;
+  // 3. Validação de Segurança Rigorosa para Webhooks
+  if (!requestId || !SECRET) {
+    console.error('[Webhook] Falha de segurança: x-request-id ou SECRET ausente.');
+    return res.status(401).send('Missing signature requirements');
+  }
   
-  if (isWebhook) {
-    if (!requestId || !SECRET) {
-      console.error('[Webhook] Falha de segurança: x-request-id ou SECRET ausente.');
-      return res.status(401).send('Missing signature requirements');
-    }
-    
-    const tsPart = signatureHeader.split(',').find(p => p.trim().startsWith('ts='));
-    const v1Part = signatureHeader.split(',').find(p => p.trim().startsWith('v1='));
-    if (!tsPart || !v1Part) {
-      console.error('[Webhook] Falha de segurança: Formato do x-signature inválido.');
-      return res.status(401).send('Invalid signature format');
-    }
-    
-    const ts = tsPart.split('=')[1];
-    const v1 = v1Part.split('=')[1];
-    const dataId = dataIdFromBody || dataIdFromQuery || '';
-    
-    const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-    const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
-    
-    if (hash !== v1) {
-      console.error('[Webhook] Falha de segurança: Assinatura MP inválida.', { hash, v1 });
-      return res.status(401).send('Invalid signature');
-    }
-  } else if (!dataIdFromQuery) {
-    // Rejeitar se não houver assinatura nem query IPN válida
-    return res.status(400).send('Bad Request: Not a valid Webhook or IPN');
+  const tsPart = signatureHeader.split(',').find(p => p.trim().startsWith('ts='));
+  const v1Part = signatureHeader.split(',').find(p => p.trim().startsWith('v1='));
+  if (!tsPart || !v1Part) {
+    console.error('[Webhook] Falha de segurança: Formato do x-signature inválido.');
+    return res.status(401).send('Invalid signature format');
+  }
+  
+  const ts = tsPart.split('=')[1];
+  const v1 = v1Part.split('=')[1];
+  
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
+  
+  if (hash !== v1) {
+    console.error('[Webhook] Falha de segurança: Assinatura MP inválida.', { hash, v1, manifest });
+    return res.status(401).send('Invalid signature');
   }
 
   // Se passou na segurança validamos a notificação
-  if (topic === 'payment') {
-    const paymentId = dataIdFromBody || dataIdFromQuery;
+  if (topic === 'payment' || topic === 'payment.updated' || req.body?.action === 'payment.updated') {
+    const paymentId = dataId;
     if (!paymentId) {
        return res.sendStatus(200);
     }
 
     try {
-      // 3. Consulta Oficial na API do Mercado Pago
+      // 4. Consulta Oficial na API do Mercado Pago
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN}` }
       });
@@ -900,14 +910,14 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         return res.status(200).send('No order ID or Supabase admin');
       }
 
-      // 4. Buscar o Pedido (Order) correspondente
+      // 5. Buscar o Pedido (Order) correspondente
       const { data: order } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
       if (!order) {
          console.warn(`[Webhook] Pedido ${orderId} não encontrado no banco de dados.`);
          return res.status(200).send('Order not found');
       }
       
-      // 5. Idempotência: Checar se os ingressos já foram gerados
+      // 6. Idempotência: Checar se os ingressos já foram gerados
       if (order.tickets_generated && status === 'approved') {
          console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
          return res.status(200).send('Already processed');
@@ -916,13 +926,13 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       const newPaymentStatus = status === 'approved' ? 'aprovado' : (status === 'rejected' || status === 'cancelled') ? 'recusado' : 'aguardando_pagamento';
 
       if (order.payment_status !== newPaymentStatus) {
-        // 6. Atualizar Status do Pedido
+        // 7. Atualizar Status do Pedido
         await supabaseAdmin.from('ticket_orders')
           .update({ payment_status: newPaymentStatus, mp_payment_id: paymentId, updated_at: new Date().toISOString() })
           .eq('id', orderId);
       }
 
-      // 7. Gerar Ingressos (Apenas uma vez)
+      // 8. Gerar Ingressos (Apenas uma vez) e Disparar E-mail
       if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
         const accessToken = crypto.randomBytes(16).toString('hex');
         
@@ -936,8 +946,11 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         await supabaseAdmin.from('ticket_orders').update({ tickets_generated: true, access_token: accessToken }).eq('id', orderId);
         
         order.access_token = accessToken;
-        sendTicketsEmail(order, accessToken);
-        console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos e e-mail disparados.`);
+        
+        // Envio de e-mail assíncrono para não travar a resposta do webhook
+        sendTicketsEmail(order, accessToken).catch(err => console.error('[Webhook] Erro no catch do sendTicketsEmail:', err));
+        
+        console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos criados e e-mail disparado.`);
       }
 
       // Após todo o processamento assíncrono, retornamos sucesso
@@ -966,6 +979,123 @@ app.get('/api/orders/:accessToken', async (req: Request, res: Response) => {
   const mappedTickets = tickets.map(t => mapSupabaseTicket(t, t.qr_token || t.codigo));
 
   res.json({ order, tickets: mappedTickets });
+});
+
+// ==============================================================================
+// POLLING DE STATUS DO PEDIDO (para o frontend consultar enquanto aguarda Pix)
+// ==============================================================================
+app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase indisponível' });
+
+  // UUID validation
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+    return res.status(400).json({ error: 'ID de pedido inválido.' });
+  }
+
+  const { data: order, error: orderError } = await supabaseAdmin
+    .from('ticket_orders')
+    .select('id, payment_status, tickets_generated, access_token, created_at')
+    .eq('id', orderId)
+    .single();
+
+  if (orderError || !order) {
+    return res.status(404).json({ error: 'Pedido não encontrado.' });
+  }
+
+  // Se já está aprovado, retorna direto com o access_token
+  if (order.payment_status === 'aprovado' && order.tickets_generated) {
+    return res.json({
+      status: 'aprovado',
+      accessToken: order.access_token
+    });
+  }
+
+  // Se recusado ou expirado, retorna direto
+  if (order.payment_status === 'recusado' || order.payment_status === 'expirado') {
+    return res.json({ status: order.payment_status });
+  }
+
+  // ── Reconciliação: Se ainda está pendente, verificar na API do Mercado Pago ──
+  const MP_ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
+  if (MP_ACCESS_TOKEN && order.payment_status === 'aguardando_pagamento') {
+    try {
+      // Buscar pagamento pelo external_reference (orderId)
+      const searchRes = await fetch(
+        `https://api.mercadopago.com/v1/payments/search?external_reference=${orderId}&sort=date_created&criteria=desc&limit=1`,
+        { headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` } }
+      );
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const payment = searchData?.results?.[0];
+        if (payment) {
+          const mpStatus = payment.status;
+          const newPaymentStatus = mpStatus === 'approved' ? 'aprovado'
+            : (mpStatus === 'rejected' || mpStatus === 'cancelled') ? 'recusado'
+            : 'aguardando_pagamento';
+
+          if (newPaymentStatus !== order.payment_status) {
+            // Atualizar o status no banco
+            await supabaseAdmin.from('ticket_orders')
+              .update({
+                payment_status: newPaymentStatus,
+                mp_payment_id: String(payment.id),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', orderId);
+
+            // Se aprovado e ingressos ainda não foram gerados, gerar agora (reconciliação)
+            if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
+              const { data: fullOrder } = await supabaseAdmin
+                .from('ticket_orders').select('*').eq('id', orderId).single();
+
+              if (fullOrder && !fullOrder.tickets_generated) {
+                const accessToken = crypto.randomBytes(16).toString('hex');
+                for (let i = 0; i < fullOrder.quantity; i++) {
+                  const resTicket = await createPersistedTicket(
+                    fullOrder.buyer_name, fullOrder.buyer_phone,
+                    fullOrder.ticket_type, fullOrder.seller_ref
+                  );
+                  if (resTicket.data) {
+                    await supabaseAdmin.from('event_tickets')
+                      .update({ order_id: orderId }).eq('id', resTicket.data.id);
+                  }
+                }
+                await supabaseAdmin.from('ticket_orders')
+                  .update({ tickets_generated: true, access_token: accessToken })
+                  .eq('id', orderId);
+
+                sendTicketsEmail(fullOrder, accessToken);
+                console.log(`[Reconciliação] Pedido ${orderId} aprovado via polling. Ingressos gerados.`);
+
+                return res.json({
+                  status: 'aprovado',
+                  accessToken
+                });
+              }
+            }
+
+            return res.json({ status: newPaymentStatus });
+          }
+        }
+
+        // Verificar expiração (30 minutos)
+        const createdAt = new Date(order.created_at).getTime();
+        const now = Date.now();
+        if (now - createdAt > 30 * 60 * 1000) {
+          await supabaseAdmin.from('ticket_orders')
+            .update({ payment_status: 'expirado', updated_at: new Date().toISOString() })
+            .eq('id', orderId)
+            .eq('payment_status', 'aguardando_pagamento');
+          return res.json({ status: 'expirado' });
+        }
+      }
+    } catch (err) {
+      console.error('[Polling] Erro na reconciliação MP:', err);
+    }
+  }
+
+  return res.json({ status: order.payment_status });
 });
 
 // 3. Promotions
