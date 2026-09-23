@@ -175,7 +175,7 @@ export default function App() {
           const res = await fetch(`/api/orders/${externalRef}/status`, { cache: 'no-store' });
           const data = await res.json();
           if (data.status === 'aprovado' && data.accessToken) {
-            window.location.href = `/meus-ingressos/${data.accessToken}`;
+            window.location.href = `/ingresso/${data.accessToken}`;
             return;
           }
         } catch(e) {
@@ -185,8 +185,8 @@ export default function App() {
 
       const path = window.location.pathname;
       if (path && path.length > 1 && !path.startsWith('/api') && path !== '/index.html') {
-        if (path.startsWith('/meus-ingressos/')) {
-           const token = path.replace('/meus-ingressos/', '');
+        if (path.startsWith('/ingresso/')) {
+           const token = path.replace('/ingresso/', '');
            if (token) setMyTicketsToken(token);
            return;
         }

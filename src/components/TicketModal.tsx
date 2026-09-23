@@ -49,7 +49,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   const [buyerEmail, setBuyerEmail] = useState<string>('');
   const [buyerPhone, setBuyerPhone] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao'>('cartao');
-  const [pixData, setPixData] = useState<{ qrCodeBase64: string, qrCode: string, orderId: string } | null>(null);
+
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const isIntegrationReady = true; // Habilita a integração Mercado Pago
 
@@ -69,26 +69,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       .catch(() => {});
   }, [isOpen, preselectedTierId]);
 
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (pixData?.orderId && paymentStatus !== 'aprovado') {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/orders/${pixData.orderId}/status`, { cache: 'no-store' });
-          const data = await res.json();
-          if (data.status === 'aprovado' && data.accessToken) {
-            setPaymentStatus('aprovado');
-            audioManager.playSuccess();
-            clearInterval(interval);
-            setTimeout(() => {
-              window.location.href = `/meus-ingressos/${data.accessToken}`;
-            }, 2000);
-          }
-        } catch (e) {}
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [pixData?.orderId, paymentStatus]);
+
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
