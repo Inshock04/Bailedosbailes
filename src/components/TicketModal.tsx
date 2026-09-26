@@ -12,12 +12,12 @@ interface TicketModalProps {
 
 const DEFAULT_TIERS: TicketTier[] = [
   {
-    id: 't-open-45',
+    id: 't-open-50',
     name: 'INGRESSO OPEN',
     category: 'OPEN',
-    price: 45,
+    price: 50,
     originalPrice: 65,
-    batch: '1º LOTE',
+    batch: '2º LOTE',
     available: 200,
     total: 200,
     features: [
@@ -31,11 +31,11 @@ const DEFAULT_TIERS: TicketTier[] = [
 export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, preselectedTierId }) => {
   const [tiers, setTiers] = useState<TicketTier[]>([
     {
-      id: 't-open-45',
+      id: 't-open-50',
       name: 'INGRESSO OPEN BAR',
       category: 'OPEN',
-      price: 45,
-      batch: '1º LOTE',
+      price: 50,
+      batch: '2º LOTE',
       available: 200,
       total: 200,
       features: ['Open Bar das 21:00 às 00:00'],
@@ -43,7 +43,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       color: '#991b1b'
     }
   ]);
-  const [selectedTierId, setSelectedTierId] = useState<string>('t-open-45');
+  const [selectedTierId, setSelectedTierId] = useState<string>('t-open-50');
   const [quantity, setQuantity] = useState<number>(1);
   const [buyerName, setBuyerName] = useState<string>('');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
@@ -77,7 +77,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   if (!isOpen) return null;
 
   const currentTier = tiers.find(t => t.id === selectedTierId) || tiers[0] || {} as any;
-  const totalPrice = currentTier?.price ? currentTier.price * quantity : 0;
+  // Combo: 3 ingressos por R$130
+  const totalPrice = currentTier?.price
+    ? (quantity === 3 ? 130 : currentTier.price * quantity)
+    : 0;
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +150,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 BILHETERIA OFICIAL • THE TRIPLEX
               </h2>
               <span className="font-mono text-[12px] text-[#fca5a5]">
-                Ingresso Open R$ 45,00 • Atendimento Direto via WhatsApp
+                Ingresso Open R$ 50,00 • 3 por R$ 130 • WhatsApp
               </span>
             </div>
           </div>
@@ -337,6 +340,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               <span className="font-pixel text-base sm:text-xl text-[#22c55e] font-bold">
                 R$ {totalPrice.toFixed(2)}
               </span>
+              {quantity === 3 && currentTier?.price && (
+                <span className="text-[10px] text-[#fbbf24] font-mono block">🔥 COMBO: 3 ingressos por R$ 130!</span>
+              )}
             </div>
 
             <button

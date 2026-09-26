@@ -388,7 +388,7 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
     const createdAt = new Date().toISOString();
 
     const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
-    const priceValue = ticketType === 'POS_OPEN' ? 10 : 45;
+    const priceValue = ticketType === 'POS_OPEN' ? 10 : 50;
 
     const insertPayload: any = {
       codigo: code,
@@ -398,7 +398,7 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
       item: itemLabel,
       categoria: ticketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
       preco: priceValue,
-      lote: '1º LOTE',
+      lote: '2º LOTE',
       status: 'valido',
       criado_em: createdAt,
       tipo_ingresso: ticketType,
@@ -438,15 +438,15 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-open-45', name: 'INGRESSO OPEN BAR', category: 'OPEN',
-    price: 45, originalPrice: 65, batch: '1º LOTE', available: 200, total: 200,
+    id: 't-open-50', name: 'INGRESSO OPEN BAR', category: 'OPEN',
+    price: 50, originalPrice: 65, batch: '2º LOTE', available: 200, total: 200,
     features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   },
   {
     id: 't-normal-10', name: 'INGRESSO NORMAL (SEM OPEN)', category: 'PISTA',
-    price: 10, batch: '1º LOTE', available: 200, total: 200,
+    price: 10, batch: '2º LOTE', available: 200, total: 200,
     features: ['Acesso ao evento'], drinksIncluded: [], color: '#2563eb'
   }
 ];
@@ -732,7 +732,8 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
   }
 
   const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
-  const totalPrice = ticket.price * validQuantity;
+  // Combo: 3 ingressos por R$130
+  const totalPrice = validQuantity === 3 ? 130 : ticket.price * validQuantity;
   let orderId = crypto.randomUUID();
 
   // 1. Criar o Pedido Pendente no Supabase
@@ -775,7 +776,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
           description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
           quantity: validQuantity,
           currency_id: 'BRL',
-          unit_price: ticket.price
+          unit_price: validQuantity === 3 ? Math.round(13000 / 3) / 100 : ticket.price
         }
       ],
       payer: {
@@ -1773,7 +1774,7 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
   }
   const code = persistedTicket.codigo;
   const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
-  const priceValue = validTicketType === 'POS_OPEN' ? 10 : 45;
+  const priceValue = validTicketType === 'POS_OPEN' ? 10 : 50;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,
@@ -1781,14 +1782,14 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
-    ticketId: validTicketType === 'POS_OPEN' ? 't-normal-10' : 't-open-45',
+    ticketId: validTicketType === 'POS_OPEN' ? 't-normal-10' : 't-open-50',
     ticketName: itemLabel,
     category: validTicketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
     price: priceValue,
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: '1º LOTE',
+    lote: '2º LOTE',
     ticketType: validTicketType,
     vendedor: seller ? String(seller).trim() : undefined
   };
