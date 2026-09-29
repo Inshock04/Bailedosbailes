@@ -20,7 +20,11 @@ import {
   Search,
   ExternalLink,
   FileText,
-  X
+  X,
+  Link2,
+  Trash2,
+  Copy,
+  Users
 } from 'lucide-react';
 import type { PurchasedTicket, Coupon } from '../types';
 
@@ -157,7 +161,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [showTokens, setShowTokens] = useState(false);
 
   // Tab State - Abre diretamente na tela de inserção de usuários
-  const [activeTab, setActiveTab] = useState<'TICKETS' | 'CHECKIN' | 'METRICS' | 'COUPONS'>('TICKETS');
+  const [activeTab, setActiveTab] = useState<'TICKETS' | 'CHECKIN' | 'METRICS' | 'COUPONS' | 'SELLERS'>('TICKETS');
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -247,6 +251,113 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [editTicketType, setEditTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Vendedores State
+  interface SellerInfo {
+    id: string;
+    name: string;
+    slug: string;
+    createdAt: string;
+  }
+  interface SellerStat {
+    name: string;
+    slug: string;
+    totalSales: number;
+    totalRevenue: number;
+  }
+  const [sellersList, setSellersList] = useState<SellerInfo[]>([]);
+  const [sellerStats, setSellerStats] = useState<SellerStat[]>([]);
+  const [newSellerName, setNewSellerName] = useState('');
+  const [creatingSeller, setCreatingSeller] = useState(false);
+  const [sellerError, setSellerError] = useState<string | null>(null);
+  const [sellerSuccess, setSellerSuccess] = useState<string | null>(null);
+  const [copiedSellerId, setCopiedSellerId] = useState<string | null>(null);
+  const [sellersLoading, setSellersLoading] = useState(false);
+
+  // Fetch Sellers
+  const fetchSellers = async (tokenToUse?: string) => {
+    const token = tokenToUse || adminToken;
+    if (!token) return;
+    setSellersLoading(true);
+    try {
+      const [sellersRes, statsRes] = await Promise.all([
+        fetch('/api/sellers', { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch('/api/admin/sellers/stats', { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      if (sellersRes.ok) {
+        const data = await sellersRes.json();
+        setSellersList(data);
+      }
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setSellerStats(data);
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setSellersLoading(false);
+    }
+  };
+
+  // Create Seller
+  const handleCreateSeller = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newSellerName.trim();
+    if (!name) return;
+
+    setCreatingSeller(true);
+    setSellerError(null);
+    setSellerSuccess(null);
+
+    try {
+      const res = await fetch('/api/admin/sellers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ name })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar vendedor.');
+
+      const link = `${window.location.origin}/${data.seller.slug}`;
+      setSellerSuccess(`Vendedor "${data.seller.name}" criado! Link: ${link}`);
+      setNewSellerName('');
+      audioManager.playSuccess();
+      fetchSellers();
+    } catch (err: any) {
+      setSellerError(err.message || 'Erro ao criar vendedor.');
+      audioManager.playError();
+    } finally {
+      setCreatingSeller(false);
+    }
+  };
+
+  // Delete Seller
+  const handleDeleteSeller = async (id: string) => {
+    try {
+      await fetch(`/api/admin/sellers/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+      setSellersList(prev => prev.filter(s => s.id !== id));
+      audioManager.playClick();
+      fetchSellers();
+    } catch {
+      // silently fail
+    }
+  };
+
+  // Copy Seller Link
+  const handleCopySellerLink = (seller: SellerInfo) => {
+    const link = `${window.location.origin}/${seller.slug}`;
+    navigator.clipboard.writeText(link);
+    setCopiedSellerId(seller.id);
+    audioManager.playSuccess();
+    setTimeout(() => setCopiedSellerId(null), 2000);
+  };
+
   useEffect(() => {
     const term = userSearchTerm.trim();
     if (!term || !adminToken) {
@@ -305,6 +416,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   useEffect(() => {
     if (isOpen && adminToken) {
       fetchMetrics();
+      fetchSellers();
     }
   }, [isOpen, adminToken]);
 
@@ -762,6 +874,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
               >
                 <PixelCardIcon size={12} />
                 <span>CUPONS ORÁCULO ({metrics?.coupons?.length || 0})</span>
+              </button>
+              <button
+                onClick={() => { audioManager.playClick(); setActiveTab('SELLERS'); fetchSellers(); }}
+                className={`px-3 py-1.5 border flex items-center gap-1 ${activeTab === 'SELLERS' ? 'bg-[#0e7490] border-[#22d3ee] text-white shadow-[0_0_12px_rgba(34,211,238,0.4)]' : 'bg-[#160812] border-[#381420] text-gray-400 hover:text-white hover:border-[#22d3ee]'
+                  }`}
+              >
+                <Link2 size={12} />
+                <span>VENDEDORES ({sellersList.length})</span>
               </button>
             </div>
 
@@ -1272,6 +1392,181 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. VENDEDORES / LINKS DE REFERÊNCIA */}
+              {activeTab === 'SELLERS' && (
+                <div className="space-y-4">
+                  {/* Formulário: Criar Vendedor */}
+                  <div className="bg-[#0c1a2a] border-2 border-[#0e7490] shadow-[0_0_20px_rgba(14,116,144,0.25)] p-4 sm:p-5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link2 size={16} className="text-[#22d3ee]" />
+                      <h3 className="font-pixel text-xs sm:text-sm text-[#a5f3fc] font-bold tracking-wide">
+                        GERAR LINK DE REFERÊNCIA (VENDEDOR)
+                      </h3>
+                    </div>
+                    <p className="font-mono text-xs text-[#67e8f9] mb-3">
+                      Digite o nome do vendedor e o link será gerado automaticamente. Quando alguém comprar por esse link, o nome do vendedor aparecerá na tabela de ingressos.
+                    </p>
+
+                    <form onSubmit={handleCreateSeller} className="flex flex-col sm:flex-row gap-3 items-end">
+                      <div className="flex-1 w-full">
+                        <label className="block text-[11px] font-pixel text-[#a5f3fc] mb-1 font-bold">
+                          NOME DO VENDEDOR *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ex: João Silva, Maria, Pedro..."
+                          value={newSellerName}
+                          onChange={e => setNewSellerName(e.target.value)}
+                          className="w-full bg-[#071520] border-2 border-[#0e7490]/70 px-3 py-2.5 text-xs sm:text-sm text-white outline-hidden focus:border-[#22d3ee] font-mono shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <button
+                          type="submit"
+                          disabled={creatingSeller}
+                          className="w-full sm:w-auto pixel-btn bg-[#0e7490] hover:bg-[#0891b2] active:bg-[#155e75] text-white py-2.5 px-5 font-pixel text-[12px] font-bold shadow-[0_0_15px_rgba(14,116,144,0.5)] transition-all cursor-pointer"
+                        >
+                          <span className="flex items-center justify-center gap-1.5">
+                            <Plus size={16} />
+                            <span>{creatingSeller ? 'CRIANDO...' : 'GERAR LINK'}</span>
+                          </span>
+                        </button>
+                      </div>
+                    </form>
+
+                    {sellerSuccess && (
+                      <div className="mt-3 p-2.5 bg-[#064e3b] border-2 border-[#10b981] text-[#a7f3d0] font-pixel text-[12px] flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <CheckCircle2 size={16} className="text-[#4ade80] shrink-0" />
+                          <span className="truncate">{sellerSuccess}</span>
+                        </div>
+                        <button
+                          onClick={() => setSellerSuccess(null)}
+                          className="text-[#a7f3d0] hover:text-white p-1 rounded hover:bg-[#047857] transition-colors cursor-pointer shrink-0"
+                          title="Fechar"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    )}
+                    {sellerError && (
+                      <div className="mt-3 p-2.5 bg-[#450a0a] border-2 border-[#ef4444] text-[#fca5a5] font-mono text-xs flex items-center gap-2">
+                        <AlertTriangle size={15} className="shrink-0 text-[#ef4444]" />
+                        <span>{sellerError}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tabela de Vendedores */}
+                  <div className="space-y-2">
+                    <span className="font-pixel text-[11px] text-[#22d3ee] block">
+                      VENDEDORES CADASTRADOS ({sellersList.length})
+                    </span>
+
+                    {sellersLoading ? (
+                      <div className="p-4 text-center text-gray-400 font-mono text-xs">CARREGANDO...</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left font-mono text-xs border border-[#164e63]">
+                          <thead className="bg-[#0c2d3f] text-[#a5f3fc] font-pixel text-[10px]">
+                            <tr>
+                              <th className="p-2">VENDEDOR</th>
+                              <th className="p-2">LINK DE REFERÊNCIA</th>
+                              <th className="p-2 text-center">VENDAS</th>
+                              <th className="p-2 text-center">RECEITA</th>
+                              <th className="p-2 text-center">CRIADO EM</th>
+                              <th className="p-2 text-right">AÇÕES</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#164e63]">
+                            {sellersList.length === 0 && (
+                              <tr>
+                                <td colSpan={6} className="p-4 text-center text-gray-400 font-mono text-xs">
+                                  Nenhum vendedor cadastrado. Use o formulário acima para gerar links de referência.
+                                </td>
+                              </tr>
+                            )}
+                            {sellersList.map(seller => {
+                              const stat = sellerStats.find(s => s.slug === seller.slug);
+                              const link = `${window.location.origin}/${seller.slug}`;
+                              const isCopied = copiedSellerId === seller.id;
+                              return (
+                                <tr key={seller.id} className="hover:bg-[#0c2535]">
+                                  <td className="p-2 text-white font-bold">
+                                    <div className="flex items-center gap-1.5">
+                                      <Users size={13} className="text-[#22d3ee] shrink-0" />
+                                      <span>{seller.name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="p-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <code className="text-[#67e8f9] bg-[#071520] px-1.5 py-0.5 text-[10px] select-all truncate max-w-[200px] block">
+                                        {link}
+                                      </code>
+                                      <button
+                                        onClick={() => handleCopySellerLink(seller)}
+                                        className={`p-1 rounded transition-colors cursor-pointer shrink-0 ${
+                                          isCopied
+                                            ? 'bg-[#064e3b] text-[#4ade80]'
+                                            : 'hover:bg-[#164e63] text-[#67e8f9]'
+                                        }`}
+                                        title={isCopied ? 'Copiado!' : 'Copiar link'}
+                                      >
+                                        {isCopied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
+                                      </button>
+                                    </div>
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <span className={`px-2 py-0.5 font-pixel text-[11px] font-bold ${
+                                      (stat?.totalSales || 0) > 0
+                                        ? 'bg-[#064e3b] text-[#4ade80] border border-[#10b981]'
+                                        : 'bg-[#1c1c1c] text-gray-400 border border-gray-600'
+                                    }`}>
+                                      {stat?.totalSales || 0}
+                                    </span>
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <span className={`font-pixel text-[11px] font-bold ${
+                                      (stat?.totalRevenue || 0) > 0 ? 'text-[#4ade80]' : 'text-gray-500'
+                                    }`}>
+                                      R$ {(stat?.totalRevenue || 0).toFixed(2)}
+                                    </span>
+                                  </td>
+                                  <td className="p-2 text-center text-gray-400 text-[10px]">
+                                    {new Date(seller.createdAt).toLocaleDateString('pt-BR')}
+                                  </td>
+                                  <td className="p-2 text-right">
+                                    <button
+                                      onClick={() => handleDeleteSeller(seller.id)}
+                                      className="px-2 py-1 bg-[#450a0a] hover:bg-[#7f1d1d] border border-[#ef4444] text-[#fca5a5] font-pixel text-[9px] cursor-pointer"
+                                      title="Remover vendedor"
+                                    >
+                                      <Trash2 size={11} className="inline mr-1" />
+                                      EXCLUIR
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Explicação de como funciona */}
+                  <div className="bg-[#0c1520] border border-[#164e63] p-3 font-mono text-[11px] text-[#67e8f9] space-y-1.5">
+                    <p className="font-pixel text-[#22d3ee] text-xs font-bold mb-1">COMO FUNCIONA?</p>
+                    <p>1. Crie um vendedor digitando o nome acima.</p>
+                    <p>2. O link de referência é gerado automaticamente (ex: <code className="bg-[#071520] px-1">seusite.com/nome-do-vendedor</code>).</p>
+                    <p>3. Envie o link ao vendedor para compartilhar com os clientes.</p>
+                    <p>4. Quando alguém acessar o link e comprar um ingresso, o nome do vendedor ficará registrado na coluna "VENDEDOR" da tabela de ingressos.</p>
+                    <p className="text-[#a5f3fc] font-bold">⚠ O nome do vendedor NÃO aparece no ingresso do cliente, apenas na tabela administrativa.</p>
                   </div>
                 </div>
               )}

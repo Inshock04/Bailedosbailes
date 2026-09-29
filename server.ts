@@ -566,7 +566,7 @@ let guestList: GuestEntry[] = [];
 let coupons: Coupon[] = [];
 
 // ----------------------------------------------------
-// VENDEDORES (SELLERS)
+// VENDEDORES (SELLERS) — Persistido no Supabase
 // ----------------------------------------------------
 interface Seller {
   id: string;
@@ -575,10 +575,28 @@ interface Seller {
   createdAt: string;
 }
 
-// In-memory sellers list. Add specific ones as needed.
+// In-memory sellers list (carregado do Supabase na inicialização)
 let sellers: Seller[] = [
   { id: 's-1', name: 'Rafael', slug: 'rafael', createdAt: new Date().toISOString() }
 ];
+
+// Carregar vendedores do Supabase ao iniciar
+(async () => {
+  if (!supabaseAdmin) return;
+  try {
+    const { data } = await supabaseAdmin.from('sellers').select('*').order('created_at', { ascending: true });
+    if (data && data.length > 0) {
+      sellers = data.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        createdAt: s.created_at
+      }));
+    }
+  } catch {
+    // Tabela pode não existir, usa fallback in-memory
+  }
+})();
 
 app.get('/api/sellers', requireAdminAuth, (_req, res) => {
   res.json(sellers);
@@ -590,12 +608,112 @@ app.get('/api/sellers/:slug', (req, res) => {
   return res.status(404).json({ error: 'Vendedor não encontrado' });
 });
 
-app.post('/api/admin/sellers', requireAdminAuth, (req, res) => {
-  const { name, slug } = req.body;
-  if (!name || !slug) return res.status(400).json({ error: 'Nome e slug são obrigatórios' });
-  const newSeller = { id: `s-${Date.now()}`, name, slug: slug.toLowerCase(), createdAt: new Date().toISOString() };
+app.post('/api/admin/sellers', requireAdminAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || !String(name).trim()) return res.status(400).json({ error: 'Nome do vendedor é obrigatório' });
+
+  const cleanName = String(name).trim();
+  // Gera slug automaticamente a partir do nome
+  const slug = cleanName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  if (!slug) return res.status(400).json({ error: 'Não foi possível gerar um slug válido a partir do nome' });
+
+  // Verifica duplicidade
+  if (sellers.find(s => s.slug === slug)) {
+    return res.status(409).json({ error: `Já existe um vendedor com o link "${slug}"` });
+  }
+
+  const newSeller: Seller = {
+    id: `s-${Date.now()}`,
+    name: cleanName,
+    slug,
+    createdAt: new Date().toISOString()
+  };
+
+  // Persiste no Supabase se disponível
+  if (supabaseAdmin) {
+    try {
+      const { data, error } = await supabaseAdmin.from('sellers').insert({
+        id: newSeller.id,
+        name: newSeller.name,
+        slug: newSeller.slug,
+        created_at: newSeller.createdAt
+      }).select('*').single();
+
+      if (error) {
+        // Se tabela não existe, continua apenas em memória
+        if (error.code !== '42P01') {
+          console.warn('[Sellers] Erro ao persistir vendedor:', error.message);
+        }
+      }
+    } catch {
+      // Fallback: apenas in-memory
+    }
+  }
+
   sellers.push(newSeller);
   res.json({ success: true, seller: newSeller });
+});
+
+app.delete('/api/admin/sellers/:id', requireAdminAuth, async (req, res) => {
+  const { id } = req.params;
+  const sellerIndex = sellers.findIndex(s => s.id === id);
+  if (sellerIndex === -1) return res.status(404).json({ error: 'Vendedor não encontrado' });
+
+  const removed = sellers.splice(sellerIndex, 1)[0];
+
+  // Remove do Supabase se disponível
+  if (supabaseAdmin) {
+    try {
+      await supabaseAdmin.from('sellers').delete().eq('id', id);
+    } catch {
+      // Ignora se tabela não existe
+    }
+  }
+
+  res.json({ success: true, removed });
+});
+
+// Estatísticas de vendas por vendedor
+app.get('/api/admin/sellers/stats', requireAdminAuth, async (_req, res) => {
+  const stats: Record<string, { name: string; slug: string; totalSales: number; totalRevenue: number }> = {};
+
+  // Inicializa com 0 para todos os vendedores
+  for (const s of sellers) {
+    stats[s.slug] = { name: s.name, slug: s.slug, totalSales: 0, totalRevenue: 0 };
+  }
+
+  if (supabaseAdmin) {
+    const { data } = await supabaseAdmin.from('event_tickets').select('vendedor, preco').not('vendedor', 'is', null);
+    if (data) {
+      for (const row of data) {
+        const slug = String(row.vendedor).toLowerCase();
+        if (!stats[slug]) {
+          stats[slug] = { name: slug, slug, totalSales: 0, totalRevenue: 0 };
+        }
+        stats[slug].totalSales += 1;
+        stats[slug].totalRevenue += Number(row.preco) || 0;
+      }
+    }
+  } else {
+    for (const t of purchasedTickets) {
+      if (t.vendedor) {
+        const slug = t.vendedor.toLowerCase();
+        if (!stats[slug]) {
+          stats[slug] = { name: slug, slug, totalSales: 0, totalRevenue: 0 };
+        }
+        stats[slug].totalSales += 1;
+        stats[slug].totalRevenue += t.price;
+      }
+    }
+  }
+
+  res.json(Object.values(stats));
 });
 
 // ----------------------------------------------------
