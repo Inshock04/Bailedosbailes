@@ -456,15 +456,15 @@ let promotions: Promotion[] = [];
 const allOracleCards = [
   {
     id: 'card-skolbeats-40',
-    name: '3 SKOL BEATS POR R$ 40',
+    name: '3 SKOL BEATS POR R$ 38',
     title: 'O RITMO DOS IMORTAIS',
     symbol: 'CHALICE',
     arcana: 'ARCANA I',
     description: 'A Condessa convoca a noite com ritmo frenético. O néctar da celebração aguarda por você.',
-    rewardText: '3 SKOL BEATS POR R$ 40',
+    rewardText: '3 SKOL BEATS POR R$ 38',
     rewardCodePrefix: 'BEATS40',
     discountType: 'PRICE',
-    value: 'R$ 40,00'
+    value: 'R$ 38,00'
   },
   {
     id: 'card-redlabel-60',
