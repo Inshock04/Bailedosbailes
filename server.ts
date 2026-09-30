@@ -598,13 +598,29 @@ let sellers: Seller[] = [
   }
 })();
 
-app.get('/api/sellers', requireAdminAuth, (_req, res) => {
+app.get('/api/sellers', requireAdminAuth, async (_req, res) => {
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin.from('sellers').select('*').order('created_at', { ascending: true });
+    if (!error && data) {
+      return res.json(data.map((s: any) => ({ id: s.id, name: s.name, slug: s.slug, createdAt: s.created_at })));
+    }
+  }
   res.json(sellers);
 });
 
-app.get('/api/sellers/:slug', (req, res) => {
-  const seller = sellers.find(s => s.slug === req.params.slug.toLowerCase());
-  if (seller) return res.json({ id: seller.id, name: seller.name, slug: seller.slug });
+app.get('/api/sellers/:slug', async (req, res) => {
+  const slug = req.params.slug.toLowerCase();
+  
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin.from('sellers').select('*').eq('slug', slug).single();
+    if (!error && data) {
+      return res.json({ id: data.id, name: data.name, slug: data.slug, createdAt: data.created_at });
+    }
+  }
+  
+  const seller = sellers.find(s => s.slug === slug);
+  if (seller) return res.json({ id: seller.id, name: seller.name, slug: seller.slug, createdAt: seller.createdAt });
+  
   return res.status(404).json({ error: 'Vendedor não encontrado' });
 });
 
@@ -662,11 +678,7 @@ app.post('/api/admin/sellers', requireAdminAuth, async (req, res) => {
 
 app.delete('/api/admin/sellers/:id', requireAdminAuth, async (req, res) => {
   const { id } = req.params;
-  const sellerIndex = sellers.findIndex(s => s.id === id);
-  if (sellerIndex === -1) return res.status(404).json({ error: 'Vendedor não encontrado' });
-
-  const removed = sellers.splice(sellerIndex, 1)[0];
-
+  
   // Remove do Supabase se disponível
   if (supabaseAdmin) {
     try {
@@ -675,8 +687,14 @@ app.delete('/api/admin/sellers/:id', requireAdminAuth, async (req, res) => {
       // Ignora se tabela não existe
     }
   }
+  
+  const sellerIndex = sellers.findIndex(s => s.id === id);
+  if (sellerIndex !== -1) {
+    const removed = sellers.splice(sellerIndex, 1)[0];
+    return res.json({ success: true, removed });
+  }
 
-  res.json({ success: true, removed });
+  res.json({ success: true });
 });
 
 // Estatísticas de vendas por vendedor
