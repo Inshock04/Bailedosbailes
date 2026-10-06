@@ -173,7 +173,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
           <div className="text-center sm:text-left">
             <span className="font-pixel text-[12px] text-[#fbbf24] block">INGRESSO OPEN (2º LOTE)</span>
             <span className="font-pixel text-base text-[#22c55e] font-bold">R$ 50,00</span>
-            <span className="block text-[10px] text-[#ef4444] font-mono mt-1">*Após a compra do ingresso, não realizamos o estorno</span>
+            <span className="block text-xs text-[#ef4444] font-mono mt-1.5">*Após a compra do ingresso, não realizamos o estorno</span>
           </div>
           <button
             onClick={() => {
