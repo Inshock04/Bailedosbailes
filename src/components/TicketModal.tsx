@@ -138,8 +138,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] mt-4 mb-24 sm:my-auto">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="relative w-full max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9] my-auto max-h-[90vh] overflow-y-auto">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b-2 border-[#450a0a] pb-3 mb-4">
@@ -334,21 +334,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           </div>
 
           {/* 5. Total & Botão Oficial de Checkout */}
-          <div className="pt-3 border-t-2 border-[#381622] flex flex-row items-center justify-between gap-2 sm:gap-3">
-            <div className="min-w-0">
+          <div className="pt-3 border-t-2 border-[#381622] flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-3">
+            <div className="w-full sm:w-auto text-center sm:text-left min-w-0">
               <span className="text-[10px] sm:text-xs text-[#9ca3af] block font-mono">VALOR TOTAL</span>
               <span className="font-pixel text-base sm:text-xl text-[#22c55e] font-bold">
                 R$ {totalPrice.toFixed(2)}
               </span>
               {quantity === 3 && currentTier?.price && (
-                <span className="text-[10px] text-[#fbbf24] font-mono block">🔥 COMBO: 3 ingressos por R$ 130!</span>
+                <span className="text-[10px] text-[#fbbf24] font-mono block mt-1">🔥 COMBO: 3 ingressos por R$ 130!</span>
               )}
             </div>
 
             <button
               type="submit"
               disabled={!isIntegrationReady || isLoading}
-              className={`flex-1 sm:flex-none pixel-btn ${(!isIntegrationReady || isLoading) ? 'bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer'} px-3 sm:px-6 py-2.5 sm:py-3.5 font-pixel text-[10px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-1.5 sm:gap-2 border-2 transition-all whitespace-nowrap`}
+              className={`w-full sm:w-auto pixel-btn ${(!isIntegrationReady || isLoading) ? 'bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed shadow-none' : 'bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer'} px-3 sm:px-6 py-3 sm:py-3.5 font-pixel text-[11px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-1.5 sm:gap-2 border-2 transition-all whitespace-nowrap`}
             >
               <span>
                 {!isIntegrationReady 
@@ -359,7 +359,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               </span>
             </button>
           </div>
-        </div>
+
         </form>
 
       </div>
