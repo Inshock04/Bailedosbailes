@@ -359,7 +359,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               </span>
             </button>
           </div>
-
+        </div>
         </form>
 
       </div>
