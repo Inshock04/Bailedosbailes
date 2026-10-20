@@ -387,8 +387,8 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
     const { code, token, tokenHash } = generateTicketCredentials();
     const createdAt = new Date().toISOString();
 
-    const itemLabel = ticketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
-    const priceValue = ticketType === 'POS_OPEN' ? 10 : 50;
+    const itemLabel = ticketType === 'POS_OPEN' ? 'ENTRADA PÓS-OPEN' : 'INGRESSO OPEN BAR';
+    const priceValue = ticketType === 'POS_OPEN' ? 10 : 55;
 
     const insertPayload: any = {
       codigo: code,
@@ -439,17 +439,37 @@ interface Coupon {
 let tickets: Ticket[] = [
   {
     id: 't-open-50', name: 'INGRESSO OPEN BAR', category: 'OPEN',
-    price: 50, originalPrice: 65, batch: '2º LOTE', available: 200, total: 200,
+    price: 55, batch: '2º LOTE', available: 200, total: 200,
     features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   },
   {
-    id: 't-normal-10', name: 'INGRESSO NORMAL (SEM OPEN)', category: 'PISTA',
+    id: 't-normal-10', name: 'ENTRADA PÓS-OPEN', category: 'PISTA',
     price: 10, batch: '2º LOTE', available: 200, total: 200,
-    features: ['Acesso ao evento'], drinksIncluded: [], color: '#2563eb'
+    features: ['Entrada após o encerramento do Open Bar'], drinksIncluded: [], color: '#2563eb'
   }
 ];
+
+// Pacotes promocionais por categoria: quantidade -> preço total
+const TICKET_PACKS: Record<string, Record<number, number>> = {
+  OPEN: { 2: 100, 3: 130 },
+  PISTA: { 3: 20, 7: 50 }
+};
+
+// Calcula o menor preço total combinando unidades avulsas e pacotes
+function calculateTicketTotal(ticket: Ticket, quantity: number): number {
+  const packs = TICKET_PACKS[ticket.category] || {};
+  const best: number[] = [0];
+  for (let q = 1; q <= quantity; q++) {
+    best[q] = best[q - 1] + ticket.price;
+    for (const [size, packPrice] of Object.entries(packs)) {
+      const s = Number(size);
+      if (s <= q) best[q] = Math.min(best[q], best[q - s] + packPrice);
+    }
+  }
+  return best[quantity];
+}
 
 let promotions: Promotion[] = [];
 
@@ -814,7 +834,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
           <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Baile dos Bailes - Hotel Cortez</strong>.</p>
           <p><strong>Detalhes do Pedido:</strong></p>
           <ul>
-            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'OPEN BAR' : 'NORMAL (SEM OPEN)'}</li>
+            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'OPEN BAR' : 'ENTRADA PÓS-OPEN'}</li>
             <li>Quantidade: ${order.quantity}</li>
             <li>Total pago: R$ ${order.total_price}</li>
           </ul>
@@ -868,8 +888,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
   }
 
   const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
-  // Combo: 3 ingressos por R$130
-  const totalPrice = validQuantity === 3 ? 130 : ticket.price * validQuantity;
+  const totalPrice = calculateTicketTotal(ticket, validQuantity);
   let orderId = crypto.randomUUID();
 
   // 1. Criar o Pedido Pendente no Supabase
@@ -908,11 +927,12 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
       items: [
         {
           id: ticket.id,
-          title: ticket.name,
           description: `Lote: ${ticket.batch} | Qtd: ${validQuantity}`,
-          quantity: validQuantity,
+          // Item único com o valor total para evitar erros de arredondamento nos combos
+          title: `${ticket.name} x${validQuantity}`,
+          quantity: 1,
           currency_id: 'BRL',
-          unit_price: validQuantity === 3 ? Math.round(13000 / 3) / 100 : ticket.price
+          unit_price: totalPrice
         }
       ],
       payer: {
