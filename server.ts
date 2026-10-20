@@ -767,7 +767,7 @@ app.get('/api/event', (_req: Request, res: Response) => {
     tagline: 'UMA NOITE. SEIS HISTÓRIAS. INFINITAS MEMÓRIAS.',
     date: '31 DE OUTUBRO DE 2026',
     isoDate: '2026-10-31T21:00:00-03:00',
-    time: '21:00 ÀS 06:00 (AFTER + ∞)',
+    time: '21:00 ÀS 06:00 (AFTER ∞)',
     location: 'THE TRIPLEX',
     address: 'THE TRIPLEX • R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP',
     description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',

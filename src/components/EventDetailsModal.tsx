@@ -24,7 +24,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 O EVENTO • HOTEL CORTEZ HALLOWEEN
               </h2>
               <span className="font-mono text-xs text-[#fbbf24]">
-                31 de Outubro de 2026 • THE TRIPLEX • 21:00 às 06:00 (After + ∞)
+                31 de Outubro de 2026 • THE TRIPLEX • 21:00 às 06:00 (After ∞)
               </span>
             </div>
           </div>
@@ -135,8 +135,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 <span className="text-[#fef08a] font-bold">Concurso de Fantasias</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
-                <span className="text-[#c084fc] font-pixel text-xs">???</span>
+                <span className="font-pixel text-xs text-[#ef4444] font-bold">01:00</span>
+                <span className="text-[#fca5a5]">Encerramento do Concurso de Fantasias</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
                 <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
@@ -145,10 +145,14 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
                 <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
                 <span className="text-[#c084fc] font-pixel text-xs">???</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
+                <span className="font-pixel text-xs text-[#ef4444] font-bold">06:00</span>
+                <span className="text-[#fca5a5]">Encerramento</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-pixel text-xs text-[#a855f7] font-bold">06:00</span>
-                <span className="text-[#e9d5ff] font-pixel text-xs font-bold">AFTER + ∞</span>
+                <span className="text-[#e9d5ff] font-pixel text-xs font-bold">AFTER ∞</span>
               </div>
             </div>
           </div>
