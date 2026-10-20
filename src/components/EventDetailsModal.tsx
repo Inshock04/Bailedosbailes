@@ -24,7 +24,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 O EVENTO • HOTEL CORTEZ HALLOWEEN
               </h2>
               <span className="font-mono text-xs text-[#fbbf24]">
-                31 de Outubro de 2026 • THE TRIPLEX • 21:00 às 06:00
+                31 de Outubro de 2026 • THE TRIPLEX • 21:00 às 06:00 (After + ∞)
               </span>
             </div>
           </div>
@@ -71,14 +71,14 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
               <div className="bg-[#14081c] border-2 border-[#7e22ce] p-3.5 space-y-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-1">
                   <span className="font-pixel text-xs sm:text-sm text-[#c084fc] font-bold">
-                    01 • 3 DJs + OPEN BAR
+                    01 • + DE 5 DJS + OPEN BAR
                   </span>
                   <span className="bg-[#581c87] text-[#fef08a] font-pixel text-[11px] px-2 py-0.5 border border-[#a855f7]">
                     OPEN 21:00 ÀS 00:00
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-[#e9d5ff] leading-relaxed">
-                  Três DJs comandando a pista com uma seleção de sons para manter a festa em alta.
+                  Mais de 5 DJs comandando a pista com uma seleção de sons para manter a festa em alta.
                 </p>
                 <div className="text-xs text-[#86efac] font-bold pt-1">
                   Open das 21:00 às 00:00. (Gin, Vodka, Energético, Caipirinha, Canelinha & ???)
@@ -131,8 +131,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 <span className="text-[#fca5a5]">Encerramento do Open</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
-                <span className="font-pixel text-xs text-[#f59e0b] font-bold">???</span>
-                <span className="text-[#fef08a] font-bold">Grande Concurso de Fantasias</span>
+                <span className="font-pixel text-xs text-[#f59e0b] font-bold">00:30</span>
+                <span className="text-[#fef08a] font-bold">Concurso de Fantasias</span>
               </div>
               <div className="flex items-center justify-between border-b border-[#2b1035] pb-2">
                 <span className="font-pixel text-xs text-[#c084fc] font-bold">???</span>
@@ -147,8 +147,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 <span className="text-[#c084fc] font-pixel text-xs">???</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-pixel text-xs text-[#a855f7] font-bold">???</span>
-                <span className="text-[#a855f7] font-pixel text-xs">???</span>
+                <span className="font-pixel text-xs text-[#a855f7] font-bold">06:00</span>
+                <span className="text-[#e9d5ff] font-pixel text-xs font-bold">AFTER + ∞</span>
               </div>
             </div>
           </div>
@@ -171,7 +171,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         {/* Footer / CTA */}
         <div className="mt-5 pt-3 border-t-2 border-[#5c3e06] flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
-            <span className="font-pixel text-[12px] text-[#fbbf24] block">INGRESSO OPEN (2º LOTE)</span>
+            <span className="font-pixel text-[12px] text-[#fbbf24] block">INGRESSO OPEN (3º LOTE)</span>
             <span className="font-pixel text-base text-[#22c55e] font-bold">R$ 55,00</span>
             <span className="block text-[10px] text-[#fca5a5] font-mono mt-0.5">*Valor somente para vendas antecipadas</span>
             <span className="block text-xs text-[#ef4444] font-mono mt-1.5">*Após a compra do ingresso, não realizamos o estorno</span>

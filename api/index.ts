@@ -398,7 +398,7 @@ async function createPersistedTicket(name: string, phone: string, ticketType: 'O
       item: itemLabel,
       categoria: ticketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
       preco: priceValue,
-      lote: '2º LOTE',
+      lote: '3º LOTE',
       status: 'valido',
       criado_em: createdAt,
       tipo_ingresso: ticketType,
@@ -439,14 +439,14 @@ interface Coupon {
 let tickets: Ticket[] = [
   {
     id: 't-open-50', name: 'INGRESSO OPEN BAR', category: 'OPEN',
-    price: 55, batch: '2º LOTE', available: 200, total: 200,
+    price: 55, batch: '3º LOTE', available: 200, total: 200,
     features: ['Open Bar das 21:00 às 00:00'],
     drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
     color: '#991b1b'
   },
   {
     id: 't-normal-10', name: 'ENTRADA PÓS-OPEN', category: 'PISTA',
-    price: 10, batch: '2º LOTE', available: 200, total: 200,
+    price: 10, batch: '3º LOTE', available: 200, total: 200,
     features: ['Entrada após o encerramento do Open Bar'], drinksIncluded: [], color: '#2563eb'
   }
 ];
@@ -767,7 +767,7 @@ app.get('/api/event', (_req: Request, res: Response) => {
     tagline: 'UMA NOITE. SEIS HISTÓRIAS. INFINITAS MEMÓRIAS.',
     date: '31 DE OUTUBRO DE 2026',
     isoDate: '2026-10-31T21:00:00-03:00',
-    time: '21:00 ÀS 06:00',
+    time: '21:00 ÀS 06:00 (AFTER + ∞)',
     location: 'THE TRIPLEX',
     address: 'THE TRIPLEX • R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP',
     description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',
@@ -775,7 +775,7 @@ app.get('/api/event', (_req: Request, res: Response) => {
     ageRestriction: '18 ANOS (Obrigatória apresentação de documento original com foto)',
     dressCodeRule: 'Traje a rigor sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
     highlights: [
-      "3 DJ's que serão revelados",
+      "+ de 5 DJs que serão revelados",
       "Bebidas: Gin, Vodka, Energético, Caipirinha, Canelinha & ???"
     ]
   });
@@ -1945,7 +1945,7 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: '2º LOTE',
+    lote: '3º LOTE',
     ticketType: validTicketType,
     vendedor: seller ? String(seller).trim() : undefined
   };

@@ -73,7 +73,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
     },
     {
       q: 'O que está incluso no ingresso Open Bar?',
-      a: "O ingresso Open garante consumo liberado de Gin, Vodka, Energético, Caipirinha & Canelinha durante o evento, além de 3 DJ's que serão revelados."
+      a: "O ingresso Open garante consumo liberado de Gin, Vodka, Energético, Caipirinha & Canelinha durante o evento, além de mais de 5 DJ's que serão revelados."
     },
     {
       q: 'O uso de fantasia é obrigatório?',
