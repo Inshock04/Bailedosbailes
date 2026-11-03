@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { 
@@ -20,7 +20,8 @@ import {
   PixelHome,
   PixelInfo,
   PixelUserPlus,
-  PixelExternalLink
+  PixelExternalLink,
+  PixelClose
 } from './components/PixelIcons';
 import { 
   VictorianMansionIcon, 
@@ -41,10 +42,15 @@ import { EventDetailsModal } from './components/EventDetailsModal';
 import { LocationModal } from './components/LocationModal';
 import { DressCodeModal } from './components/DressCodeModal';
 import { AboutModal, FaqModal, ContactModal } from './components/InfoModals';
-import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { OfficialSocialButtons } from './components/OfficialSocialButtons';
-import { MyTicketsPage } from './components/MyTicketsPage';
 import { audioManager } from './utils/audio';
+
+const AdminDashboardModal = lazy(() =>
+  import('./components/AdminDashboardModal').then((m) => ({ default: m.AdminDashboardModal }))
+);
+const MyTicketsPage = lazy(() =>
+  import('./components/MyTicketsPage').then((m) => ({ default: m.MyTicketsPage }))
+);
 
 gsap.registerPlugin(useGSAP);
 
@@ -63,13 +69,23 @@ export default function App() {
   const [myTicketsToken, setMyTicketsToken] = useState<string | null>(null);
   const [showPaymentToast, setShowPaymentToast] = useState<boolean>(false);
 
-  // Real-Time Countdown to October 31, 2026, 21:00
-  const [timeLeft, setTimeLeft] = useState({
-    days: 28,
-    hours: 14,
-    minutes: 36,
-    seconds: 48,
-  });
+  // Real-Time Countdown to November 7, 2026, 22:00 (BRT)
+  const EVENT_TARGET_MS = new Date('2026-11-07T22:00:00-03:00').getTime();
+
+  const calculateCountdown = () => {
+    const diff = EVENT_TARGET_MS - Date.now();
+    if (diff <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+    return {
+      days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+      minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+      seconds: Math.floor((diff % (1000 * 60)) / 1000),
+    };
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateCountdown);
 
   // Master GSAP Intro Timeline
   useGSAP(() => {
@@ -142,21 +158,8 @@ export default function App() {
   }, { scope: containerRef });
 
   useEffect(() => {
-    const targetDate = new Date('2026-10-31T21:00:00-03:00').getTime();
-
     const updateCountdown = () => {
-      const now = new Date().getTime();
-      const diff = targetDate - now;
-
-      if (diff > 0) {
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeft({ days, hours, minutes, seconds });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
+      setTimeLeft(calculateCountdown());
     };
 
     updateCountdown();
@@ -276,7 +279,11 @@ export default function App() {
   ];
 
   if (myTicketsToken) {
-    return <MyTicketsPage token={myTicketsToken} />;
+    return (
+      <Suspense fallback={<div className="min-h-[100dvh] w-full bg-[#05030a]" />}>
+        <MyTicketsPage token={myTicketsToken} />
+      </Suspense>
+    );
   }
 
   return (
@@ -382,13 +389,13 @@ export default function App() {
                     2026
                   </span>
                   <span className="hidden sm:inline-block font-mono text-[13px] sm:text-[14px] text-[#a855f7]">
-                    • 31 OUT • 21H
+                    • 07 NOV • 22H
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="text-[#ef4444] font-pixel text-[13px] sm:text-[14px] font-bold sm:hidden">
-                    31 OUT • 21H
+                    07 NOV • 22H
                   </span>
                   {/* Minimize toggle button */}
                   <button
@@ -446,19 +453,19 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-4 gap-1">
                     <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
-                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold">{timeLeft.days}</span>
+                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.days).padStart(2, '0')}</span>
                       <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">DIAS</span>
                     </div>
                     <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
-                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold">{timeLeft.hours}</span>
+                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.hours).padStart(2, '0')}</span>
                       <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">HRS</span>
                     </div>
                     <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
-                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold">{timeLeft.minutes}</span>
+                      <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.minutes).padStart(2, '0')}</span>
                       <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">MIN</span>
                     </div>
                     <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
-                      <span className="font-pixel text-sm sm:text-base md:text-lg text-[#ef4444] font-bold">{timeLeft.seconds}</span>
+                      <span className="font-pixel text-sm sm:text-base md:text-lg text-[#ef4444] font-bold tabular-nums">{String(timeLeft.seconds).padStart(2, '0')}</span>
                       <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">SEG</span>
                     </div>
                   </div>
@@ -666,10 +673,14 @@ export default function App() {
         onClose={() => setActiveModal(null)}
       />
 
-      <AdminDashboardModal
-        isOpen={activeModal === 'admin'}
-        onClose={() => setActiveModal(null)}
-      />
+      {activeModal === 'admin' && (
+        <Suspense fallback={null}>
+          <AdminDashboardModal
+            isOpen={activeModal === 'admin'}
+            onClose={() => setActiveModal(null)}
+          />
+        </Suspense>
+      )}
 
       {/* Discret Payment Success Toast */}
       {showPaymentToast && (
@@ -678,7 +689,9 @@ export default function App() {
           <p className="font-mono text-gray-300 text-xs">
             Seu pagamento está sendo processado. A confirmação e os ingressos serão enviados diretamente para o seu e-mail.
           </p>
-          <button onClick={() => setShowPaymentToast(false)} className="absolute top-2 right-2 text-gray-500 hover:text-white">✕</button>
+          <button onClick={() => setShowPaymentToast(false)} aria-label="Fechar aviso" className="absolute top-2 right-2 text-gray-500 hover:text-white p-1">
+            <PixelClose size={11} />
+          </button>
         </div>
       )}
 

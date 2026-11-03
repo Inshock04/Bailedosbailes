@@ -344,5 +344,110 @@ export const PixelExternalLink: React.FC<IconProps> = ({ className = '', size = 
   </svg>
 );
 
+export const PixelStar: React.FC<IconProps> = ({ className = '', size = 14, color = '#f59e0b' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    <rect x="7" y="1" width="2" height="3" fill={color} />
+    <rect x="6" y="4" width="4" height="2" fill={color} />
+    <rect x="1" y="7" width="14" height="2" fill={color} />
+    <rect x="4" y="6" width="8" height="4" fill={color} />
+    <rect x="6" y="10" width="4" height="2" fill={color} />
+    <rect x="7" y="12" width="2" height="3" fill={color} />
+    <rect x="7" y="7" width="2" height="2" fill="#ffffff" />
+  </svg>
+);
+
+export const PixelFlame: React.FC<IconProps> = ({ className = '', size = 14, color = '#f97316' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    <rect x="8" y="1" width="2" height="2" fill={color} />
+    <rect x="7" y="3" width="3" height="2" fill={color} />
+    <rect x="5" y="5" width="6" height="3" fill={color} />
+    <rect x="4" y="7" width="8" height="4" fill={color} />
+    <rect x="3" y="9" width="10" height="3" fill={color} />
+    <rect x="5" y="12" width="6" height="2" fill="#dc2626" />
+    {/* Inner bright core */}
+    <rect x="7" y="8" width="2" height="2" fill="#fef08a" />
+    <rect x="6" y="10" width="4" height="3" fill="#fbbf24" />
+  </svg>
+);
+
+export const PixelPumpkin: React.FC<IconProps> = ({ className = '', size = 15, color = '#f97316' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    {/* Stem */}
+    <rect x="7" y="1" width="2" height="3" fill="#22c55e" />
+    <rect x="8" y="1" width="2" height="1" fill="#15803d" />
+    {/* Body */}
+    <rect x="4" y="4" width="8" height="10" fill={color} />
+    <rect x="2" y="5" width="12" height="8" fill={color} />
+    <rect x="1" y="6" width="14" height="6" fill={color} />
+    {/* Carved eyes & grin */}
+    <rect x="4" y="6" width="2" height="2" fill="#1a0805" />
+    <rect x="10" y="6" width="2" height="2" fill="#1a0805" />
+    <rect x="4" y="10" width="2" height="1" fill="#1a0805" />
+    <rect x="6" y="11" width="4" height="1" fill="#1a0805" />
+    <rect x="10" y="10" width="2" height="1" fill="#1a0805" />
+  </svg>
+);
+
+export const PixelShuffle: React.FC<IconProps> = ({ className = '', size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    <rect x="1" y="4" width="4" height="2" fill={color} />
+    <rect x="5" y="6" width="2" height="2" fill={color} />
+    <rect x="7" y="8" width="2" height="2" fill={color} />
+    <rect x="9" y="10" width="4" height="2" fill={color} />
+    <rect x="1" y="10" width="4" height="2" fill={color} />
+    <rect x="9" y="4" width="4" height="2" fill={color} />
+    <rect x="5" y="8" width="2" height="2" fill={color} />
+    <rect x="7" y="6" width="2" height="2" fill={color} />
+    {/* Arrowheads */}
+    <rect x="12" y="2" width="2" height="6" fill={color} />
+    <rect x="14" y="4" width="1" height="2" fill={color} />
+    <rect x="12" y="8" width="2" height="6" fill={color} />
+    <rect x="14" y="10" width="1" height="2" fill={color} />
+  </svg>
+);
+
+export const PixelTrain: React.FC<IconProps> = ({ className = '', size = 15, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    <rect x="4" y="1" width="8" height="2" fill={color} />
+    <rect x="3" y="3" width="10" height="9" fill={color} />
+    <rect x="5" y="4" width="6" height="3" fill="#071305" />
+    <rect x="5" y="9" width="2" height="2" fill="#fef08a" />
+    <rect x="9" y="9" width="2" height="2" fill="#fef08a" />
+    <rect x="4" y="12" width="2" height="2" fill={color} />
+    <rect x="10" y="12" width="2" height="2" fill={color} />
+    <rect x="2" y="14" width="12" height="1" fill={color} />
+  </svg>
+);
+
+export const PixelCar: React.FC<IconProps> = ({ className = '', size = 15, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    <rect x="4" y="3" width="8" height="3" fill={color} />
+    <rect x="5" y="4" width="6" height="2" fill="#071305" />
+    <rect x="2" y="6" width="12" height="5" fill={color} />
+    <rect x="3" y="7" width="2" height="2" fill="#fef08a" />
+    <rect x="11" y="7" width="2" height="2" fill="#ef4444" />
+    <rect x="3" y="11" width="3" height="3" fill="#1f2937" />
+    <rect x="10" y="11" width="3" height="3" fill="#1f2937" />
+  </svg>
+);
+
+export const PixelBeer: React.FC<IconProps> = ({ className = '', size = 15, color = '#f59e0b' }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={`inline-block shrink-0 ${className}`} shapeRendering="crispEdges">
+    {/* Foam */}
+    <rect x="3" y="2" width="8" height="2" fill="#ffffff" />
+    <rect x="2" y="3" width="10" height="2" fill="#fef9c3" />
+    {/* Mug */}
+    <rect x="3" y="5" width="8" height="9" fill={color} />
+    <rect x="5" y="6" width="1" height="6" fill="#fef08a" />
+    {/* Handle */}
+    <rect x="11" y="6" width="3" height="2" fill={color} />
+    <rect x="12" y="8" width="2" height="3" fill={color} />
+    <rect x="11" y="11" width="3" height="2" fill={color} />
+    {/* Base */}
+    <rect x="2" y="14" width="10" height="1" fill="#b45309" />
+  </svg>
+);
+
+
 
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../server'; // Express App
+import app, { calculateTicketTotal } from '../server'; // Express App
+import { calculateIngressoTotal } from '../src/components/TicketModal';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 
@@ -113,6 +114,73 @@ describe('Baile dos Bailes - QA Test Suite', () => {
       // No modo teste, o fetch para a API do MP falhará e retornará erro de verificação,
       // o que é um cenário negativo excelente!
       expect(res.status).toBe(200); // O webhook aceita a notificação (ack)
+    });
+  });
+
+  describe('4. Novo Sistema de Ingresso Único, Data e Oráculo (The Return)', () => {
+    it('Deve retornar apenas a modalidade única "Ingresso" sem Open Bar em /api/tickets', async () => {
+      const res = await request(app).get('/api/tickets');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].name).toBe('Ingresso');
+      expect(res.body[0].price).toBe(10);
+      expect(res.body[0].drinksIncluded).toEqual([]);
+    });
+
+    it('Deve calcular a regra progressiva exata de preços (frontend e backend sincronizados)', () => {
+      const mockTicket = {
+        id: 't-ingresso',
+        name: 'Ingresso',
+        category: 'PISTA',
+        price: 10,
+        batch: 'ANTECIPADO',
+        available: 500,
+        total: 500,
+        features: [],
+        drinksIncluded: [],
+        color: '#dc2626',
+      };
+
+      const expectedByQty: Array<[number, number]> = [
+        [1, 10],
+        [2, 20],
+        [3, 20],
+        [4, 30],
+        [5, 30],
+        [6, 35],
+        [7, 40],
+        [8, 45],
+        [10, 55],
+      ];
+
+      for (const [qty, expected] of expectedByQty) {
+        expect(calculateTicketTotal(mockTicket, qty)).toBe(expected);
+        expect(calculateIngressoTotal(qty)).toBe(expected);
+      }
+    });
+
+    it('Deve retornar a nova data (07 de Novembro às 22h) em /api/event', async () => {
+      const res = await request(app).get('/api/event');
+      expect(res.status).toBe(200);
+      expect(res.body.isoDate).toBe('2026-11-07T22:00:00-03:00');
+      expect(res.body.date).toContain('07 DE NOVEMBRO');
+      expect(res.body.time).toBe('22:00 ÀS 06:00');
+    });
+
+    it('Deve retornar exatamente as 5 novas promoções do Oráculo em /api/oracle/cards', async () => {
+      const res = await request(app).get('/api/oracle/cards');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(5);
+      const rewards = res.body.map((c: any) => c.rewardText).sort();
+      expect(rewards).toEqual(
+        [
+          '4 caipiroska de 120 por 70',
+          '3 dose de vodka c/baly por 50',
+          '2 maracujack de 70 por 55',
+          '2 whisky sour de 70 por 55',
+          '2 Jack and Coke de 70 por 55',
+        ].sort()
+      );
     });
   });
 });

@@ -30,7 +30,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Express Error interceptado:', err.message);
   // Se for qualquer erro de parsing do express.json, retorna 200 pra não falhar o teste do MP
   if (err.status >= 400 && err.status < 500) {
-    return res.status(200).send('Ignorado pelo blindador'); 
+    return res.status(200).send('Ignorado pelo blindador');
   }
   next(err);
 });
@@ -359,12 +359,12 @@ function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
   return {
     id: row.id, token: token || row.codigo, publicCode: row.codigo,
     buyerName: row.nome, buyerEmail: row.email || '', buyerPhone: row.telefone,
-    ticketId: row.tipo_ingresso === 'POS_OPEN' ? 't-normal-10' : 't-open-45', 
-    ticketName: row.item, category: row.categoria,
+    ticketId: 't-ingresso',
+    ticketName: 'INGRESSO', category: 'PISTA',
     price: Number(row.preco), paymentMethod: 'PIX',
     status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
-    createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote,
-    ticketType: row.tipo_ingresso === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR',
+    createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote || 'ANTECIPADO',
+    ticketType: 'POS_OPEN',
     vendedor: row.vendedor
   };
 }
@@ -380,28 +380,31 @@ function generateTicketCredentials(): { code: string; token: string; tokenHash: 
   return { code, token, tokenHash: hashTicketToken(token) };
 }
 
-async function createPersistedTicket(name: string, phone: string, ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'OPEN_BAR', vendedor?: string) {
+async function createPersistedTicket(
+  name: string,
+  phone: string,
+  _ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'POS_OPEN',
+  vendedor?: string,
+  unitPrice: number = 10
+) {
   if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const { code, token, tokenHash } = generateTicketCredentials();
     const createdAt = new Date().toISOString();
 
-    const itemLabel = ticketType === 'POS_OPEN' ? 'ENTRADA PÓS-OPEN' : 'INGRESSO OPEN BAR';
-    const priceValue = ticketType === 'POS_OPEN' ? 10 : 55;
-
     const insertPayload: any = {
       codigo: code,
       token_hash: tokenHash,
       nome: name,
       telefone: phone,
-      item: itemLabel,
-      categoria: ticketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
-      preco: priceValue,
-      lote: '3º LOTE',
+      item: 'INGRESSO',
+      categoria: 'PISTA',
+      preco: unitPrice,
+      lote: 'ANTECIPADO',
       status: 'valido',
       criado_em: createdAt,
-      tipo_ingresso: ticketType,
+      tipo_ingresso: 'POS_OPEN',
       vendedor: vendedor || null
     };
 
@@ -438,141 +441,101 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-open-50', name: 'INGRESSO OPEN BAR', category: 'OPEN',
-    price: 55, batch: '3º LOTE', available: 200, total: 200,
-    features: ['Open Bar das 21:00 às 00:00'],
-    drinksIncluded: ['Gin', 'Vodka', 'Energético', 'Caipirinha', 'Canelinha', '???'],
-    color: '#991b1b'
-  },
-  {
-    id: 't-normal-10', name: 'ENTRADA PÓS-OPEN', category: 'PISTA',
-    price: 10, batch: '3º LOTE', available: 200, total: 200,
-    features: ['Entrada após o encerramento do Open Bar'], drinksIncluded: [], color: '#2563eb'
+    id: 't-ingresso',
+    name: 'Ingresso',
+    category: 'PISTA',
+    price: 10,
+    batch: 'ANTECIPADO',
+    available: 500,
+    total: 500,
+    features: ['Acesso oficial ao evento das 22:00 às 06:00'],
+    drinksIncluded: [],
+    color: '#dc2626'
   }
 ];
 
-// Pacotes promocionais por categoria: quantidade -> preço total
-const TICKET_PACKS: Record<string, Record<number, number>> = {
-  OPEN: { 2: 100, 3: 130 },
-  PISTA: { 3: 20, 7: 50 }
-};
-
-// Calcula o menor preço total combinando unidades avulsas e pacotes
-function calculateTicketTotal(ticket: Ticket, quantity: number): number {
-  const packs = TICKET_PACKS[ticket.category] || {};
-  const best: number[] = [0];
-  for (let q = 1; q <= quantity; q++) {
-    best[q] = best[q - 1] + ticket.price;
-    for (const [size, packPrice] of Object.entries(packs)) {
-      const s = Number(size);
-      if (s <= q) best[q] = Math.min(best[q], best[q - s] + packPrice);
-    }
-  }
-  return best[quantity];
+/**
+ * Regra progressiva oficial de combos para "Ingresso":
+ * 1 por R$ 10 (2 = R$ 20)
+ * 3 por R$ 20 (4 = R$ 30)
+ * 5 por R$ 30
+ * A partir de 5 ingressos, cada ingresso adicional custa R$ 5 (6 = 35, 7 = 40, ...)
+ */
+export function calculateTicketTotal(_ticket: Ticket, quantity: number): number {
+  if (quantity <= 0) return 0;
+  if (quantity === 1) return 10;
+  if (quantity === 2) return 20;
+  if (quantity === 3) return 20;
+  if (quantity === 4) return 30;
+  return 30 + (quantity - 5) * 5;
 }
 
 let promotions: Promotion[] = [];
 
 const allOracleCards = [
   {
-    id: 'card-skolbeats-40',
-    name: '3 SKOL BEATS POR R$ 38',
-    title: 'O RITMO DOS IMORTAIS',
+    id: 'card-caipiroska-70',
+    name: '4 Caipiroska de R$ 120 por R$ 70',
+    title: 'QUARTETO DE CRISTAL',
     symbol: 'CHALICE',
     arcana: 'ARCANA I',
-    description: 'A Condessa convoca a noite com ritmo frenético. O néctar da celebração aguarda por você.',
-    rewardText: '3 SKOL BEATS POR R$ 38',
-    rewardCodePrefix: 'BEATS40',
+    description: 'Quatro taças geladas servidas no salão principal para brindar o retorno à mansão.',
+    rewardText: '4 caipiroska de 120 por 70',
+    rewardCodePrefix: 'CAIP70',
     discountType: 'PRICE',
-    value: 'R$ 38,00'
+    value: 'R$ 70,00'
   },
   {
-    id: 'card-redlabel-60',
-    name: '2 DOSES DE RED LABEL POR R$ 60',
-    title: 'BANQUETE DE WHISKY',
-    symbol: 'SKULL',
-    arcana: 'ARCANA II',
-    description: 'James March brinda no salão nobre com o mais refinado destilado escocês.',
-    rewardText: '2 DOSES DE RED LABEL POR R$ 60',
-    rewardCodePrefix: 'RED60',
-    discountType: 'PRICE',
-    value: 'R$ 60,00'
-  },
-  {
-    id: 'card-jackdaniels-35',
-    name: "1 DOSE DE JACK DANIEL'S POR R$ 35",
-    title: 'TENNESSEE OBSCURO',
-    symbol: 'EYE',
-    arcana: 'ARCANA III',
-    description: 'As sombras revelam a lendária dose âmbar das noites proibidas do Cortez.',
-    rewardText: "1 DOSE DE JACK DANIEL'S POR R$ 35",
-    rewardCodePrefix: 'JACK35',
-    discountType: 'PRICE',
-    value: 'R$ 35,00'
-  },
-  {
-    id: 'card-doublerosh-40',
-    name: 'DOUBLE ROSH POR R$ 40',
-    title: 'NÉVOA MÍSTICA',
+    id: 'card-vodkabaly-50',
+    name: '3 Dose de Vodka c/ Baly por R$ 50',
+    title: 'ELIXIR DA MEIA-NOITE',
     symbol: 'FLAME',
-    arcana: 'ARCANA IV',
-    description: 'A névoa ancestral invade o lounge com o dobro da essência e do vapor.',
-    rewardText: 'DOUBLE ROSH POR R$ 40',
-    rewardCodePrefix: 'ROSH40',
-    discountType: 'PRICE',
-    value: 'R$ 40,00'
-  },
-  {
-    id: 'card-smirnoff-50',
-    name: '2 DOSES DE SMIRNOFF POR R$ 50',
-    title: 'PUREZA GÉLIDA',
-    symbol: 'MOON',
-    arcana: 'ARCANA V',
-    description: 'Um ritual de vodka destilada dez vezes para purificar o seu espírito na pista.',
-    rewardText: '2 DOSES DE SMIRNOFF POR R$ 50',
-    rewardCodePrefix: 'SMIR50',
-    discountType: 'PRICE',
-    value: 'R$ 50,00'
-  },
-  {
-    id: 'card-caipirinha-50',
-    name: '3 CAIPIRINHAS POR R$ 50',
-    title: 'TRINDADE TROPICAL',
-    symbol: 'CHALICE',
-    arcana: 'ARCANA VI',
-    description: 'O caldeirão das bruxas ferve a tríade perfeita de frutas e limão para você.',
-    rewardText: '3 CAIPIRINHAS POR R$ 50',
-    rewardCodePrefix: 'CAIP50',
+    arcana: 'ARCANA II',
+    description: 'Energia intensa em dose tripla para atravessar a madrugada na pista do Cortez.',
+    rewardText: '3 dose de vodka c/baly por 50',
+    rewardCodePrefix: 'VBALY50',
     discountType: 'PRICE',
     value: 'R$ 50,00'
   },
   {
     id: 'card-maracujack-55',
-    name: '2 MARACUJACK POR R$ 55',
+    name: '2 Maracujack de R$ 70 por R$ 55',
     title: 'JACK & MARACUJÁ DUPLO',
     symbol: 'RAVEN',
-    arcana: 'ARCANA VII',
-    description: "Jack Daniel's casado com o fruto da paixão em dose dupla para curtir a noite.",
-    rewardText: '2 MARACUJACK POR R$ 55',
+    arcana: 'ARCANA III',
+    description: "Jack Daniel's combinado com maracujá em dose dupla para celebrar a noite.",
+    rewardText: '2 maracujack de 70 por 55',
     rewardCodePrefix: 'MJACK55',
     discountType: 'PRICE',
     value: 'R$ 55,00'
   },
   {
-    id: 'card-maracujack-30',
-    name: '1 MARACUJACK POR R$ 30',
-    title: 'O TOQUE DOURADO',
-    symbol: 'EYE',
-    arcana: 'ARCANA VIII',
-    description: 'Refrescante, marcante e intenso: o drink assinatura do baile em valor especial.',
-    rewardText: '1 MARACUJACK POR R$ 30',
-    rewardCodePrefix: 'MJACK30',
+    id: 'card-whiskysour-55',
+    name: '2 Whisky Sour de R$ 70 por R$ 55',
+    title: 'CLÁSSICO DO CORTEZ',
+    symbol: 'MOON',
+    arcana: 'ARCANA IV',
+    description: 'O equilíbrio cítrico e aveludado dos grandes bailes secretos em dose dupla.',
+    rewardText: '2 whisky sour de 70 por 55',
+    rewardCodePrefix: 'WSOUR55',
     discountType: 'PRICE',
-    value: 'R$ 30,00'
+    value: 'R$ 55,00'
+  },
+  {
+    id: 'card-jackcoke-55',
+    name: '2 Jack and Coke de R$ 70 por R$ 55',
+    title: 'SOMBRAS DE TENNESSEE',
+    symbol: 'SKULL',
+    arcana: 'ARCANA V',
+    description: 'A combinação lendária servida trincando em dose dupla no bar da mansão.',
+    rewardText: '2 Jack and Coke de 70 por 55',
+    rewardCodePrefix: 'JCOKE55',
+    discountType: 'PRICE',
+    value: 'R$ 55,00'
   }
 ];
 
-function getShuffledOracleCards(count = 6) {
+function getShuffledOracleCards(count = 5) {
   const copy = [...allOracleCards];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -630,17 +593,17 @@ app.get('/api/sellers', requireAdminAuth, async (_req, res) => {
 
 app.get('/api/sellers/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase();
-  
+
   if (supabaseAdmin) {
     const { data, error } = await supabaseAdmin.from('sellers').select('*').eq('slug', slug).single();
     if (!error && data) {
       return res.json({ id: data.id, name: data.name, slug: data.slug, createdAt: data.created_at });
     }
   }
-  
+
   const seller = sellers.find(s => s.slug === slug);
   if (seller) return res.json({ id: seller.id, name: seller.name, slug: seller.slug, createdAt: seller.createdAt });
-  
+
   return res.status(404).json({ error: 'Vendedor não encontrado' });
 });
 
@@ -698,7 +661,7 @@ app.post('/api/admin/sellers', requireAdminAuth, async (req, res) => {
 
 app.delete('/api/admin/sellers/:id', requireAdminAuth, async (req, res) => {
   const { id } = req.params;
-  
+
   // Remove do Supabase se disponível
   if (supabaseAdmin) {
     try {
@@ -707,7 +670,7 @@ app.delete('/api/admin/sellers/:id', requireAdminAuth, async (req, res) => {
       // Ignora se tabela não existe
     }
   }
-  
+
   const sellerIndex = sellers.findIndex(s => s.id === id);
   if (sellerIndex !== -1) {
     const removed = sellers.splice(sellerIndex, 1)[0];
@@ -761,22 +724,23 @@ app.get('/api/admin/sellers/stats', requireAdminAuth, async (_req, res) => {
 // 1. Event Data
 app.get('/api/event', (_req: Request, res: Response) => {
   res.json({
-    id: 'hotel-cortez-halloween-2026',
-    name: 'HOTEL CORTEZ HALLOWEEN PARTY',
-    subtitle: 'AMERICAN HORROR STORY',
-    tagline: 'UMA NOITE. SEIS HISTÓRIAS. INFINITAS MEMÓRIAS.',
-    date: '31 DE OUTUBRO DE 2026',
-    isoDate: '2026-10-31T21:00:00-03:00',
-    time: '21:00 ÀS 06:00 (AFTER ∞)',
+    id: 'hotel-cortez-the-return-2026',
+    name: 'HOTEL CORTEZ — THE RETURN',
+    subtitle: 'AMERICAN HORROR STORY • THE TRIPLEX',
+    tagline: 'A MANSÃO ESTÁ DE VOLTA. DESSA VEZ, A HISTÓRIA CONTINUA.',
+    date: '07 DE NOVEMBRO DE 2026',
+    isoDate: '2026-11-07T22:00:00-03:00',
+    time: '22:00 ÀS 06:00',
     location: 'THE TRIPLEX',
     address: 'THE TRIPLEX • R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP',
-    description: 'Uma imersão gótica retrô inspirada no universo sombrio de American Horror Story Hotel no THE TRIPLEX. Pistas temáticas, open bar premium, concurso de fantasias e atendimento direto.',
+    description: 'A mansão abre novamente suas portas para mais uma noite de música, experiências e muita diversão no THE TRIPLEX.',
     theme: 'Horror Psicológico, Gothic Deco & Dark Glamour',
     ageRestriction: '18 ANOS (Obrigatória apresentação de documento original com foto)',
-    dressCodeRule: 'Traje a rigor sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
+    dressCodeRule: 'Traje sombrio, fantasia criativa, gótico, vintage noir ou all-black.',
     highlights: [
-      "+ de 5 DJs que serão revelados",
-      "Bebidas: Gin, Vodka, Energético, Caipirinha, Canelinha & ???"
+      'Line-up de DJs',
+      'Concurso de Fantasias — Parte 2',
+      'Patrocínio Oficial Corote & Promoções para os Cervejeiros'
     ]
   });
 });
@@ -831,10 +795,10 @@ async function sendTicketsEmail(order: any, access_token: string) {
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #090510; color: #fff; padding: 20px; border: 2px solid #ef4444;">
           <h1 style="color: #ff4455; text-align: center;">SEUS INGRESSOS ESTÃO AQUI!</h1>
           <p>Olá <strong>${order.buyer_name}</strong>,</p>
-          <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Baile dos Bailes - Hotel Cortez</strong>.</p>
+          <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Hotel Cortez — The Return (07 de Novembro às 22h • THE TRIPLEX)</strong>.</p>
           <p><strong>Detalhes do Pedido:</strong></p>
           <ul>
-            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'OPEN BAR' : 'ENTRADA PÓS-OPEN'}</li>
+            <li>Modalidade: Ingresso</li>
             <li>Quantidade: ${order.quantity}</li>
             <li>Total pago: R$ ${order.total_price}</li>
           </ul>
@@ -847,12 +811,12 @@ async function sendTicketsEmail(order: any, access_token: string) {
       `
     });
     console.log('E-mail enviado para:', order.buyer_email);
-    
+
     // Atualiza status para enviado no Supabase
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('ticket_orders')
-        .update({ 
+        .update({
           email_status: 'enviado',
           email_sent_at: new Date().toISOString()
         })
@@ -878,7 +842,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     return res.status(500).json({ error: 'Configuração de pagamento indisponível no momento.' });
   }
 
-  const ticket = tickets.find(t => t.id === ticketId);
+  const ticket = ticketId ? tickets.find(t => t.id === ticketId) : tickets[0];
   if (!ticket) {
     return res.status(404).json({ error: 'Ingresso não encontrado.' });
   }
@@ -887,7 +851,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     return res.status(400).json({ error: 'E-mail válido é obrigatório para pagamento Pix.' });
   }
 
-  const validQuantity = Math.max(1, Math.min(10, Number(quantity) || 1));
+  const validQuantity = Math.max(1, Math.min(50, Math.floor(Number(quantity)) || 1));
   const totalPrice = calculateTicketTotal(ticket, validQuantity);
   let orderId = crypto.randomUUID();
 
@@ -899,7 +863,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         buyer_name: buyerName || 'Visitante',
         buyer_email: buyerEmail || 'nao-informado@email.com',
         buyer_phone: buyerPhone || '00000000000',
-        ticket_type: ticket.category === 'PISTA' ? 'POS_OPEN' : 'OPEN_BAR',
+        ticket_type: 'POS_OPEN',
         quantity: validQuantity,
         total_price: totalPrice,
         seller_ref: sellerSlug || null,
@@ -911,9 +875,9 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     if (orderError) {
       console.error('Erro ao criar pedido no banco:', orderError);
       if (orderError.code === '42P01') {
-         console.warn('Tabela ticket_orders não encontrada. Certifique-se de executar o migration_v4.sql');
+        console.warn('Tabela ticket_orders não encontrada. Certifique-se de executar o migration_v4.sql');
       } else {
-         return res.status(500).json({ error: 'Erro ao registrar o pedido no sistema.' });
+        return res.status(500).json({ error: 'Erro ao registrar o pedido no sistema.' });
       }
     } else if (orderData) {
       orderId = orderData.id;
@@ -966,15 +930,15 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
     }
 
     const checkoutUrl = data.init_point || data.sandbox_init_point;
-    
+
     // 2. Atualizar pedido com a referência do MP
     if (supabaseAdmin && orderId) {
-       await supabaseAdmin.from('ticket_orders')
-         .update({
-            mp_preference_id: data.id,
-            mp_payment_link: checkoutUrl
-         })
-         .eq('id', orderId);
+      await supabaseAdmin.from('ticket_orders')
+        .update({
+          mp_preference_id: data.id,
+          mp_payment_link: checkoutUrl
+        })
+        .eq('id', orderId);
     }
 
     return res.json({ checkoutUrl, orderId });
@@ -1017,20 +981,20 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
     console.error('[Webhook] Falha de segurança: x-request-id ou SECRET ausente.');
     return res.status(401).send('Missing signature requirements');
   }
-  
+
   const tsPart = signatureHeader.split(',').find(p => p.trim().startsWith('ts='));
   const v1Part = signatureHeader.split(',').find(p => p.trim().startsWith('v1='));
   if (!tsPart || !v1Part) {
     console.error('[Webhook] Falha de segurança: Formato do x-signature inválido.');
     return res.status(401).send('Invalid signature format');
   }
-  
+
   const ts = tsPart.split('=')[1];
   const v1 = v1Part.split('=')[1];
-  
+
   const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
   const hash = crypto.createHmac('sha256', SECRET).update(manifest).digest('hex');
-  
+
   if (hash !== v1) {
     console.error('[Webhook] Falha de segurança: Assinatura MP inválida.', { hash, v1, manifest });
     return res.status(401).send('Invalid signature');
@@ -1040,7 +1004,7 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
   if (topic === 'payment' || topic === 'payment.updated' || req.body?.action === 'payment.updated') {
     const paymentId = dataId;
     if (!paymentId) {
-       return res.sendStatus(200);
+      return res.sendStatus(200);
     }
 
     try {
@@ -1048,16 +1012,16 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN}` }
       });
-      
+
       if (!mpRes.ok) {
         console.error(`[Webhook] Pagamento ${paymentId} não encontrado na API oficial do MP.`);
-        return res.status(200).send('Payment not found'); 
+        return res.status(200).send('Payment not found');
       }
 
       const paymentData = await mpRes.json();
       const orderId = paymentData.external_reference;
       const status = paymentData.status;
-      
+
       if (!orderId || !supabaseAdmin) {
         return res.status(200).send('No order ID or Supabase admin');
       }
@@ -1065,20 +1029,20 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       // 5. Buscar o Pedido (Order) correspondente
       const { data: order } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
       if (!order) {
-         console.warn(`[Webhook] Pedido ${orderId} não encontrado no banco de dados.`);
-         return res.status(200).send('Order not found');
+        console.warn(`[Webhook] Pedido ${orderId} não encontrado no banco de dados.`);
+        return res.status(200).send('Order not found');
       }
-      
+
       // 6. Idempotência: Checar se os ingressos já foram gerados
       if (order.tickets_generated && status === 'approved') {
-         console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
-         
-         if (order.email_status !== 'enviado' && order.access_token) {
-           console.log(`[Webhook] E-mail não havia sido enviado. Tentando reenviar agora...`);
-           await sendTicketsEmail(order, order.access_token).catch(err => console.error('[Webhook] Erro no reenvio de e-mail:', err));
-         }
-         
-         return res.status(200).send('Already processed');
+        console.log(`[Webhook] Ingressos para o pedido ${orderId} já foram gerados. Ignorando notificação duplicada.`);
+
+        if (order.email_status !== 'enviado' && order.access_token) {
+          console.log(`[Webhook] E-mail não havia sido enviado. Tentando reenviar agora...`);
+          await sendTicketsEmail(order, order.access_token).catch(err => console.error('[Webhook] Erro no reenvio de e-mail:', err));
+        }
+
+        return res.status(200).send('Already processed');
       }
 
       const newPaymentStatus = status === 'approved' ? 'aprovado' : (status === 'rejected' || status === 'cancelled') ? 'recusado' : 'aguardando_pagamento';
@@ -1093,21 +1057,22 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
       // 8. Gerar Ingressos (Apenas uma vez) e Disparar E-mail
       if (newPaymentStatus === 'aprovado' && !order.tickets_generated) {
         const accessToken = crypto.randomBytes(16).toString('hex');
-        
+        const unitPrice = Number((Number(order.total_price || 10) / Math.max(1, Number(order.quantity || 1))).toFixed(2));
+
         for (let i = 0; i < order.quantity; i++) {
-          const resTicket = await createPersistedTicket(order.buyer_name, order.buyer_phone, order.ticket_type, order.seller_ref);
+          const resTicket = await createPersistedTicket(order.buyer_name, order.buyer_phone, 'POS_OPEN', order.seller_ref, unitPrice);
           if (resTicket.data) {
             await supabaseAdmin.from('event_tickets').update({ order_id: orderId }).eq('id', resTicket.data.id);
           }
         }
 
         await supabaseAdmin.from('ticket_orders').update({ tickets_generated: true, access_token: accessToken }).eq('id', orderId);
-        
+
         order.access_token = accessToken;
-        
+
         // Envio de e-mail aguardado para garantir execução no ambiente serverless (Vercel)
         await sendTicketsEmail(order, accessToken).catch(err => console.error('[Webhook] Erro no catch do sendTicketsEmail:', err));
-        
+
         console.log(`[Webhook] Pagamento ${paymentId} aprovado! Ingressos criados e e-mail disparado.`);
       }
 
@@ -1127,7 +1092,7 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
 
 app.get('/api/orders/:accessToken', async (req: Request, res: Response) => {
   if (!supabaseAdmin) return res.status(500).json({ error: 'Supabase indisponível' });
-  
+
   const { data: order, error: orderError } = await supabaseAdmin.from('ticket_orders').select('*').eq('access_token', req.params.accessToken).single();
   if (orderError || !order) return res.status(404).json({ error: 'Pedido não encontrado ou access token inválido' });
 
@@ -1190,7 +1155,7 @@ app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
           const mpStatus = payment.status;
           const newPaymentStatus = mpStatus === 'approved' ? 'aprovado'
             : (mpStatus === 'rejected' || mpStatus === 'cancelled') ? 'recusado'
-            : 'aguardando_pagamento';
+              : 'aguardando_pagamento';
 
           if (newPaymentStatus !== order.payment_status) {
             // Atualizar o status no banco
@@ -1209,10 +1174,11 @@ app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
 
               if (fullOrder && !fullOrder.tickets_generated) {
                 const accessToken = crypto.randomBytes(16).toString('hex');
+                const unitPrice = Number((Number(fullOrder.total_price || 10) / Math.max(1, Number(fullOrder.quantity || 1))).toFixed(2));
                 for (let i = 0; i < fullOrder.quantity; i++) {
                   const resTicket = await createPersistedTicket(
                     fullOrder.buyer_name, fullOrder.buyer_phone,
-                    fullOrder.ticket_type, fullOrder.seller_ref
+                    'POS_OPEN', fullOrder.seller_ref, unitPrice
                   );
                   if (resTicket.data) {
                     await supabaseAdmin.from('event_tickets')
@@ -1285,9 +1251,9 @@ app.post('/api/promotions/new', requireAdminAuth, (req: Request, res: Response) 
   return res.status(201).json({ success: true, promotion: newPromo });
 });
 
-// 4. Oracle (Returns 6 shuffled cards from the 8 options)
+// 4. Oracle (Returns 5 shuffled cards)
 app.get('/api/oracle/cards', (_req: Request, res: Response) => {
-  res.json(getShuffledOracleCards(6));
+  res.json(getShuffledOracleCards(5));
 });
 
 app.get('/api/oracle/me', publicWriteLimiter, async (req: Request, res: Response) => {
@@ -1322,7 +1288,7 @@ app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Respo
     token: generateSecureToken(`CORTEZ-${selectedCard.rewardCodePrefix}`),
     rewardTitle: selectedCard.rewardText, rewardValue: selectedCard.value,
     phone: phone.trim(), userName: userName ? userName.trim() : 'Visitante do Cortez',
-    status: 'ATIVO', createdAt: new Date().toISOString(), expiresAt: '2026-11-01T06:00:00.000Z'
+    status: 'ATIVO', createdAt: new Date().toISOString(), expiresAt: '2026-11-08T09:00:00.000Z'
   };
 
   const { error: insertError } = await supabaseAdmin.from('coupons').insert({ token: newCoupon.token, reward_title: newCoupon.rewardTitle, reward_value: newCoupon.rewardValue, phone: newCoupon.phone, user_name: newCoupon.userName, status: newCoupon.status, created_at: newCoupon.createdAt, redeemed_at: newCoupon.createdAt, expires_at: newCoupon.expiresAt, device_id: deviceId });
@@ -1385,13 +1351,13 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
   if (supabaseAdmin) {
     const rawToken = token.trim();
     const tokenHash = hashTicketToken(rawToken);
-    
+
     let { data: persistedTicket, error } = await supabaseAdmin
       .from('event_tickets')
       .select('*')
       .or(`token_hash.eq.${tokenHash},codigo.eq.${rawToken.toUpperCase()}`)
       .maybeSingle();
-      
+
     if (!persistedTicket && !error) {
       const qrRes = await supabaseAdmin.from('event_tickets').select('*').eq('qr_token', rawToken).maybeSingle();
       if (!qrRes.error && qrRes.data) persistedTicket = qrRes.data;
@@ -1441,7 +1407,7 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
     if (supabaseAdmin) {
       const rawToken = token.trim();
       const tokenHash = hashTicketToken(rawToken);
-      
+
       // Attempt 1: by QR token
       let consumed = null;
       const { data: byQr, error: byQrErr } = await supabaseAdmin.rpc('consume_ticket_by_qr', {
@@ -1460,7 +1426,7 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
           if (byHash?.length) consumed = byHash;
         }
       }
-      
+
       if (consumed?.length) {
         const ticket = mapSupabaseTicket(consumed[0], consumed[0].codigo);
         return res.json({ success: true, message: 'ENTRADA CONFIRMADA! Bem-vindo ao Hotel Cortez.', ticket: { ...ticket, token: ticket.publicCode } });
@@ -1538,13 +1504,13 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
       return res.json({
         nome: data.nome,
         codigo: data.codigo,
-        evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
+        evento: 'HOTEL CORTEZ — THE RETURN',
         local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
-        data: '31 DE OUTUBRO DE 2026',
-        horario: '21:00 ÀS 06:00',
+        data: '07 DE NOVEMBRO DE 2026',
+        horario: '22:00 ÀS 06:00',
         status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
-        item: data.item || 'INGRESSO OPEN',
-        tipo_ingresso: data.tipo_ingresso || 'OPEN_BAR',
+        item: 'INGRESSO',
+        tipo_ingresso: 'POS_OPEN',
       });
     }
   }
@@ -1561,13 +1527,13 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
   return res.json({
     nome: local.buyerName,
     codigo: local.publicCode || local.token,
-    evento: 'HOTEL CORTEZ HALLOWEEN PARTY 2026',
+    evento: 'HOTEL CORTEZ — THE RETURN',
     local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
-    data: '31 DE OUTUBRO DE 2026',
-    horario: '21:00 ÀS 06:00',
+    data: '07 DE NOVEMBRO DE 2026',
+    horario: '22:00 ÀS 06:00',
     status: local.status,
-    item: local.ticketName || 'INGRESSO OPEN',
-    tipo_ingresso: local.ticketType || 'OPEN_BAR',
+    item: 'INGRESSO',
+    tipo_ingresso: 'POS_OPEN',
   });
 });
 
@@ -1852,7 +1818,7 @@ app.post('/api/admin/orders/:id/resend-email', requireAdminAuth, async (req: Req
   if (!supabaseAdmin) {
     return res.status(500).json({ error: 'Banco de dados não configurado' });
   }
-  
+
   try {
     const { data: order, error } = await supabaseAdmin.from('ticket_orders').select('*').eq('id', orderId).single();
     if (error || !order) {
@@ -1863,7 +1829,7 @@ app.post('/api/admin/orders/:id/resend-email', requireAdminAuth, async (req: Req
     }
 
     await sendTicketsEmail(order, order.access_token);
-    
+
     return res.json({ success: true, message: 'Reenvio agendado com sucesso!' });
   } catch (err: any) {
     console.error('Erro no resend-email:', err);
@@ -1911,13 +1877,13 @@ app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res:
 
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
 app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
-  const { name, phone, ticketType, seller } = req.body;
+  const { name, phone, seller } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
 
-  const validTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'POS_OPEN' ? 'POS_OPEN' : 'OPEN_BAR';
+  const validTicketType: 'POS_OPEN' = 'POS_OPEN';
 
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
-  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType, seller ? String(seller).trim() : undefined);
+  const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType, seller ? String(seller).trim() : undefined, 10);
   const persistedTicket = created.data;
   const error = created.error;
   const token = created.token;
@@ -1929,8 +1895,6 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     return res.status(500).json({ error: 'Não foi possível emitir o ingresso.' });
   }
   const code = persistedTicket.codigo;
-  const itemLabel = validTicketType === 'POS_OPEN' ? 'INGRESSO NORMAL (SEM OPEN)' : 'INGRESSO OPEN BAR';
-  const priceValue = validTicketType === 'POS_OPEN' ? 10 : 50;
   const newTicket: PurchasedTicket = {
     id: persistedTicket.id,
     token,
@@ -1938,14 +1902,14 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
-    ticketId: validTicketType === 'POS_OPEN' ? 't-normal-10' : 't-open-50',
-    ticketName: itemLabel,
-    category: validTicketType === 'POS_OPEN' ? 'PISTA' : 'OPEN',
-    price: priceValue,
+    ticketId: 't-ingresso',
+    ticketName: 'INGRESSO',
+    category: 'PISTA',
+    price: 10,
     paymentMethod: 'PIX',
     status: 'VALIDO',
     createdAt,
-    lote: '3º LOTE',
+    lote: 'ANTECIPADO',
     ticketType: validTicketType,
     vendedor: seller ? String(seller).trim() : undefined
   };
@@ -1957,17 +1921,14 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
 // Admin: Atualizar Dados do Usuário (Nome / Número)
 app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, phone, ticketType } = req.body;
+  const { name, phone } = req.body;
   const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
   if (supabaseAdmin) {
     const updatePayload: any = {};
     if (name) updatePayload.nome = String(name).trim();
     if (phone) updatePayload.telefone = String(phone).trim();
-    if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') {
-      updatePayload.tipo_ingresso = ticketType;
-      updatePayload.item = ticketType === 'POS_OPEN' ? 'INGRESSO PÓS-OPEN' : 'INGRESSO OPEN BAR';
-      updatePayload.preco = ticketType === 'POS_OPEN' ? 25 : 45;
-    }
+    updatePayload.tipo_ingresso = 'POS_OPEN';
+    updatePayload.item = 'INGRESSO';
     return supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single()
       .then(async ({ data, error }) => {
         if (error?.code === '42703') {
@@ -1983,7 +1944,7 @@ app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
   if (phone) ticket.buyerPhone = String(phone).trim();
-  if (ticketType === 'OPEN_BAR' || ticketType === 'POS_OPEN') ticket.ticketType = ticketType;
+  ticket.ticketType = 'POS_OPEN';
   return res.json({ success: true, ticket, message: 'Dados do usuário atualizados!' });
 });
 
@@ -2022,6 +1983,6 @@ export default app;
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`Backend local rodando na porta ${PORT} 🎃`);
+    console.log(`Backend local rodando na porta ${PORT}`);
   });
 }

@@ -59,8 +59,11 @@ export const MyTicketsPage: React.FC<{ token: string }> = ({ token }) => {
 
         <div className="space-y-6">
           {tickets.map((ticket: any, index: number) => {
-            const urlParts = ticket.publicUrl.split('qrcode=');
-            const qrValue = urlParts.length > 1 ? urlParts[1] : ticket.codigo;
+            const rawUrl = ticket.publicUrl || '';
+            const urlParts = rawUrl.split('qrcode=');
+            const qrValue = urlParts.length > 1
+              ? urlParts[1]
+              : rawUrl || `${window.location.origin}/ingresso/${ticket.token || ticket.publicCode || ticket.codigo}`;
             return (
               <div key={ticket.id} className="bg-[#12071f] border border-[#a855f7] p-4 flex flex-col sm:flex-row items-center gap-6">
                 <div className="bg-white p-2 rounded-sm shrink-0">
@@ -68,11 +71,11 @@ export const MyTicketsPage: React.FC<{ token: string }> = ({ token }) => {
                 </div>
                 <div className="flex-1 text-center sm:text-left space-y-2">
                   <h2 className="font-pixel text-lg text-[#fca5a5]">Ingresso {index + 1}</h2>
-                  <div className="font-pixel text-sm text-white bg-[#7f1d1d] px-2 py-1 inline-block">
-                    {ticket.category === 'GERAL' && ticket.price > 20 ? 'OPEN BAR' : 'NORMAL'}
+                  <div className="font-pixel text-sm text-white bg-[#14532d] border border-[#22c55e] px-2.5 py-1 inline-block">
+                    INGRESSO
                   </div>
                   <div className="font-mono text-xs text-[#9ca3af] mt-2 bg-[#090510] p-2 border border-[#361c4d] break-all">
-                    {ticket.codigo}
+                    {ticket.codigo || ticket.publicCode}
                   </div>
                 </div>
               </div>

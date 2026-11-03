@@ -179,7 +179,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   // Inserir Usuário / Ingresso State
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
-  const [newUserTicketType, setNewUserTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
+  const [newUserTicketType, setNewUserTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('POS_OPEN');
   const [newUserSeller, setNewUserSeller] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState<string | null>(null);
@@ -248,7 +248,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
-  const [editTicketType, setEditTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('OPEN_BAR');
+  const [editTicketType, setEditTicketType] = useState<'OPEN_BAR' | 'POS_OPEN'>('POS_OPEN');
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Vendedores State
@@ -597,11 +597,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       const targetToken = data.ticket.qrToken || data.ticket.token || code;
       const publicUrl = `${window.location.origin}/ingresso/${targetToken}`;
       const qrDataUrl = await generateHalloweenTicketQr(publicUrl);
-      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl, ticketType: newUserTicketType });
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Tipo: ${newUserTicketType === 'POS_OPEN' ? 'PÓS-OPEN' : 'OPEN BAR'} — Código público: ${code}`);
+      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl, ticketType: 'POS_OPEN' });
+      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Ingresso — Código público: ${code}`);
       setNewUserName('');
       setNewUserPhone('');
-      setNewUserTicketType('OPEN_BAR');
+      setNewUserTicketType('POS_OPEN');
       setNewUserSeller('');
       audioManager.playSuccess();
       fetchMetrics();
@@ -656,7 +656,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     setEditingUserId(t.id);
     setEditName(t.buyerName);
     setEditPhone(t.buyerPhone);
-    setEditTicketType(t.ticketType || 'OPEN_BAR');
+    setEditTicketType(t.ticketType || 'POS_OPEN');
     audioManager.playClick();
   };
 
@@ -711,11 +711,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xs overflow-y-auto" style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}>
-      <div className="relative w-full max-w-4xl bg-[#090510] border-2 border-[#ef4444] shadow-[0_0_40px_rgba(239,68,68,0.5)] p-4 sm:p-6 text-[#f3edf9] my-auto max-h-[92vh] flex flex-col">
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-panel max-w-4xl bg-[#090510] border-2 border-[#ef4444] shadow-[0_0_40px_rgba(239,68,68,0.5)] rounded-xl p-4 sm:p-6 text-[#f3edf9]">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b-2 border-[#5c1322] pb-3 mb-3">
+        <div className="shrink-0 flex items-center justify-between border-b-2 border-[#5c1322] pb-3 mb-3">
           <div className="flex items-center gap-2">
             <PixelSkull size={20} color="#ef4444" />
             <div>
@@ -763,7 +768,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
 
         {/* NOT AUTHENTICATED GATE */}
         {!adminToken ? (
-          <div className="py-8 px-4 max-w-md mx-auto w-full text-center space-y-4">
+          <div className="modal-scroll-body custom-scrollbar py-4 sm:py-8 px-2 sm:px-4 max-w-md mx-auto w-full text-center space-y-4">
             <div className="w-14 h-14 mx-auto bg-[#1a0812] border-2 border-[#ff3344] flex items-center justify-center shadow-[0_0_20px_rgba(255,51,68,0.5)]">
               <PixelKey size={26} color="#fbbf24" />
             </div>
@@ -840,7 +845,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
           /* AUTHENTICATED ADMIN DASHBOARD */
           <>
             {/* Navigation Tabs */}
-            <div className="flex flex-wrap gap-1.5 border-b border-[#2d1222] pb-2 mb-4 font-pixel text-[10px] sm:text-[11px]">
+            <div className="shrink-0 flex flex-wrap gap-1.5 border-b border-[#2d1222] pb-2 mb-3 font-pixel text-[10px] sm:text-[11px]">
               <button
                 onClick={() => { audioManager.playClick(); setActiveTab('TICKETS'); }}
                 className={`px-3.5 py-1.5 border flex items-center gap-1.5 ${activeTab === 'TICKETS'
@@ -886,7 +891,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="modal-scroll-body custom-scrollbar pr-1">
 
               {/* 1. METRICS & KPIS */}
               {activeTab === 'METRICS' && (
@@ -1084,18 +1089,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </div>
                       <div>
                         <label className="block text-[11px] font-pixel text-[#d8b4fe] mb-1 font-bold">
-                          TIPO DE INGRESSO *
+                          MODALIDADE
                         </label>
-                        <select
-                          required
-                          value={newUserTicketType}
-                          onChange={e => setNewUserTicketType(e.target.value as 'OPEN_BAR' | 'POS_OPEN')}
-                          className="w-full bg-[#0d0414] border-2 border-[#a855f7]/70 px-3 py-2.5 text-xs sm:text-sm text-white outline-hidden focus:border-[#c084fc] font-mono shadow-inner cursor-pointer appearance-none"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c084fc' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-                        >
-                          <option value="OPEN_BAR">🍸 OPEN BAR</option>
-                          <option value="POS_OPEN">🌙 PÓS-OPEN</option>
-                        </select>
+                        <div className="w-full bg-[#0d0414] border-2 border-[#a855f7]/70 px-3 py-2.5 text-xs sm:text-sm text-[#4ade80] font-pixel font-bold flex items-center gap-2 shadow-inner">
+                          <PixelTicketIcon size={14} color="#4ade80" />
+                          <span>INGRESSO</span>
+                        </div>
                       </div>
                       <div>
                         <button
@@ -1270,24 +1269,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                     )}
                                   </td>
                                   <td className="p-2">
-                                    {isEditing ? (
-                                      <select
-                                        value={editTicketType}
-                                        onChange={e => setEditTicketType(e.target.value as 'OPEN_BAR' | 'POS_OPEN')}
-                                        className="bg-[#0e0417] border border-[#c084fc] px-2 py-0.5 text-xs text-white w-full font-mono cursor-pointer"
-                                      >
-                                        <option value="OPEN_BAR">OPEN BAR</option>
-                                        <option value="POS_OPEN">PÓS-OPEN</option>
-                                      </select>
-                                    ) : (
-                                      <span className={`px-1.5 py-0.5 text-[10px] font-pixel font-bold ${
-                                        t.ticketType === 'POS_OPEN'
-                                          ? 'bg-[#78350f] text-[#fde68a] border border-[#f59e0b]'
-                                          : 'bg-[#064e3b] text-[#6ee7b7] border border-[#10b981]'
-                                      }`}>
-                                        {t.ticketType === 'POS_OPEN' ? '🌙 PÓS-OPEN' : '🍸 OPEN BAR'}
-                                      </span>
-                                    )}
+                                    <span className="px-1.5 py-0.5 text-[10px] font-pixel font-bold bg-[#064e3b] text-[#6ee7b7] border border-[#10b981]">
+                                      INGRESSO
+                                    </span>
                                   </td>
                                   <td className="p-2">
                                     <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${t.status === 'VALIDO' ? 'bg-[#064e3b] text-[#6ee7b7]' : 'bg-[#7f1d1d] text-[#fca5a5]'
@@ -1566,7 +1550,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <p>2. O link de referência é gerado automaticamente (ex: <code className="bg-[#071520] px-1">seusite.com/nome-do-vendedor</code>).</p>
                     <p>3. Envie o link ao vendedor para compartilhar com os clientes.</p>
                     <p>4. Quando alguém acessar o link e comprar um ingresso, o nome do vendedor ficará registrado na coluna "VENDEDOR" da tabela de ingressos.</p>
-                    <p className="text-[#a5f3fc] font-bold">⚠ O nome do vendedor NÃO aparece no ingresso do cliente, apenas na tabela administrativa.</p>
+                    <p className="text-[#a5f3fc] font-bold flex items-center gap-1.5">
+                      <PixelWarning size={13} color="#fbbf24" />
+                      <span>O nome do vendedor NÃO aparece no ingresso do cliente, apenas na tabela administrativa.</span>
+                    </p>
                   </div>
                 </div>
               )}

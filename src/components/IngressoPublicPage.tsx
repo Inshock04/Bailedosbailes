@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
-import { ShieldCheck, AlertTriangle, XCircle, CheckCircle2, MapPin, Calendar, Clock, Wine, RefreshCw, ExternalLink } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, XCircle, CheckCircle2, MapPin, Calendar, Clock, RefreshCw, ExternalLink } from 'lucide-react';
+import { PixelTicketIcon, PixelPumpkin, PixelFlame } from './PixelIcons';
 
 /* ── Halloween QR Code com abóbora (mesmo estilo do Admin) ── */
 
@@ -242,10 +243,10 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 INGRESSO OFICIAL
               </div>
               <h1 className="font-pixel text-base sm:text-lg text-white tracking-wider leading-snug">
-                HOTEL CORTEZ HALLOWEEN PARTY
+                HOTEL CORTEZ — THE RETURN
               </h1>
               <p className="text-[11px] font-mono text-[#f87171] mt-0.5 tracking-wide">
-                AMERICAN HORROR STORY • 2026
+                AMERICAN HORROR STORY • THE TRIPLEX
               </p>
 
               {/* Status Badge */}
@@ -293,32 +294,17 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
               </div>
 
               {/* ═══ TICKET TYPE VISUAL BADGE ═══ */}
-              {ticket.tipo_ingresso === 'POS_OPEN' ? (
-                <div className="bg-gradient-to-b from-[#78350f] via-[#451a03] to-[#1c0a00] p-4 rounded-xl border-2 border-[#f59e0b] shadow-[0_0_30px_rgba(245,158,11,0.4)] text-center space-y-2">
-                  <div className="inline-block px-4 py-1.5 rounded-full bg-[#92400e] border-2 border-[#fbbf24] shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                    <span className="font-pixel text-sm sm:text-base text-[#fde68a] tracking-widest font-bold">🌙 PÓS-OPEN</span>
-                  </div>
-                  <p className="font-pixel text-lg sm:text-xl text-[#fbbf24] tracking-wider font-bold leading-tight">
-                    INGRESSO PÓS-OPEN
-                  </p>
-                  <p className="font-pixel text-base sm:text-lg text-white tracking-wider font-bold">
-                    ENTRADA A PARTIR DAS 00H
-                  </p>
-                  <div className="mt-2 pt-2 border-t-2 border-[#92400e]">
-                    <p className="font-pixel text-sm sm:text-base text-[#fca5a5] tracking-wider font-bold animate-pulse">
-                      ⚠️ SEM DIREITO AO OPEN BAR
-                    </p>
-                  </div>
+              <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5">
+                  <PixelTicketIcon size={18} color="#4ade80" />
+                  <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">
+                    INGRESSO
+                  </span>
                 </div>
-              ) : (
-                <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
-                  <div className="inline-flex items-center gap-2 px-4 py-2">
-                    <Wine size={20} className="text-[#4ade80]" />
-                    <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">🍸 INGRESSO OPEN BAR</span>
-                  </div>
-                  <p className="text-xs text-[#86efac] font-mono mt-1">Open Bar Premium das 21h às 00h incluso</p>
-                </div>
-              )}
+                <p className="text-xs text-[#86efac] font-mono mt-1">
+                  Acesso oficial das 22:00 às 06:00 • THE TRIPLEX
+                </p>
+              </div>
 
               {/* QR Code Presentation */}
               <div className="bg-[#180715] p-4 rounded-lg border border-[#3b1225] flex flex-col items-center text-center">
@@ -349,25 +335,16 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 <div className="flex items-start gap-2.5">
                   <Calendar size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">31 DE OUTUBRO DE 2026 (SÁBADO)</span>
-                    <span className="text-gray-400 text-[11px]">Noite de Halloween</span>
+                    <span className="text-white font-bold block">07 DE NOVEMBRO DE 2026 (SÁBADO)</span>
+                    <span className="text-gray-400 text-[11px]">Hotel Cortez — The Return</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Clock size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
-                    {ticket.tipo_ingresso === 'POS_OPEN' ? (
-                      <>
-                        <span className="text-[#fbbf24] font-bold block">ENTRADA A PARTIR DAS 00:00</span>
-                        <span className="text-gray-400 text-[11px]">Ingresso Pós-Open — Acesso após a meia-noite</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-white font-bold block">A PARTIR DAS 21:00</span>
-                        <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 21h</span>
-                      </>
-                    )}
+                    <span className="text-white font-bold block">DAS 22:00 ÀS 06:00</span>
+                    <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 22h</span>
                   </div>
                 </div>
 
@@ -378,22 +355,16 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                     <span className="text-gray-400 text-[11px]">R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP</span>
                   </div>
                 </div>
-
-                {ticket.tipo_ingresso !== 'POS_OPEN' && (
-                  <div className="flex items-start gap-2.5 pt-1 border-t border-[#290d1b]">
-                    <Wine size={15} className="text-[#f87171] shrink-0 mt-0.5" />
-                    <div>
-                      <span className="text-white font-bold block">OPEN BAR PREMIUM INCLUSO</span>
-                      <span className="text-gray-400 text-[11px]">Gin, Vodka, Energético, Caipirinha, Canelinha & ???</span>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Security & Rules Alert */}
               <div className="p-3 bg-[#1e0712] rounded border border-[#481427] text-[11px] font-mono text-gray-400 space-y-1">
                 <p className="text-[#fca5a5] font-bold">AVISOS IMPORTANTES:</p>
-                <p>• <span className="text-white font-bold">Fantasia opcional</span> — Sem pressão: venha de fantasia, produzidão, básico ou do jeito que quiser. O importante é não perder o Halloween. 🎃🔥</p>
+                <p className="flex flex-wrap items-center gap-1">
+                  <span>• <strong className="text-white">Fantasia opcional</strong> — Sem pressão: venha de fantasia, produzidão, básico ou do jeito que quiser.</span>
+                  <PixelPumpkin size={13} />
+                  <PixelFlame size={13} />
+                </p>
                 <p>• Este ingresso é pessoal e intransferível após a validação na portaria.</p>
               </div>
             </div>
@@ -414,7 +385,7 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
 
       {/* Footer */}
       <footer className="border-t border-[#210a14] bg-[#0a030b] py-3 text-center text-[10px] font-mono text-gray-500 relative z-10">
-        HOTEL CORTEZ HALLOWEEN PARTY © 2026 • TODOS OS DIREITOS RESERVADOS
+        HOTEL CORTEZ — THE RETURN • 2026 • TODOS OS DIREITOS RESERVADOS
       </footer>
     </div>
   );
