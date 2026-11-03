@@ -62,7 +62,7 @@ export interface Coupon {
   rewardValue: string;
   phone: string;
   userName?: string;
-  status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO';
+  status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO' | 'CANCELADO';
   createdAt: string;
   expiresAt: string;
   usedAt?: string;

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app, { calculateTicketTotal } from '../server'; // Express App
+import app, { calculateTicketTotal, isCurrentEditionCoupon } from '../server'; // Express App
 import { calculateIngressoTotal } from '../src/components/TicketModal';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
@@ -181,6 +181,22 @@ describe('Baile dos Bailes - QA Test Suite', () => {
           '2 Jack and Coke de 70 por 55',
         ].sort()
       );
+    });
+
+    it('Deve aceitar apenas os cupons das novas promoções e rejeitar promoções antigas/canceladas', () => {
+      // Novas promoções válidas
+      expect(isCurrentEditionCoupon({ rewardTitle: '4 caipiroska de 120 por 70', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 dose de vodka c/baly por 50', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 maracujack de 70 por 55', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 whisky sour de 70 por 55', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 Jack and Coke de 70 por 55', status: 'ATIVO' })).toBe(true);
+
+      // Promoções antigas canceladas
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 CAIPIRINHAS POR R$ 50', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 SKOL BEATS POR R$ 40', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: 'DOUBLE ROSH POR R$ 40', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 MARACUJACK POR R$ 55', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 maracujack de 70 por 55', status: 'CANCELADO' })).toBe(false);
     });
   });
 });

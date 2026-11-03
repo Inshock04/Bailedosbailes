@@ -398,11 +398,11 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
               </div>
 
               <div className="text-xs font-mono text-[#9ca3af] border-t border-[#2d124d] pt-2.5 flex flex-col sm:flex-row items-center justify-between gap-1.5">
-                <span className="flex items-center gap-1.5">
-                  <PixelStar size={12} color="#a855f7" />
-                  <span>5 cartas embaralhadas a cada rodada</span>
+                <span className="flex items-center gap-1.5 text-center sm:text-left">
+                  <PixelStar size={12} color="#a855f7" className="shrink-0" />
+                  <span>Somente as novas promoções são válidas (cupons antigos cancelados)</span>
                 </span>
-                <span>Regra: 1 cupom por número de telefone</span>
+                <span>Regra: 1 cupom por visitante</span>
               </div>
             </div>
           ) : (

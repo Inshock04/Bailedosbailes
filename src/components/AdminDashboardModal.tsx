@@ -627,6 +627,26 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
     }
   };
 
+  // Delete Coupon Action
+  const handleDeleteCoupon = async (couponId: string) => {
+    try {
+      await fetch(`/api/admin/coupons/${couponId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        }
+      });
+      setMetrics((prev: any) => ({
+        ...prev,
+        couponsGenerated: Math.max(0, (prev?.couponsGenerated || 1) - 1),
+        coupons: prev?.coupons?.filter((c: any) => c.id !== couponId)
+      }));
+      audioManager.playClick();
+    } catch {
+      // silently fail
+    }
+  };
+
   // Delete User Action
   const handleDeleteUser = async (ticketId: string) => {
     try {
@@ -1341,7 +1361,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
               {activeTab === 'COUPONS' && (
                 <div className="space-y-2">
                   <span className="font-pixel text-[11px] text-[#818cf8] block mb-2">
-                    CUPONS DO ORÁCULO EMITIDOS (TOKENS PROTEGIDOS)
+                    CUPONS DO ORÁCULO EMITIDOS — NOVA EDIÇÃO (TOKENS PROTEGIDOS)
                   </span>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left font-mono text-xs border border-[#312e81]">
@@ -1351,13 +1371,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           <th className="p-2">RECOMPENSA</th>
                           <th className="p-2">PORTADOR</th>
                           <th className="p-2">STATUS</th>
+                          <th className="p-2 text-right">AÇÕES</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#1e1b4b]">
                         {(!metrics?.coupons || metrics.coupons.length === 0) && (
                           <tr>
-                            <td colSpan={4} className="p-4 text-center text-gray-400 font-mono text-xs">
-                              Nenhum cupom resgatado ainda. Oráculo místico ativo para os visitantes.
+                            <td colSpan={5} className="p-4 text-center text-gray-400 font-mono text-xs">
+                              Nenhum cupom resgatado nesta edição ainda. Todos os cupons da edição anterior foram cancelados e removidos.
                             </td>
                           </tr>
                         )}
@@ -1371,6 +1392,15 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                 }`}>
                                 {c.status}
                               </span>
+                            </td>
+                            <td className="p-2 text-right">
+                              <button
+                                onClick={() => handleDeleteCoupon(c.id)}
+                                className="px-2 py-1 bg-[#450a0a] hover:bg-[#7f1d1d] border border-[#ef4444] text-[#fca5a5] font-pixel text-[9px] cursor-pointer"
+                                title="Cancelar e remover cupom"
+                              >
+                                CANCELAR
+                              </button>
                             </td>
                           </tr>
                         ))}

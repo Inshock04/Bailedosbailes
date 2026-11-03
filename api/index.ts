@@ -296,12 +296,13 @@ function getCookieValue(req: Request, name: string): string | null {
 }
 
 function getOrSetDeviceId(req: Request, res: Response): string {
-  const existing = getCookieValue(req, 'cortez_device_id');
+  const cookieName = 'cortez_return_device_id';
+  const existing = getCookieValue(req, cookieName);
   if (existing && /^[a-f0-9]{64}$/.test(existing)) return existing;
 
   const deviceId = crypto.randomBytes(32).toString('hex');
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
-  res.setHeader('Set-Cookie', `cortez_device_id=${deviceId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
+  res.setHeader('Set-Cookie', `${cookieName}=${deviceId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
   return deviceId;
 }
 
@@ -435,7 +436,7 @@ interface GuestEntry {
 
 interface Coupon {
   id: string; token: string; rewardTitle: string; rewardValue: string;
-  phone: string; userName?: string; status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO';
+  phone: string; userName?: string; status: 'ATIVO' | 'UTILIZADO' | 'EXPIRADO' | 'CANCELADO';
   createdAt: string; expiresAt: string; usedAt?: string;
 }
 
@@ -534,6 +535,17 @@ const allOracleCards = [
     value: 'R$ 55,00'
   }
 ];
+
+const VALID_ORACLE_REWARDS = new Set(
+  allOracleCards.map(card => card.rewardText.trim().toLowerCase())
+);
+
+export function isCurrentEditionCoupon(coupon?: { rewardTitle?: string | null; status?: string | null } | null): boolean {
+  if (!coupon || !coupon.rewardTitle) return false;
+  const status = String(coupon.status || '').toUpperCase();
+  if (status === 'CANCELADO' || status === 'EXPIRADO') return false;
+  return VALID_ORACLE_REWARDS.has(coupon.rewardTitle.trim().toLowerCase());
+}
 
 function getShuffledOracleCards(count = 5) {
   const copy = [...allOracleCards];
@@ -1261,7 +1273,15 @@ app.get('/api/oracle/me', publicWriteLimiter, async (req: Request, res: Response
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de promoções indisponível.' });
   const { data, error } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
   if (error) { logSupabaseError('GET coupons by device_id', error); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
-  return res.json({ claimed: Boolean(data), coupon: data ? mapCouponRow(data) : null });
+  if (data) {
+    const mapped = mapCouponRow(data);
+    if (!isCurrentEditionCoupon(mapped)) {
+      await supabaseAdmin.from('coupons').delete().eq('id', mapped.id);
+      return res.json({ claimed: false, coupon: null });
+    }
+    return res.json({ claimed: true, coupon: mapped });
+  }
+  return res.json({ claimed: false, coupon: null });
 });
 
 app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Response) => {
@@ -1277,7 +1297,11 @@ app.post('/api/oracle/draw', publicWriteLimiter, async (req: Request, res: Respo
   const { data: existingRow, error: lookupError } = await supabaseAdmin.from('coupons').select('*').eq('device_id', deviceId).maybeSingle();
   if (lookupError) { logSupabaseError('POST oracle lookup coupon by device_id', lookupError); return res.status(500).json({ error: 'Não foi possível consultar seu resgate.' }); }
   if (existingRow) {
-    return res.status(403).json({ error: 'Você já resgatou sua carta do destino para este evento!', coupon: mapCouponRow(existingRow), alreadyClaimed: true });
+    const mappedExisting = mapCouponRow(existingRow);
+    if (isCurrentEditionCoupon(mappedExisting)) {
+      return res.status(403).json({ error: 'Você já resgatou sua carta do destino para este evento!', coupon: mappedExisting, alreadyClaimed: true });
+    }
+    await supabaseAdmin.from('coupons').delete().eq('id', mappedExisting.id);
   }
 
   let selectedCard = allOracleCards.find(c => c.id === cardId);
@@ -1375,6 +1399,9 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
     if (error) return res.status(500).json({ error: 'Não foi possível consultar a promoção.' });
     if (persistedCoupon) {
       const coupon = mapCouponRow(persistedCoupon);
+      if (!isCurrentEditionCoupon(coupon)) {
+        return res.status(400).json({ found: false, error: 'CUPOM CANCELADO: As promoções antigas foram canceladas. Apenas as novas promoções do Oráculo são válidas.' });
+      }
       return res.json({ type: 'COUPON', found: true, data: { id: coupon.id, token: coupon.token, name: coupon.userName || 'Portador do Cupom', item: coupon.rewardTitle, value: coupon.rewardValue, status: coupon.status, createdAt: coupon.createdAt, usedAt: coupon.usedAt } });
     }
   }
@@ -1386,12 +1413,19 @@ app.post('/api/checkin/verify', requireAdminAuth, async (req: Request, res: Resp
 
   const coupon = coupons.find(c => c.token.toUpperCase() === cleanToken);
   if (coupon) {
+    if (!isCurrentEditionCoupon(coupon)) {
+      return res.status(400).json({ found: false, error: 'CUPOM CANCELADO: As promoções antigas foram canceladas. Apenas as novas promoções do Oráculo são válidas.' });
+    }
     return res.json({ type: 'COUPON', found: true, data: { id: coupon.id, token: coupon.token, name: coupon.userName || 'Portador do Cupom', item: coupon.rewardTitle, value: coupon.rewardValue, status: coupon.status, createdAt: coupon.createdAt, usedAt: coupon.usedAt } });
   }
 
   const guest = guestList.find(g => g.token.toUpperCase() === cleanToken);
   if (guest) {
     return res.json({ type: 'GUEST_LIST', found: true, data: { id: guest.id, token: guest.token, name: guest.name, item: 'Entrada Lista VIP Especial', status: guest.status, createdAt: guest.createdAt } });
+  }
+
+  if (cleanToken.startsWith('CORTEZ-')) {
+    return res.status(400).json({ found: false, error: 'CUPOM CANCELADO: Os cupons da edição anterior foram cancelados. Apenas as novas promoções do Oráculo são válidas.' });
   }
 
   return res.status(404).json({ found: false, error: 'Código não encontrado ou inválido no sistema do Hotel Cortez.' });
@@ -1446,14 +1480,20 @@ app.post('/api/checkin/confirm', requireAdminAuth, async (req: Request, res: Res
 
   if (type === 'COUPON') {
     if (supabaseAdmin) {
+      const { data: existingCoupon, error: checkErr } = await supabaseAdmin.from('coupons').select('*').eq('token', cleanToken).maybeSingle();
+      if (checkErr) return res.status(500).json({ error: 'Não foi possível consultar o cupom.' });
+      if (!existingCoupon || !isCurrentEditionCoupon(mapCouponRow(existingCoupon))) {
+        return res.status(400).json({ error: 'CUPOM CANCELADO: Apenas as novas promoções desta edição são válidas.' });
+      }
+      if (existingCoupon.status === 'UTILIZADO') {
+        return res.status(409).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: existingCoupon.used_at });
+      }
       const { data: updatedCoupon, error } = await supabaseAdmin.from('coupons').update({ status: 'UTILIZADO', used_at: now }).eq('token', cleanToken).eq('status', 'ATIVO').select('*').maybeSingle();
       if (error) return res.status(500).json({ error: 'Não foi possível registrar o resgate.' });
       if (updatedCoupon) return res.json({ success: true, message: 'PROMOÇÃO RESGATADA COM SUCESSO!', coupon: mapCouponRow(updatedCoupon) });
-      const { data: persistedCoupon } = await supabaseAdmin.from('coupons').select('used_at, status').eq('token', cleanToken).maybeSingle();
-      if (persistedCoupon?.status === 'UTILIZADO') return res.status(409).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: persistedCoupon.used_at });
     }
     const coupon = coupons.find(c => c.token.toUpperCase() === cleanToken);
-    if (!coupon) return res.status(404).json({ error: 'Cupom não encontrado.' });
+    if (!coupon || !isCurrentEditionCoupon(coupon)) return res.status(400).json({ error: 'CUPOM CANCELADO: Apenas as novas promoções desta edição são válidas.' });
     if (coupon.status === 'UTILIZADO') return res.status(400).json({ error: 'PROMOÇÃO JÁ UTILIZADA!', usedAt: coupon.usedAt });
     coupon.status = 'UTILIZADO'; coupon.usedAt = now;
     return res.json({ success: true, message: 'PROMOÇÃO RESGATADA COM SUCESSO!', coupon });
@@ -1844,18 +1884,29 @@ app.get('/api/admin/metrics', requireAdminAuth, async (_req: Request, res: Respo
     if (error) return res.status(500).json({ error: 'Não foi possível carregar os ingressos.' });
     const { data: persistedCoupons, error: couponsError } = await supabaseAdmin.from('coupons').select('*').order('created_at', { ascending: false });
     if (couponsError) return res.status(500).json({ error: 'Não foi possível carregar as promoções.' });
-    const safeCoupons = (persistedCoupons || []).map(mapCouponRow);
+    const safeCoupons = (persistedCoupons || []).map(mapCouponRow).filter(isCurrentEditionCoupon);
     const safeTickets = (persistedTickets || []).map(row => mapSupabaseTicket(row, row.codigo));
     return res.json({ totalTicketsSold: safeTickets.length, totalRevenue: safeTickets.reduce((acc, ticket) => acc + ticket.price, 0), guestListCount: guestList.length, couponsGenerated: safeCoupons.length, couponsUsed: safeCoupons.filter(coupon => coupon.status === 'UTILIZADO').length, checkinsCount: safeTickets.filter(ticket => ticket.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length, tickets, purchasedTickets: safeTickets, guestList, promotions, coupons: safeCoupons });
   }
+  const activeCoupons = coupons.filter(isCurrentEditionCoupon);
   const totalTicketsSold = purchasedTickets.length;
   const totalRevenue = purchasedTickets.reduce((acc, t) => acc + t.price, 0);
   const guestListCount = guestList.length;
-  const couponsGenerated = coupons.length;
-  const couponsUsed = coupons.filter(c => c.status === 'UTILIZADO').length;
+  const couponsGenerated = activeCoupons.length;
+  const couponsUsed = activeCoupons.filter(c => c.status === 'UTILIZADO').length;
   const checkinsCount = purchasedTickets.filter(t => t.status === 'UTILIZADO').length + guestList.filter(g => g.status === 'CHECKED_IN').length;
 
-  res.json({ totalTicketsSold, totalRevenue, guestListCount, couponsGenerated, couponsUsed, checkinsCount, tickets, purchasedTickets, guestList, promotions, coupons });
+  res.json({ totalTicketsSold, totalRevenue, guestListCount, couponsGenerated, couponsUsed, checkinsCount, tickets, purchasedTickets, guestList, promotions, coupons: activeCoupons });
+});
+
+app.delete('/api/admin/coupons/:id', requireAdminAuth, async (req: Request, res: Response) => {
+  const { id } = req.params;
+  coupons = coupons.filter(c => c.id !== id && c.token !== id);
+  if (supabaseAdmin) {
+    const { error } = await supabaseAdmin.from('coupons').delete().eq('id', id);
+    if (error) return res.status(500).json({ error: 'Não foi possível cancelar o cupom.' });
+  }
+  return res.json({ success: true, message: 'Cupom cancelado e removido com sucesso.' });
 });
 
 app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res: Response) => {

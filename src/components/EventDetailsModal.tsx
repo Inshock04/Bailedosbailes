@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { PixelClose, PixelSkull, PixelStar, PixelBeer, PixelCocktail } from './PixelIcons';
+import { PixelClose, PixelSkull, PixelStar, PixelBeer, PixelCocktail, PixelTicketIcon } from './PixelIcons';
 import { audioManager } from '../utils/audio';
 
 interface EventDetailsModalProps {
@@ -64,6 +64,19 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
 
         {/* Scrollable Body */}
         <div className="modal-scroll-body custom-scrollbar px-4 sm:px-6 py-4 space-y-5 font-mono text-xs sm:text-sm text-[#d1d5db]">
+          {/* AVISO PORTARIA — REUTILIZAÇÃO DE CÓDIGO */}
+          <div className="bg-[#072218] border-2 border-[#10b981] p-3.5 sm:p-4 flex items-start gap-3 text-left shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+            <PixelTicketIcon size={18} color="#34d399" className="shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-pixel text-xs sm:text-sm text-[#6ee7b7] font-bold uppercase tracking-wide block">
+                AVISO IMPORTANTE • PORTARIA
+              </span>
+              <p className="leading-relaxed text-[#ecfdf5] font-semibold">
+                Quem já foi ao evento passado, pode reutilizar o mesmo código na portaria.
+              </p>
+            </div>
+          </div>
+
           {/* A MANSÃO ESTÁ DE VOLTA */}
           <div className="bg-[#1b0f24] border border-[#581c87] p-4 space-y-2.5 text-left">
             <h3 className="font-pixel text-xs sm:text-sm text-[#f43f5e] tracking-wide flex items-center gap-2 font-bold uppercase">

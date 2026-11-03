@@ -108,8 +108,12 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
       a: 'Não é obrigatório, mas é super incentivado! Teremos o Concurso de Fantasias — Parte 2 durante a festa para quem caprichar na produção.'
     },
     {
+      q: 'Já fui ao evento passado. Posso usar meu código anterior?',
+      a: 'Sim! Quem já foi ao evento passado pode reutilizar o mesmo código na portaria.'
+    },
+    {
       q: 'Como funciona o Oráculo e o resgate de promoções?',
-      a: 'No Chapéu de Bruxa (Oráculo), você sorteia uma carta promocional de bebidas com QR Code único (1 resgate por número de telefone) para apresentar e validar diretamente no bar do evento.'
+      a: 'No Chapéu de Bruxa (Oráculo), você sorteia uma carta promocional de bebidas com QR Code único para apresentar e validar diretamente no bar do evento. Apenas as novas promoções desta edição são válidas (todos os cupons de edições anteriores foram cancelados).'
     }
   ];
 
