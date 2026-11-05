@@ -96,8 +96,8 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
       a: 'O evento acontece no dia 07 de Novembro, das 22:00 às 06:00, no THE TRIPLEX. A classificação etária é rigorosamente 18 anos com apresentação obrigatória de documento oficial com foto.'
     },
     {
-      q: 'Quais são os valores e combos de ingresso?',
-      a: 'Temos duas modalidades antecipadas: "Ingresso Open" por R$ 10 cada, e "Pós Open" com promoções progressivas (1 por R$ 10, 3 por R$ 20 e 5 por R$ 30; a partir de 5 ingressos, cada adicional sai por R$ 5).'
+      q: 'Quais são os valores, horários e combos de ingresso?',
+      a: 'Temos duas modalidades antecipadas: "Ingresso Open" (Open das 22:00 às 23:00) por R$ 10 cada, e "Pós Open" (entrada liberada a partir das 23:00) com promoções progressivas: 1 por R$ 10, 3 por R$ 20 e 5 por R$ 30; a partir de 5 ingressos, cada adicional sai por R$ 5.'
     },
     {
       q: 'Como é feita a compra do ingresso?',

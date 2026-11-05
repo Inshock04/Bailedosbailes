@@ -78,6 +78,11 @@ export const MyTicketsPage: React.FC<{ token: string }> = ({ token }) => {
                   }`}>
                     {ticket.ticketType === 'OPEN_BAR' || ticket.ticketName === 'INGRESSO OPEN' ? 'INGRESSO OPEN' : 'PÓS OPEN'}
                   </div>
+                  <p className="font-mono text-xs text-[#d8b4fe]">
+                    {ticket.ticketType === 'OPEN_BAR' || ticket.ticketName === 'INGRESSO OPEN'
+                      ? 'Open das 22:00 às 23:00'
+                      : 'Entrada a partir das 23:00'}
+                  </p>
                   <div className="font-mono text-xs text-[#9ca3af] mt-2 bg-[#090510] p-2 border border-[#361c4d] break-all">
                     {ticket.codigo || ticket.publicCode}
                   </div>

@@ -18,7 +18,7 @@ const DEFAULT_TIERS: TicketTier[] = [
     batch: 'ANTECIPADO',
     available: 500,
     total: 500,
-    features: ['Acesso oficial ao evento das 22:00 às 06:00'],
+    features: ['Open das 22:00 às 23:00'],
     drinksIncluded: [],
     color: '#dc2626'
   },
@@ -30,7 +30,7 @@ const DEFAULT_TIERS: TicketTier[] = [
     batch: 'ANTECIPADO',
     available: 500,
     total: 500,
-    features: ['Acesso oficial ao evento'],
+    features: ['Entrada a partir das 23:00'],
     drinksIncluded: [],
     color: '#2563eb'
   }
@@ -294,7 +294,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                               <span>{tier.name}</span>
                             </span>
                             <span className="inline-block mt-1 bg-[#240c1e] text-[#fca5a5] px-1.5 py-0.5 border border-[#581c2b] font-pixel text-[10px]">
-                              {tierIsOpen ? 'R$ 10 CADA • ANTECIPADO' : 'COMBOS PROMOCIONAIS • ANTECIPADO'}
+                              {tierIsOpen ? 'OPEN DAS 22:00 ÀS 23:00 • R$ 10 CADA' : 'ENTRADA A PARTIR DAS 23:00 • COMBOS'}
                             </span>
                           </div>
                         </div>
@@ -310,7 +310,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                       {/* Resumo ou seletores de promoções do Pós Open */}
                       {!tierIsOpen && !isSelected && (
                         <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#fbbf24]">
-                          Promoções: 1 por R$ 10 • 3 por R$ 20 • 5 por R$ 30 (+R$ 5 cada adicional)
+                          Entrada a partir das 23h • Promoções: 1 por R$ 10 • 3 por R$ 20 • 5 por R$ 30 (+R$ 5 cada adicional)
                         </div>
                       )}
 
@@ -319,6 +319,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                           className="mt-2.5 pt-2.5 border-t border-[#166534]/70"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          <span className="block font-mono text-[11px] text-[#bbf7d0] mb-2">
+                            Entrada liberada <strong>a partir das 23:00</strong>.
+                          </span>
                           <span className="block font-pixel text-[10px] sm:text-[11px] text-[#fde047] uppercase mb-1.5">
                             PROMOÇÕES PÓS OPEN — ESCOLHA UM COMBO:
                           </span>
@@ -350,9 +353,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                         </div>
                       )}
 
+                      {tierIsOpen && !isSelected && (
+                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#fca5a5]">
+                          Open das 22:00 às 23:00 • R$ 10,00 cada
+                        </div>
+                      )}
+
                       {tierIsOpen && isSelected && (
                         <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#bbf7d0]">
-                          Valor unitário de <strong>R$ 10,00</strong> por ingresso.
+                          Open das <strong>22:00 às 23:00</strong> • Valor unitário de <strong>R$ 10,00</strong> por ingresso.
                         </div>
                       )}
                     </div>

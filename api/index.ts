@@ -453,7 +453,7 @@ let tickets: Ticket[] = [
     batch: 'ANTECIPADO',
     available: 500,
     total: 500,
-    features: ['Acesso oficial ao evento das 22:00 às 06:00'],
+    features: ['Open das 22:00 às 23:00'],
     drinksIncluded: [],
     color: '#dc2626'
   },
@@ -465,7 +465,7 @@ let tickets: Ticket[] = [
     batch: 'ANTECIPADO',
     available: 500,
     total: 500,
-    features: ['Acesso oficial ao evento'],
+    features: ['Entrada a partir das 23:00'],
     drinksIncluded: [],
     color: '#2563eb'
   }
@@ -829,7 +829,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
           <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Hotel Cortez — The Return (07 de Novembro às 22h • THE TRIPLEX)</strong>.</p>
           <p><strong>Detalhes do Pedido:</strong></p>
           <ul>
-            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'Ingresso Open' : 'Pós Open'}</li>
+            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'Ingresso Open (Open das 22:00 às 23:00)' : 'Pós Open (Entrada a partir das 23:00)'}</li>
             <li>Quantidade: ${order.quantity}</li>
             <li>Total pago: R$ ${order.total_price}</li>
           </ul>
@@ -1570,7 +1570,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
         evento: 'HOTEL CORTEZ — THE RETURN',
         local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
         data: '07 DE NOVEMBRO DE 2026',
-        horario: '22:00 ÀS 06:00',
+        horario: isOpen ? 'OPEN DAS 22:00 ÀS 23:00 (EVENTO ATÉ 06:00)' : 'ENTRADA A PARTIR DAS 23:00 (EVENTO ATÉ 06:00)',
         status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
         item: isOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
         tipo_ingresso: isOpen ? 'OPEN_BAR' : 'POS_OPEN',
@@ -1594,7 +1594,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     evento: 'HOTEL CORTEZ — THE RETURN',
     local: 'THE TRIPLEX — R. Manuel de Castilho, 201',
     data: '07 DE NOVEMBRO DE 2026',
-    horario: '22:00 ÀS 06:00',
+    horario: localIsOpen ? 'OPEN DAS 22:00 ÀS 23:00 (EVENTO ATÉ 06:00)' : 'ENTRADA A PARTIR DAS 23:00 (EVENTO ATÉ 06:00)',
     status: local.status,
     item: localIsOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
     tipo_ingresso: localIsOpen ? 'OPEN_BAR' : 'POS_OPEN',

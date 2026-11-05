@@ -192,6 +192,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
               <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO OPEN • PÓS OPEN</span>
               <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">R$10</span>
             </div>
+            <span className="block text-[11px] text-[#e9d5ff] font-mono mt-0.5">
+              Open: 22:00 às 23:00 • Entrada Pós Open: a partir das 23:00
+            </span>
             <span className="block text-[11px] text-[#fca5a5] font-mono italic mt-0.5">
               *Valor válido somente para vendas antecipadas.*
             </span>

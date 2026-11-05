@@ -303,7 +303,7 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                     </span>
                   </div>
                   <p className="text-xs text-[#fca5a5] font-mono mt-1">
-                    Acesso oficial das 22:00 às 06:00 • THE TRIPLEX
+                    Open das 22:00 às 23:00 • Evento até 06:00
                   </p>
                 </div>
               ) : (
@@ -315,7 +315,7 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                     </span>
                   </div>
                   <p className="text-xs text-[#86efac] font-mono mt-1">
-                    Acesso oficial • THE TRIPLEX
+                    Entrada liberada a partir das 23:00 • Evento até 06:00
                   </p>
                 </div>
               )}
@@ -357,8 +357,16 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                 <div className="flex items-start gap-2.5">
                   <Clock size={15} className="text-[#f87171] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">DAS 22:00 ÀS 06:00</span>
-                    <span className="text-gray-400 text-[11px]">Portões abrem pontualmente às 22h</span>
+                    <span className="text-white font-bold block">
+                      {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN'
+                        ? 'OPEN DAS 22:00 ÀS 23:00 (EVENTO ATÉ 06:00)'
+                        : 'ENTRADA A PARTIR DAS 23:00 (EVENTO ATÉ 06:00)'}
+                    </span>
+                    <span className="text-gray-400 text-[11px]">
+                      {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN'
+                        ? 'Abertura às 22h com Open das 22h às 23h'
+                        : 'Acesso Pós Open liberado a partir das 23h'}
+                    </span>
                   </div>
                 </div>
 
