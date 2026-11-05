@@ -71,8 +71,12 @@ export const MyTicketsPage: React.FC<{ token: string }> = ({ token }) => {
                 </div>
                 <div className="flex-1 text-center sm:text-left space-y-2">
                   <h2 className="font-pixel text-lg text-[#fca5a5]">Ingresso {index + 1}</h2>
-                  <div className="font-pixel text-sm text-white bg-[#14532d] border border-[#22c55e] px-2.5 py-1 inline-block">
-                    INGRESSO
+                  <div className={`font-pixel text-sm text-white px-2.5 py-1 inline-block border ${
+                    ticket.ticketType === 'OPEN_BAR' || ticket.ticketName === 'INGRESSO OPEN'
+                      ? 'bg-[#7f1d1d] border-[#ef4444]'
+                      : 'bg-[#14532d] border-[#22c55e]'
+                  }`}>
+                    {ticket.ticketType === 'OPEN_BAR' || ticket.ticketName === 'INGRESSO OPEN' ? 'INGRESSO OPEN' : 'PÓS OPEN'}
                   </div>
                   <div className="font-mono text-xs text-[#9ca3af] mt-2 bg-[#090510] p-2 border border-[#361c4d] break-all">
                     {ticket.codigo || ticket.publicCode}

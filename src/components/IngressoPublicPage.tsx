@@ -294,17 +294,31 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
               </div>
 
               {/* ═══ TICKET TYPE VISUAL BADGE ═══ */}
-              <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5">
-                  <PixelTicketIcon size={18} color="#4ade80" />
-                  <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">
-                    INGRESSO
-                  </span>
+              {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN' ? (
+                <div className="bg-gradient-to-b from-[#3b0a14] via-[#26060d] to-[#160308] p-4 rounded-xl border-2 border-[#ef4444] shadow-[0_0_25px_rgba(239,68,68,0.3)] text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5">
+                    <PixelTicketIcon size={18} color="#fbbf24" />
+                    <span className="font-pixel text-sm sm:text-base text-[#fef08a] tracking-widest font-bold">
+                      INGRESSO OPEN
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#fca5a5] font-mono mt-1">
+                    Acesso oficial das 22:00 às 06:00 • THE TRIPLEX
+                  </p>
                 </div>
-                <p className="text-xs text-[#86efac] font-mono mt-1">
-                  Acesso oficial das 22:00 às 06:00 • THE TRIPLEX
-                </p>
-              </div>
+              ) : (
+                <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5">
+                    <PixelTicketIcon size={18} color="#4ade80" />
+                    <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">
+                      PÓS OPEN
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#86efac] font-mono mt-1">
+                    Acesso oficial • THE TRIPLEX
+                  </p>
+                </div>
+              )}
 
               {/* QR Code Presentation */}
               <div className="bg-[#180715] p-4 rounded-lg border border-[#3b1225] flex flex-col items-center text-center">

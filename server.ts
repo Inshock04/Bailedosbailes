@@ -357,15 +357,17 @@ interface PurchasedTicket {
 }
 
 function mapSupabaseTicket(row: any, token?: string): PurchasedTicket {
+  const isOpen = row.tipo_ingresso === 'OPEN_BAR';
   return {
     id: row.id, token: token || row.codigo, publicCode: row.codigo,
     buyerName: row.nome, buyerEmail: row.email || '', buyerPhone: row.telefone,
-    ticketId: 't-ingresso',
-    ticketName: 'INGRESSO', category: 'PISTA',
+    ticketId: isOpen ? 't-open' : 't-pos-open',
+    ticketName: isOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
+    category: isOpen ? 'OPEN' : 'PISTA',
     price: Number(row.preco), paymentMethod: 'PIX',
     status: row.status === 'usado' ? 'UTILIZADO' : row.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
     createdAt: row.criado_em, usedAt: row.usado_em || undefined, lote: row.lote || 'ANTECIPADO',
-    ticketType: 'POS_OPEN',
+    ticketType: isOpen ? 'OPEN_BAR' : 'POS_OPEN',
     vendedor: row.vendedor
   };
 }
@@ -384,11 +386,13 @@ function generateTicketCredentials(): { code: string; token: string; tokenHash: 
 async function createPersistedTicket(
   name: string,
   phone: string,
-  _ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'POS_OPEN',
+  ticketType: 'OPEN_BAR' | 'POS_OPEN' = 'POS_OPEN',
   vendedor?: string,
   unitPrice: number = 10
 ) {
   if (!supabaseAdmin) return { data: null, error: new Error('Supabase indisponível.') };
+
+  const resolvedType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'OPEN_BAR' ? 'OPEN_BAR' : 'POS_OPEN';
 
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const { code, token, tokenHash } = generateTicketCredentials();
@@ -399,13 +403,13 @@ async function createPersistedTicket(
       token_hash: tokenHash,
       nome: name,
       telefone: phone,
-      item: 'INGRESSO',
-      categoria: 'PISTA',
+      item: resolvedType === 'OPEN_BAR' ? 'INGRESSO OPEN' : 'PÓS OPEN',
+      categoria: resolvedType === 'OPEN_BAR' ? 'OPEN' : 'PISTA',
       preco: unitPrice,
       lote: 'ANTECIPADO',
       status: 'valido',
       criado_em: createdAt,
-      tipo_ingresso: 'POS_OPEN',
+      tipo_ingresso: resolvedType,
       vendedor: vendedor || null
     };
 
@@ -442,9 +446,9 @@ interface Coupon {
 
 let tickets: Ticket[] = [
   {
-    id: 't-ingresso',
-    name: 'Ingresso',
-    category: 'PISTA',
+    id: 't-open',
+    name: 'Ingresso Open',
+    category: 'OPEN',
     price: 10,
     batch: 'ANTECIPADO',
     available: 500,
@@ -452,18 +456,33 @@ let tickets: Ticket[] = [
     features: ['Acesso oficial ao evento das 22:00 às 06:00'],
     drinksIncluded: [],
     color: '#dc2626'
+  },
+  {
+    id: 't-pos-open',
+    name: 'Pós Open',
+    category: 'PISTA',
+    price: 10,
+    batch: 'ANTECIPADO',
+    available: 500,
+    total: 500,
+    features: ['Acesso oficial ao evento'],
+    drinksIncluded: [],
+    color: '#2563eb'
   }
 ];
 
 /**
- * Regra progressiva oficial de combos para "Ingresso":
- * 1 por R$ 10 (2 = R$ 20)
- * 3 por R$ 20 (4 = R$ 30)
- * 5 por R$ 30
- * A partir de 5 ingressos, cada ingresso adicional custa R$ 5 (6 = 35, 7 = 40, ...)
+ * Regras oficiais de preço:
+ * - Ingresso Open (category === 'OPEN'): R$ 10 cada fixo (quantity * 10)
+ * - Pós Open (category === 'PISTA'):
+ *   1 por R$ 10 (2 = R$ 20), 3 por R$ 20 (4 = R$ 30), 5 por R$ 30,
+ *   e a partir de 5 ingressos, +R$ 5 por ingresso adicional (6 = 35, 7 = 40, ...)
  */
-export function calculateTicketTotal(_ticket: Ticket, quantity: number): number {
+export function calculateTicketTotal(ticket: Ticket, quantity: number): number {
   if (quantity <= 0) return 0;
+  if (ticket?.category === 'OPEN') {
+    return quantity * (ticket.price || 10);
+  }
   if (quantity === 1) return 10;
   if (quantity === 2) return 20;
   if (quantity === 3) return 20;
@@ -789,7 +808,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
       if (tickets && tickets.length > 0) {
         ticketsHtml = tickets.map((t, idx) => `
           <div style="margin: 20px 0; padding: 15px; border: 1px solid #ef4444; background: #130612; border-radius: 5px; text-align: center;">
-            <p style="color: #fca5a5; font-weight: bold; margin-bottom: 5px;">Ingresso ${idx + 1}</p>
+            <p style="color: #fca5a5; font-weight: bold; margin-bottom: 5px;">Ingresso ${idx + 1} — ${t.tipo_ingresso === 'OPEN_BAR' ? 'INGRESSO OPEN' : 'PÓS OPEN'}</p>
             <p style="font-family: monospace; font-size: 18px; color: #fbbf24; margin-top: 0;">${t.codigo}</p>
             <a href="${baseUrl}/ingresso/${t.qr_token || t.codigo}" style="background-color: #7f1d1d; color: #fff; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; margin-top: 10px;">
               ABRIR INGRESSO
@@ -810,7 +829,7 @@ async function sendTicketsEmail(order: any, access_token: string) {
           <p>Seu pagamento foi aprovado com sucesso! Agradecemos por garantir sua presença no <strong>Hotel Cortez — The Return (07 de Novembro às 22h • THE TRIPLEX)</strong>.</p>
           <p><strong>Detalhes do Pedido:</strong></p>
           <ul>
-            <li>Modalidade: Ingresso</li>
+            <li>Modalidade: ${order.ticket_type === 'OPEN_BAR' ? 'Ingresso Open' : 'Pós Open'}</li>
             <li>Quantidade: ${order.quantity}</li>
             <li>Total pago: R$ ${order.total_price}</li>
           </ul>
@@ -865,6 +884,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
 
   const validQuantity = Math.max(1, Math.min(50, Math.floor(Number(quantity)) || 1));
   const totalPrice = calculateTicketTotal(ticket, validQuantity);
+  const orderTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticket.category === 'OPEN' ? 'OPEN_BAR' : 'POS_OPEN';
   let orderId = crypto.randomUUID();
 
   // 1. Criar o Pedido Pendente no Supabase
@@ -875,7 +895,7 @@ app.post('/api/tickets/purchase', publicWriteLimiter, async (req: Request, res: 
         buyer_name: buyerName || 'Visitante',
         buyer_email: buyerEmail || 'nao-informado@email.com',
         buyer_phone: buyerPhone || '00000000000',
-        ticket_type: 'POS_OPEN',
+        ticket_type: orderTicketType,
         quantity: validQuantity,
         total_price: totalPrice,
         seller_ref: sellerSlug || null,
@@ -1071,8 +1091,9 @@ app.post('/api/webhooks/mercadopago', async (req: Request, res: Response) => {
         const accessToken = crypto.randomBytes(16).toString('hex');
         const unitPrice = Number((Number(order.total_price || 10) / Math.max(1, Number(order.quantity || 1))).toFixed(2));
 
+        const resolvedOrderType: 'OPEN_BAR' | 'POS_OPEN' = order.ticket_type === 'OPEN_BAR' ? 'OPEN_BAR' : 'POS_OPEN';
         for (let i = 0; i < order.quantity; i++) {
-          const resTicket = await createPersistedTicket(order.buyer_name, order.buyer_phone, 'POS_OPEN', order.seller_ref, unitPrice);
+          const resTicket = await createPersistedTicket(order.buyer_name, order.buyer_phone, resolvedOrderType, order.seller_ref, unitPrice);
           if (resTicket.data) {
             await supabaseAdmin.from('event_tickets').update({ order_id: orderId }).eq('id', resTicket.data.id);
           }
@@ -1187,10 +1208,11 @@ app.get('/api/orders/:orderId/status', async (req: Request, res: Response) => {
               if (fullOrder && !fullOrder.tickets_generated) {
                 const accessToken = crypto.randomBytes(16).toString('hex');
                 const unitPrice = Number((Number(fullOrder.total_price || 10) / Math.max(1, Number(fullOrder.quantity || 1))).toFixed(2));
+                const resolvedOrderType: 'OPEN_BAR' | 'POS_OPEN' = fullOrder.ticket_type === 'OPEN_BAR' ? 'OPEN_BAR' : 'POS_OPEN';
                 for (let i = 0; i < fullOrder.quantity; i++) {
                   const resTicket = await createPersistedTicket(
                     fullOrder.buyer_name, fullOrder.buyer_phone,
-                    'POS_OPEN', fullOrder.seller_ref, unitPrice
+                    resolvedOrderType, fullOrder.seller_ref, unitPrice
                   );
                   if (resTicket.data) {
                     await supabaseAdmin.from('event_tickets')
@@ -1541,6 +1563,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     }
 
     if (data) {
+      const isOpen = data.tipo_ingresso === 'OPEN_BAR';
       return res.json({
         nome: data.nome,
         codigo: data.codigo,
@@ -1549,8 +1572,8 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
         data: '07 DE NOVEMBRO DE 2026',
         horario: '22:00 ÀS 06:00',
         status: data.status === 'usado' ? 'UTILIZADO' : data.status === 'cancelado' ? 'CANCELADO' : 'VALIDO',
-        item: 'INGRESSO',
-        tipo_ingresso: 'POS_OPEN',
+        item: isOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
+        tipo_ingresso: isOpen ? 'OPEN_BAR' : 'POS_OPEN',
       });
     }
   }
@@ -1564,6 +1587,7 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Ingresso não encontrado ou código inválido.' });
   }
 
+  const localIsOpen = local.ticketType === 'OPEN_BAR';
   return res.json({
     nome: local.buyerName,
     codigo: local.publicCode || local.token,
@@ -1572,8 +1596,8 @@ app.get('/api/ingresso/:token', async (req: Request, res: Response) => {
     data: '07 DE NOVEMBRO DE 2026',
     horario: '22:00 ÀS 06:00',
     status: local.status,
-    item: 'INGRESSO',
-    tipo_ingresso: 'POS_OPEN',
+    item: localIsOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
+    tipo_ingresso: localIsOpen ? 'OPEN_BAR' : 'POS_OPEN',
   });
 });
 
@@ -1928,10 +1952,11 @@ app.get('/api/admin/tickets/search', requireAdminAuth, async (req: Request, res:
 
 // Admin: Cadastrar Usuário / Emitir Ingresso Manualmente
 app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res: Response) => {
-  const { name, phone, seller } = req.body;
+  const { name, phone, ticketType, seller } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Nome e número são obrigatórios.' });
 
-  const validTicketType: 'POS_OPEN' = 'POS_OPEN';
+  const validTicketType: 'OPEN_BAR' | 'POS_OPEN' = ticketType === 'OPEN_BAR' ? 'OPEN_BAR' : 'POS_OPEN';
+  const isOpen = validTicketType === 'OPEN_BAR';
 
   if (!supabaseAdmin) return res.status(503).json({ error: 'Persistência de ingressos indisponível. Configure o Supabase no servidor.' });
   const created = await createPersistedTicket(String(name).trim(), String(phone).trim(), validTicketType, seller ? String(seller).trim() : undefined, 10);
@@ -1953,9 +1978,9 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
     buyerName: String(name).trim(),
     buyerEmail: '',
     buyerPhone: String(phone).trim(),
-    ticketId: 't-ingresso',
-    ticketName: 'INGRESSO',
-    category: 'PISTA',
+    ticketId: isOpen ? 't-open' : 't-pos-open',
+    ticketName: isOpen ? 'INGRESSO OPEN' : 'PÓS OPEN',
+    category: isOpen ? 'OPEN' : 'PISTA',
     price: 10,
     paymentMethod: 'PIX',
     status: 'VALIDO',
@@ -1969,17 +1994,22 @@ app.post('/api/admin/tickets/create', requireAdminAuth, async (req: Request, res
   return res.json({ success: true, ticket: { ...newTicket, token, codigo: code }, message: 'Usuário cadastrado com sucesso!' });
 });
 
-// Admin: Atualizar Dados do Usuário (Nome / Número)
+// Admin: Atualizar Dados do Usuário (Nome / Número / Modalidade)
 app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, phone } = req.body;
+  const { name, phone, ticketType } = req.body;
+  const validTicketType: 'OPEN_BAR' | 'POS_OPEN' | undefined =
+    ticketType === 'OPEN_BAR' ? 'OPEN_BAR' : ticketType === 'POS_OPEN' ? 'POS_OPEN' : undefined;
   const ticket = purchasedTickets.find(t => t.id === id || t.token === id);
   if (supabaseAdmin) {
     const updatePayload: any = {};
     if (name) updatePayload.nome = String(name).trim();
     if (phone) updatePayload.telefone = String(phone).trim();
-    updatePayload.tipo_ingresso = 'POS_OPEN';
-    updatePayload.item = 'INGRESSO';
+    if (validTicketType) {
+      updatePayload.tipo_ingresso = validTicketType;
+      updatePayload.item = validTicketType === 'OPEN_BAR' ? 'INGRESSO OPEN' : 'PÓS OPEN';
+      updatePayload.categoria = validTicketType === 'OPEN_BAR' ? 'OPEN' : 'PISTA';
+    }
     return supabaseAdmin.from('event_tickets').update(updatePayload).eq('id', id).select('*').single()
       .then(async ({ data, error }) => {
         if (error?.code === '42703') {
@@ -1995,7 +2025,11 @@ app.put('/api/admin/tickets/:id', requireAdminAuth, (req: Request, res: Response
   if (!ticket) return res.status(404).json({ error: 'Usuário não encontrado.' });
   if (name) ticket.buyerName = String(name).trim();
   if (phone) ticket.buyerPhone = String(phone).trim();
-  ticket.ticketType = 'POS_OPEN';
+  if (validTicketType) {
+    ticket.ticketType = validTicketType;
+    ticket.ticketName = validTicketType === 'OPEN_BAR' ? 'INGRESSO OPEN' : 'PÓS OPEN';
+    ticket.category = validTicketType === 'OPEN_BAR' ? 'OPEN' : 'PISTA';
+  }
   return res.json({ success: true, ticket, message: 'Dados do usuário atualizados!' });
 });
 

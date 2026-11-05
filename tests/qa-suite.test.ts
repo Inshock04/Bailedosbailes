@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import app, { calculateTicketTotal, isCurrentEditionCoupon } from '../server'; // Express App
-import { calculateIngressoTotal } from '../src/components/TicketModal';
+import { calculateIngressoTotal, calculateTicketModalTotal } from '../src/components/TicketModal';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 
@@ -117,21 +117,20 @@ describe('Baile dos Bailes - QA Test Suite', () => {
     });
   });
 
-  describe('4. Novo Sistema de Ingresso Único, Data e Oráculo (The Return)', () => {
-    it('Deve retornar apenas a modalidade única "Ingresso" sem Open Bar em /api/tickets', async () => {
+  describe('4. Sistema de Ingressos (Ingresso Open e Pós Open), Data e Oráculo (The Return)', () => {
+    it('Deve retornar Ingresso Open (R$ 10 cada) e Pós Open em /api/tickets sem bebidas listadas', async () => {
       const res = await request(app).get('/api/tickets');
       expect(res.status).toBe(200);
-      expect(res.body).toHaveLength(1);
-      expect(res.body[0].name).toBe('Ingresso');
-      expect(res.body[0].price).toBe(10);
-      expect(res.body[0].drinksIncluded).toEqual([]);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0]).toMatchObject({ id: 't-open', name: 'Ingresso Open', category: 'OPEN', price: 10, drinksIncluded: [] });
+      expect(res.body[1]).toMatchObject({ id: 't-pos-open', name: 'Pós Open', category: 'PISTA', price: 10, drinksIncluded: [] });
     });
 
-    it('Deve calcular a regra progressiva exata de preços (frontend e backend sincronizados)', () => {
-      const mockTicket = {
-        id: 't-ingresso',
-        name: 'Ingresso',
-        category: 'PISTA',
+    it('Deve calcular R$ 10 fixo para Ingresso Open e regra progressiva para Pós Open', () => {
+      const openTicket = {
+        id: 't-open',
+        name: 'Ingresso Open',
+        category: 'OPEN',
         price: 10,
         batch: 'ANTECIPADO',
         available: 500,
@@ -140,8 +139,25 @@ describe('Baile dos Bailes - QA Test Suite', () => {
         drinksIncluded: [],
         color: '#dc2626',
       };
+      const posOpenTicket = {
+        id: 't-pos-open',
+        name: 'Pós Open',
+        category: 'PISTA',
+        price: 10,
+        batch: 'ANTECIPADO',
+        available: 500,
+        total: 500,
+        features: [],
+        drinksIncluded: [],
+        color: '#2563eb',
+      };
 
-      const expectedByQty: Array<[number, number]> = [
+      for (const qty of [1, 2, 3, 4, 5, 6, 7, 10]) {
+        expect(calculateTicketTotal(openTicket, qty)).toBe(qty * 10);
+        expect(calculateTicketModalTotal(openTicket, qty)).toBe(qty * 10);
+      }
+
+      const expectedPosOpenByQty: Array<[number, number]> = [
         [1, 10],
         [2, 20],
         [3, 20],
@@ -153,8 +169,9 @@ describe('Baile dos Bailes - QA Test Suite', () => {
         [10, 55],
       ];
 
-      for (const [qty, expected] of expectedByQty) {
-        expect(calculateTicketTotal(mockTicket, qty)).toBe(expected);
+      for (const [qty, expected] of expectedPosOpenByQty) {
+        expect(calculateTicketTotal(posOpenTicket, qty)).toBe(expected);
+        expect(calculateTicketModalTotal(posOpenTicket, qty)).toBe(expected);
         expect(calculateIngressoTotal(qty)).toBe(expected);
       }
     });

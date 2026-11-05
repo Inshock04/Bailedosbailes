@@ -11,9 +11,9 @@ interface TicketModalProps {
 
 const DEFAULT_TIERS: TicketTier[] = [
   {
-    id: 't-ingresso',
-    name: 'Ingresso',
-    category: 'PISTA',
+    id: 't-open',
+    name: 'Ingresso Open',
+    category: 'OPEN',
     price: 10,
     batch: 'ANTECIPADO',
     available: 500,
@@ -21,10 +21,22 @@ const DEFAULT_TIERS: TicketTier[] = [
     features: ['Acesso oficial ao evento das 22:00 às 06:00'],
     drinksIncluded: [],
     color: '#dc2626'
+  },
+  {
+    id: 't-pos-open',
+    name: 'Pós Open',
+    category: 'PISTA',
+    price: 10,
+    batch: 'ANTECIPADO',
+    available: 500,
+    total: 500,
+    features: ['Acesso oficial ao evento'],
+    drinksIncluded: [],
+    color: '#2563eb'
   }
 ];
 
-const QUICK_COMBOS = [
+const POS_OPEN_COMBOS = [
   { qty: 1, label: '1 por R$ 10' },
   { qty: 3, label: '3 por R$ 20' },
   { qty: 5, label: '5 por R$ 30' }
@@ -33,7 +45,7 @@ const QUICK_COMBOS = [
 const MAX_TICKET_QUANTITY = 50;
 
 /**
- * Regra progressiva oficial:
+ * Regra progressiva oficial do Pós Open:
  * 1 por R$ 10 (2 = R$ 20)
  * 3 por R$ 20 (4 = R$ 30)
  * 5 por R$ 30
@@ -48,9 +60,17 @@ export const calculateIngressoTotal = (quantity: number): number => {
   return 30 + (quantity - 5) * 5;
 };
 
+export const calculateTicketModalTotal = (tier: TicketTier | undefined, quantity: number): number => {
+  if (quantity <= 0) return 0;
+  if (tier?.category === 'OPEN') {
+    return quantity * (tier.price || 10);
+  }
+  return calculateIngressoTotal(quantity);
+};
+
 export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, preselectedTierId }) => {
   const [tiers, setTiers] = useState<TicketTier[]>(DEFAULT_TIERS);
-  const [selectedTierId, setSelectedTierId] = useState<string>('t-ingresso');
+  const [selectedTierId, setSelectedTierId] = useState<string>('t-open');
   const [quantity, setQuantity] = useState<number>(1);
   const [buyerName, setBuyerName] = useState<string>('');
   const [buyerEmail, setBuyerEmail] = useState<string>('');
@@ -64,18 +84,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   useEffect(() => {
     if (!isOpen) return;
     fetch('/api/tickets')
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          const validTiers = data.filter((t: TicketTier) => t.category !== 'OPEN');
-          if (validTiers.length > 0) {
-            setTiers(validTiers);
-            setSelectedTierId(validTiers[0].id);
-          }
+          setTiers(data);
+          setSelectedTierId((prev) =>
+            data.some((t: TicketTier) => t.id === prev) ? prev : data[0].id
+          );
         }
       })
       .catch(() => {});
-  }, [isOpen, preselectedTierId]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && preselectedTierId) {
@@ -95,9 +114,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
   if (!isOpen) return null;
 
-  const currentTier = tiers.find(t => t.id === selectedTierId) || tiers[0] || DEFAULT_TIERS[0];
+  const currentTier = tiers.find((t) => t.id === selectedTierId) || tiers[0] || DEFAULT_TIERS[0];
+  const isOpenTier = currentTier.category === 'OPEN';
   const baseUnitPrice = currentTier?.price || 10;
-  const totalPrice = calculateIngressoTotal(quantity);
+  const totalPrice = calculateTicketModalTotal(currentTier, quantity);
   const fullPrice = baseUnitPrice * quantity;
   const savings = Math.max(0, fullPrice - totalPrice);
   const hasDiscount = savings > 0;
@@ -126,7 +146,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ticketId: currentTier?.id || 't-ingresso',
+          ticketId: currentTier?.id || 't-open',
           quantity,
           buyerName,
           buyerEmail,
@@ -185,7 +205,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                 BILHETERIA OFICIAL • THE TRIPLEX
               </h2>
               <span className="block font-mono text-[11px] sm:text-[12px] text-[#fca5a5] leading-tight mt-0.5">
-                07 de Novembro • 22h às 06h • Combos promocionais
+                07 de Novembro • Ingresso Open & Pós Open
               </span>
             </div>
           </div>
@@ -224,62 +244,124 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               </div>
             )}
 
-            {/* 1. Card Único do Ingresso + Combos */}
+            {/* 1. Seleção de Modalidade (Ingresso Open vs Pós Open) */}
             <div>
-              <span className={labelClass}>SEU INGRESSO</span>
-              <div className="w-full p-3.5 border-2 border-[#22c55e] bg-[#0c2414]/90 shadow-[0_0_15px_rgba(34,197,94,0.25)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <PixelTicketIcon size={18} color="#4ade80" className="mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="block font-pixel text-sm sm:text-base text-white font-bold leading-tight uppercase">
-                        {currentTier.name}
-                      </span>
-                      <span className="inline-block mt-1 bg-[#14532d] text-[#bbf7d0] px-1.5 py-0.5 border border-[#22c55e]/60 font-pixel text-[10px] sm:text-[11px]">
-                        22:00 ÀS 06:00 • ANTECIPADO
-                      </span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 font-pixel text-base sm:text-lg text-[#22c55e] font-bold leading-tight">
-                    R$ 10,00
-                  </span>
-                </div>
+              <span className={labelClass}>MODALIDADE DO INGRESSO</span>
+              <div className="grid grid-cols-1 gap-2" role="radiogroup" aria-label="Modalidade do Ingresso">
+                {tiers.map((tier) => {
+                  const isSelected = currentTier.id === tier.id;
+                  const tierIsOpen = tier.category === 'OPEN';
 
-                {/* Seletores rápidos de combo */}
-                <div className="mt-3 pt-2.5 border-t border-[#166534]/70">
-                  <span className="block font-pixel text-[10px] sm:text-[11px] text-[#fde047] uppercase mb-1.5">
-                    ESCOLHA UM COMBO OU AJUSTE A QUANTIDADE:
-                  </span>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {QUICK_COMBOS.map((combo) => {
-                      const active = quantity === combo.qty;
-                      return (
-                        <button
-                          key={combo.qty}
-                          type="button"
-                          onClick={() => {
-                            audioManager.playClick();
-                            setQuantity(combo.qty);
-                          }}
-                          className={`py-1.5 px-2 border font-mono text-xs font-bold transition-all cursor-pointer text-center ${
-                            active
-                              ? 'bg-[#f59e0b] text-[#0b0712] border-[#fef08a] shadow-[0_0_10px_rgba(245,158,11,0.5)]'
-                              : 'bg-[#1a1207] text-[#fbbf24] border-[#a16207] hover:border-[#fde047]'
+                  return (
+                    <div
+                      key={tier.id}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onClick={() => {
+                        audioManager.playClick();
+                        setSelectedTierId(tier.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          audioManager.playClick();
+                          setSelectedTierId(tier.id);
+                        }
+                      }}
+                      className={`w-full p-3 border-2 text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#22c55e] bg-[#0c2414]/90 shadow-[0_0_15px_rgba(34,197,94,0.25)]'
+                          : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2.5 min-w-0">
+                          <span
+                            className={`mt-1 shrink-0 w-4 h-4 border-2 flex items-center justify-center ${
+                              isSelected ? 'border-[#22c55e]' : 'border-[#6b2a3a]'
+                            }`}
+                          >
+                            {isSelected && <span className="w-2 h-2 bg-[#22c55e]" />}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="flex items-center gap-1.5 font-pixel text-xs sm:text-sm text-white font-bold leading-tight uppercase">
+                              <PixelTicketIcon
+                                size={15}
+                                color={isSelected ? '#4ade80' : '#fca5a5'}
+                                className="shrink-0"
+                              />
+                              <span>{tier.name}</span>
+                            </span>
+                            <span className="inline-block mt-1 bg-[#240c1e] text-[#fca5a5] px-1.5 py-0.5 border border-[#581c2b] font-pixel text-[10px]">
+                              {tierIsOpen ? 'R$ 10 CADA • ANTECIPADO' : 'COMBOS PROMOCIONAIS • ANTECIPADO'}
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className={`shrink-0 font-pixel text-sm sm:text-base font-bold leading-tight ${
+                            isSelected ? 'text-[#22c55e]' : 'text-gray-300'
                           }`}
                         >
-                          {combo.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <span className="block font-mono text-[11px] text-[#86efac] mt-2 leading-snug">
-                    A partir de 5 ingressos, cada ingresso adicional sai por <strong>R$ 5,00</strong> (6 por R$ 35 • 7 por R$ 40...).
-                  </span>
-                  <span className="block font-mono text-[10px] text-[#fca5a5]/80 mt-1">
-                    * Valor válido somente para vendas antecipadas. Após a compra, não realizamos estorno.
-                  </span>
-                </div>
+                          R$ {tier.price.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {/* Resumo ou seletores de promoções do Pós Open */}
+                      {!tierIsOpen && !isSelected && (
+                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#fbbf24]">
+                          Promoções: 1 por R$ 10 • 3 por R$ 20 • 5 por R$ 30 (+R$ 5 cada adicional)
+                        </div>
+                      )}
+
+                      {!tierIsOpen && isSelected && (
+                        <div
+                          className="mt-2.5 pt-2.5 border-t border-[#166534]/70"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="block font-pixel text-[10px] sm:text-[11px] text-[#fde047] uppercase mb-1.5">
+                            PROMOÇÕES PÓS OPEN — ESCOLHA UM COMBO:
+                          </span>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {POS_OPEN_COMBOS.map((combo) => {
+                              const active = quantity === combo.qty;
+                              return (
+                                <button
+                                  key={combo.qty}
+                                  type="button"
+                                  onClick={() => {
+                                    audioManager.playClick();
+                                    setQuantity(combo.qty);
+                                  }}
+                                  className={`py-1.5 px-2 border font-mono text-xs font-bold transition-all cursor-pointer text-center ${
+                                    active
+                                      ? 'bg-[#f59e0b] text-[#0b0712] border-[#fef08a] shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                                      : 'bg-[#1a1207] text-[#fbbf24] border-[#a16207] hover:border-[#fde047]'
+                                  }`}
+                                >
+                                  {combo.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <span className="block font-mono text-[11px] text-[#86efac] mt-2 leading-snug">
+                            A partir de 5 ingressos, cada ingresso adicional sai por <strong>R$ 5,00</strong> (6 por R$ 35 • 7 por R$ 40...).
+                          </span>
+                        </div>
+                      )}
+
+                      {tierIsOpen && isSelected && (
+                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#bbf7d0]">
+                          Valor unitário de <strong>R$ 10,00</strong> por ingresso.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
+              <span className="block font-mono text-[10px] text-[#fca5a5]/80 mt-1.5">
+                * Valores válidos somente para vendas antecipadas. Após a compra, não realizamos estorno.
+              </span>
             </div>
 
             {/* 2. Dados do Comprador */}
@@ -340,7 +422,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
                 {/* Quantidade */}
                 <div>
-                  <span className={labelClass}>QUANTIDADE DE INGRESSOS</span>
+                  <span className={labelClass}>QUANTIDADE ({isOpenTier ? 'INGRESSO OPEN' : 'PÓS OPEN'})</span>
                   <div className="flex items-center gap-2 bg-[#120718] border-2 border-[#431424] p-1 h-11">
                     <button
                       id="qty-minus"
@@ -384,7 +466,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           <div className="shrink-0 border-t-2 border-[#381622] bg-[#0b0712] px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <span className="text-[10px] sm:text-xs text-[#9ca3af] block font-mono leading-tight">
-                VALOR TOTAL • {quantity} {quantity === 1 ? 'ingresso' : 'ingressos'}
+                {currentTier.name.toUpperCase()} • {quantity} {quantity === 1 ? 'ingresso' : 'ingressos'}
               </span>
               <span className="font-pixel text-lg sm:text-xl text-[#22c55e] font-bold leading-tight tabular-nums">
                 R$ {totalPrice.toFixed(2)}
@@ -392,7 +474,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               {hasDiscount && (
                 <span className="text-[11px] text-[#fbbf24] font-mono flex items-center gap-1 leading-tight mt-0.5">
                   <PixelFlame size={12} color="#fbbf24" />
-                  <span>Combo • economia de R$ {savings.toFixed(2)}</span>
+                  <span>Combo Pós Open • economia de R$ {savings.toFixed(2)}</span>
                 </span>
               )}
               <span className="text-[9px] sm:text-[10px] text-[#fca5a5]/70 font-mono block leading-tight mt-0.5">

@@ -597,8 +597,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
       const targetToken = data.ticket.qrToken || data.ticket.token || code;
       const publicUrl = `${window.location.origin}/ingresso/${targetToken}`;
       const qrDataUrl = await generateHalloweenTicketQr(publicUrl);
-      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl, ticketType: 'POS_OPEN' });
-      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! Ingresso — Código público: ${code}`);
+      const tipoLabel = newUserTicketType === 'OPEN_BAR' ? 'Ingresso Open' : 'Pós Open';
+      setGeneratedTicket({ code, token: targetToken, name, qrDataUrl, publicUrl, ticketType: newUserTicketType });
+      setCreateUserSuccess(`Usuário ${name} cadastrado com sucesso! ${tipoLabel} — Código público: ${code}`);
       setNewUserName('');
       setNewUserPhone('');
       setNewUserTicketType('POS_OPEN');
@@ -1111,9 +1112,29 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                         <label className="block text-[11px] font-pixel text-[#d8b4fe] mb-1 font-bold">
                           MODALIDADE
                         </label>
-                        <div className="w-full bg-[#0d0414] border-2 border-[#a855f7]/70 px-3 py-2.5 text-xs sm:text-sm text-[#4ade80] font-pixel font-bold flex items-center gap-2 shadow-inner">
-                          <PixelTicketIcon size={14} color="#4ade80" />
-                          <span>INGRESSO</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setNewUserTicketType('OPEN_BAR')}
+                            className={`py-2.5 px-2 border-2 font-pixel text-[10px] sm:text-xs font-bold cursor-pointer transition-all ${
+                              newUserTicketType === 'OPEN_BAR'
+                                ? 'bg-[#7f1d1d] border-[#ef4444] text-[#fef08a]'
+                                : 'bg-[#0d0414] border-[#a855f7]/40 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            INGRESSO OPEN
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNewUserTicketType('POS_OPEN')}
+                            className={`py-2.5 px-2 border-2 font-pixel text-[10px] sm:text-xs font-bold cursor-pointer transition-all ${
+                              newUserTicketType === 'POS_OPEN'
+                                ? 'bg-[#064e3b] border-[#22c55e] text-[#86efac]'
+                                : 'bg-[#0d0414] border-[#a855f7]/40 text-gray-400 hover:text-white'
+                            }`}
+                          >
+                            PÓS OPEN
+                          </button>
                         </div>
                       </div>
                       <div>
@@ -1289,9 +1310,24 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                                     )}
                                   </td>
                                   <td className="p-2">
-                                    <span className="px-1.5 py-0.5 text-[10px] font-pixel font-bold bg-[#064e3b] text-[#6ee7b7] border border-[#10b981]">
-                                      INGRESSO
-                                    </span>
+                                    {isEditing ? (
+                                      <select
+                                        value={editTicketType}
+                                        onChange={e => setEditTicketType(e.target.value as 'OPEN_BAR' | 'POS_OPEN')}
+                                        className="bg-[#0e0417] border border-[#c084fc] px-1.5 py-0.5 text-[11px] text-white font-pixel"
+                                      >
+                                        <option value="OPEN_BAR">INGRESSO OPEN</option>
+                                        <option value="POS_OPEN">PÓS OPEN</option>
+                                      </select>
+                                    ) : t.ticketType === 'OPEN_BAR' ? (
+                                      <span className="px-1.5 py-0.5 text-[10px] font-pixel font-bold bg-[#7f1d1d] text-[#fef08a] border border-[#ef4444]">
+                                        INGRESSO OPEN
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 text-[10px] font-pixel font-bold bg-[#064e3b] text-[#6ee7b7] border border-[#10b981]">
+                                        PÓS OPEN
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="p-2">
                                     <span className={`px-1.5 py-0.5 text-[11px] font-pixel ${t.status === 'VALIDO' ? 'bg-[#064e3b] text-[#6ee7b7]' : 'bg-[#7f1d1d] text-[#fca5a5]'

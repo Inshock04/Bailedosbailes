@@ -97,7 +97,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
     },
     {
       q: 'Quais são os valores e combos de ingresso?',
-      a: 'Trabalhamos com modalidade única ("Ingresso") antecipada: 1 por R$ 10, 3 por R$ 20 e 5 por R$ 30. A partir de 5 ingressos, cada ingresso adicional sai por R$ 5 (6 por R$ 35, 7 por R$ 40 e assim por diante).'
+      a: 'Temos duas modalidades antecipadas: "Ingresso Open" por R$ 10 cada, e "Pós Open" com promoções progressivas (1 por R$ 10, 3 por R$ 20 e 5 por R$ 30; a partir de 5 ingressos, cada adicional sai por R$ 5).'
     },
     {
       q: 'Como é feita a compra do ingresso?',

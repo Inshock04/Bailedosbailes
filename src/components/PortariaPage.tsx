@@ -589,7 +589,13 @@ export const PortariaPage: React.FC = () => {
                 </div>
                 <div className="bg-[#1b081a] p-2.5 rounded-xl border border-[#3e1428]">
                   <span className="text-[10px] font-mono text-gray-400 block">TIPO</span>
-                  <span className="font-pixel text-xs text-[#86efac]">INGRESSO</span>
+                  <span className={`font-pixel text-xs font-bold ${
+                    ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN'
+                      ? 'text-[#fef08a]'
+                      : 'text-[#86efac]'
+                  }`}>
+                    {ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN' ? 'INGRESSO OPEN' : 'PÓS OPEN'}
+                  </span>
                 </div>
               </div>
 

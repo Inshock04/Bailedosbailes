@@ -188,8 +188,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         {/* Sticky Footer / CTA */}
         <div className="shrink-0 border-t-2 border-[#5c3e06] bg-[#0b0613] px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
-            <div className="flex items-baseline justify-center sm:justify-start gap-2">
-              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO</span>
+            <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-2">
+              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO OPEN • PÓS OPEN</span>
               <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">R$10</span>
             </div>
             <span className="block text-[11px] text-[#fca5a5] font-mono italic mt-0.5">
