@@ -449,45 +449,23 @@ let tickets: Ticket[] = [
     id: 't-open',
     name: 'Ingresso Open',
     category: 'OPEN',
-    price: 10,
-    batch: 'ANTECIPADO',
+    price: 35,
+    batch: 'OFERTA RELÂMPAGO',
     available: 500,
     total: 500,
-    features: ['Open das 22:00 às 23:00'],
-    drinksIncluded: [],
+    features: ['Oferta Relâmpago', 'Caipirinha por 1h no início do Open'],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético'],
     color: '#dc2626'
-  },
-  {
-    id: 't-pos-open',
-    name: 'Pós Open',
-    category: 'PISTA',
-    price: 10,
-    batch: 'ANTECIPADO',
-    available: 500,
-    total: 500,
-    features: ['Entrada a partir das 23:00'],
-    drinksIncluded: [],
-    color: '#2563eb'
   }
 ];
 
 /**
  * Regras oficiais de preço:
- * - Ingresso Open (category === 'OPEN'): R$ 10 cada fixo (quantity * 10)
- * - Pós Open (category === 'PISTA'):
- *   1 por R$ 10 (2 = R$ 20), 3 por R$ 20 (4 = R$ 30), 5 por R$ 30,
- *   e a partir de 5 ingressos, +R$ 5 por ingresso adicional (6 = 35, 7 = 40, ...)
+ * - Ingresso Open (Oferta Relâmpago): R$ 35 cada fixo (quantity * 35)
  */
 export function calculateTicketTotal(ticket: Ticket, quantity: number): number {
   if (quantity <= 0) return 0;
-  if (ticket?.category === 'OPEN') {
-    return quantity * (ticket.price || 10);
-  }
-  if (quantity === 1) return 10;
-  if (quantity === 2) return 20;
-  if (quantity === 3) return 20;
-  if (quantity === 4) return 30;
-  return 30 + (quantity - 5) * 5;
+  return quantity * (ticket?.price || 35);
 }
 
 let promotions: Promotion[] = [];
@@ -496,10 +474,10 @@ const allOracleCards = [
   {
     id: 'card-caipiroska-70',
     name: '4 Caipiroska de R$ 120 por R$ 70',
-    title: 'QUARTETO DE CRISTAL',
+    title: 'MÁSCARA DA FOLIA',
     symbol: 'CHALICE',
-    arcana: 'ARCANA I',
-    description: 'Quatro taças geladas servidas no salão principal para brindar o retorno à mansão.',
+    arcana: 'CARNATAL I',
+    description: 'Quatro taças geladas no ritmo do bloco para brindar o Carnatal no The Triplex.',
     rewardText: '4 caipiroska de 120 por 70',
     rewardCodePrefix: 'CAIP70',
     discountType: 'PRICE',
@@ -508,10 +486,10 @@ const allOracleCards = [
   {
     id: 'card-vodkabaly-50',
     name: '3 Dose de Vodka c/ Baly por R$ 50',
-    title: 'ELIXIR DA MEIA-NOITE',
+    title: 'TRENÓ DA MADRUGADA',
     symbol: 'FLAME',
-    arcana: 'ARCANA II',
-    description: 'Energia intensa em dose tripla para atravessar a madrugada na pista do Cortez.',
+    arcana: 'CARNATAL II',
+    description: 'Energia intensa puxada pelas renas da folia para atravessar a noite na pista.',
     rewardText: '3 dose de vodka c/baly por 50',
     rewardCodePrefix: 'VBALY50',
     discountType: 'PRICE',
@@ -520,10 +498,10 @@ const allOracleCards = [
   {
     id: 'card-maracujack-55',
     name: '2 Maracujack de R$ 70 por R$ 55',
-    title: 'JACK & MARACUJÁ DUPLO',
+    title: 'PRESENTE DO PAPAI NOEL',
     symbol: 'RAVEN',
-    arcana: 'ARCANA III',
-    description: "Jack Daniel's combinado com maracujá em dose dupla para celebrar a noite.",
+    arcana: 'CARNATAL III',
+    description: "Jack Daniel's com maracujá saindo direto da caixa de presentes para celebrar em dose dupla.",
     rewardText: '2 maracujack de 70 por 55',
     rewardCodePrefix: 'MJACK55',
     discountType: 'PRICE',
@@ -532,10 +510,10 @@ const allOracleCards = [
   {
     id: 'card-whiskysour-55',
     name: '2 Whisky Sour de R$ 70 por R$ 55',
-    title: 'CLÁSSICO DO CORTEZ',
+    title: 'BRILHO DOS PISCA-PISCAS',
     symbol: 'MOON',
-    arcana: 'ARCANA IV',
-    description: 'O equilíbrio cítrico e aveludado dos grandes bailes secretos em dose dupla.',
+    arcana: 'CARNATAL IV',
+    description: 'O equilíbrio cítrico iluminado pelos pisca-piscas natalinos e confetes de carnaval.',
     rewardText: '2 whisky sour de 70 por 55',
     rewardCodePrefix: 'WSOUR55',
     discountType: 'PRICE',
@@ -544,10 +522,10 @@ const allOracleCards = [
   {
     id: 'card-jackcoke-55',
     name: '2 Jack and Coke de R$ 70 por R$ 55',
-    title: 'SOMBRAS DE TENNESSEE',
+    title: 'BLOCO DAS RENAS',
     symbol: 'SKULL',
-    arcana: 'ARCANA V',
-    description: 'A combinação lendária servida trincando em dose dupla no bar da mansão.',
+    arcana: 'CARNATAL V',
+    description: 'A combinação lendária servida trincando no encontro entre o Carnaval e o Natal.',
     rewardText: '2 Jack and Coke de 70 por 55',
     rewardCodePrefix: 'JCOKE55',
     discountType: 'PRICE',

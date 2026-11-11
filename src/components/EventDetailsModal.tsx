@@ -42,10 +42,10 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 id="event-details-title"
                 className="font-pixel text-xs sm:text-base font-bold text-[#fef08a] tracking-wider leading-tight"
               >
-                O EVENTO • HOTEL CORTEZ — THE RETURN
+                O EVENTO • CARNATAL — THE TRIPLEX
               </h2>
               <span className="block font-mono text-xs text-[#fbbf24] mt-0.5 leading-tight">
-                07 de Novembro • 22:00 às 06:00 • THE TRIPLEX
+                19 - DEZ - 21h • THE TRIPLEX
               </span>
             </div>
           </div>
@@ -189,14 +189,14 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         <div className="shrink-0 border-t-2 border-[#5c3e06] bg-[#0b0613] px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
             <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-2">
-              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO OPEN • PÓS OPEN</span>
-              <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">R$10</span>
+              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO OPEN • OFERTA RELÂMPAGO</span>
+              <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">R$ 35,00</span>
             </div>
-            <span className="block text-[11px] text-[#e9d5ff] font-mono mt-0.5">
-              Open: 22:00 às 23:00 • Entrada Pós Open: a partir das 23:00
+            <span className="block text-[11px] text-[#bbf7d0] font-mono mt-0.5">
+              Bebidas: Gin, Vodka e Energético • Caipirinha liberada por 1h no início do Open
             </span>
             <span className="block text-[11px] text-[#fca5a5] font-mono italic mt-0.5">
-              *Valor válido somente para vendas antecipadas.*
+              *Valor promocional válido somente para vendas antecipadas.*
             </span>
             <span className="block text-[11px] text-[#ef4444] font-mono italic">
               *Após a compra do ingresso, não realizamos estorno.*
@@ -211,9 +211,9 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 onOpenTickets();
               }
             }}
-            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-xs sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-xs sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 cursor-pointer rounded-xl"
           >
-            <PixelSkull size={14} color="#ffffff" />
+            <PixelCocktail size={14} color="#ffffff" />
             <span>GARANTIR INGRESSO</span>
           </button>
         </div>

@@ -24,15 +24,13 @@ import {
   PixelClose
 } from './components/PixelIcons';
 import { 
-  VictorianMansionIcon, 
-  CryingNunIcon, 
-  CircusTentIcon, 
-  WitchHatIcon, 
+  FlyingSleighReindeerIcon, 
+  GrinchIcon, 
+  CocktailGlassIcon, 
+  GiftCarnivalMaskIcon,
   VintageKeyIcon 
 } from './components/GlowingRedIcons';
 import { HotelScene } from './components/HotelScene';
-import { BatSwarm } from './components/BatSwarm';
-import { DenseAtmosphericFog } from './components/DenseAtmosphericFog';
 import { CardSmokeCanvas } from './components/CardSmokeCanvas';
 import { CustomCursor } from './components/CustomCursor';
 import { TicketModal } from './components/TicketModal';
@@ -69,8 +67,8 @@ export default function App() {
   const [myTicketsToken, setMyTicketsToken] = useState<string | null>(null);
   const [showPaymentToast, setShowPaymentToast] = useState<boolean>(false);
 
-  // Real-Time Countdown to November 7, 2026, 22:00 (BRT)
-  const EVENT_TARGET_MS = new Date('2026-11-07T22:00:00-03:00').getTime();
+  // Real-Time Countdown to December 19, 2026, 21:00 (BRT)
+  const EVENT_TARGET_MS = new Date('2026-12-19T21:00:00-03:00').getTime();
 
   const calculateCountdown = () => {
     const diff = EVENT_TARGET_MS - Date.now();
@@ -216,13 +214,13 @@ export default function App() {
     setActiveModal(sectionId);
   };
 
-  // Left sidebar with 5 Animated Glowing Red SVG Icons (Casarão Vitoriano, Freira Chorando, Lona de Circo, Chapéu de Bruxa, Chave Vintage)
+  // Navigation items: Trenó com Renas Voando (Home Page), Grinch (Info), Taça de Drink (Ingressos), Caixa de Presentes e Máscara de Carnaval (Cupons)
   const leftSidebarIcons = [
     {
       id: 'home',
-      label: 'CASARÃO VITORIANO / HOME',
+      label: 'Home Page',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <VictorianMansionIcon isHovered={isHovered} isActive={isActive} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+        <FlyingSleighReindeerIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
       ),
       bg: 'hover:bg-[#ff0033]/20',
       activeColor: 'bg-[#ff0033]/30',
@@ -235,22 +233,22 @@ export default function App() {
     },
     {
       id: 'evento',
-      label: 'FREIRA CHORANDO / INFO DO EVENTO',
+      label: 'Info',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <CryingNunIcon isHovered={isHovered} isActive={isActive} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+        <GrinchIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
       ),
-      bg: 'hover:bg-[#ff0033]/20',
-      activeColor: 'bg-[#ff0033]/30',
+      bg: 'hover:bg-[#22c55e]/20',
+      activeColor: 'bg-[#22c55e]/30',
       action: () => handleOpenSection('evento'),
     },
     {
       id: 'ingressos',
-      label: 'LONA DE CIRCO / INGRESSOS & ATRAÇÕES',
+      label: 'Ingressos',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <CircusTentIcon isHovered={isHovered} isActive={isActive} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+        <CocktailGlassIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
       ),
-      bg: 'hover:bg-[#ff0033]/20',
-      activeColor: 'bg-[#ff0033]/30',
+      bg: 'hover:bg-[#f59e0b]/20',
+      activeColor: 'bg-[#f59e0b]/30',
       action: () => {
         setCurrentScene('circus');
         handleOpenSection('tickets');
@@ -258,19 +256,19 @@ export default function App() {
     },
     {
       id: 'oraculo',
-      label: 'CHAPÉU DE BRUXA / ORÁCULO & TAROT',
+      label: 'Cupons',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <WitchHatIcon isHovered={isHovered} isActive={isActive} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+        <GiftCarnivalMaskIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
       ),
-      bg: 'hover:bg-[#ff0033]/20',
-      activeColor: 'bg-[#ff0033]/30',
+      bg: 'hover:bg-[#a855f7]/20',
+      activeColor: 'bg-[#a855f7]/30',
       action: () => handleOpenSection('cards'),
     },
     {
       id: 'admin',
-      label: 'CHAVE VINTAGE / ÁREA DE ADM',
+      label: 'Admin',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <VintageKeyIcon isHovered={isHovered} isActive={isActive} className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+        <VintageKeyIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
       ),
       bg: 'hover:bg-[#ff0033]/20',
       activeColor: 'bg-[#ff0033]/30',
@@ -295,15 +293,9 @@ export default function App() {
       <CustomCursor />
 
       {/* ========================================================================= */}
-      {/* 1. HOTEL SCENERY OCCUPYING THE ENTIRE DESIGN (FULL SCREEN PIXEL ART) */}
+      {/* 1. BACKGROUND SCENERY OCCUPYING THE ENTIRE DESIGN (MOBILE & PC) */}
       {/* ========================================================================= */}
       <HotelScene currentScene={currentScene} />
-
-      {/* ========================================================================= */}
-      {/* 2. GSAP ANIMATED BATS SWARM & DENSE ATMOSPHERIC ROLLING FOG */}
-      {/* ========================================================================= */}
-      <BatSwarm />
-      <DenseAtmosphericFog />
 
       {/* ========================================================================= */}
       {/* 3. NAVIGATION BAR: BOTTOM ON MOBILE / LEFT SIDEBAR ON DESKTOP */}
@@ -325,16 +317,19 @@ export default function App() {
                 onMouseLeave={() => setHoveredIconId(null)}
                 title={item.label}
                 aria-label={item.label}
-                className={`left-icon-btn group relative w-10 h-10 sm:w-10 sm:h-10 md:w-11 md:h-11 flex items-center justify-center outline-none border rounded-lg md:rounded-none ${
+                className={`left-icon-btn group relative px-2.5 py-1.5 sm:px-3 sm:py-2 md:w-16 md:py-2 flex flex-col items-center justify-center gap-0.5 outline-none border rounded-lg md:rounded-xl ${
                   isActive 
                     ? `${item.activeColor} border-[#ff0033]/70 shadow-[0_0_18px_rgba(255,0,51,0.6),inset_0_0_8px_rgba(255,0,51,0.35)] scale-105` 
-                    : 'bg-transparent border-transparent hover:border-[#ff0033]/80 hover:bg-[#ff0033]/25 hover:shadow-[0_0_22px_rgba(255,0,51,0.85),inset_0_0_10px_rgba(255,0,51,0.4)]'
+                    : 'bg-[#0c0614]/80 md:bg-[#0c0614]/85 border-[#ffffff]/15 hover:border-[#ff0033]/80 hover:bg-[#ff0033]/25 hover:shadow-[0_0_22px_rgba(255,0,51,0.85),inset_0_0_10px_rgba(255,0,51,0.4)]'
                 } hover:scale-105 active:scale-95 transition-all duration-300 ease-out cursor-pointer select-none`}
               >
                 {item.renderIcon(isHovered, isActive)}
+                <span className="text-[11px] sm:text-[12px] leading-tight text-white oleo-script-swash-caps-bold whitespace-nowrap">
+                  {item.label}
+                </span>
 
                 {/* Tooltip on hover: Above on mobile bottom-bar, Right side on desktop */}
-                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 md:bottom-auto md:left-full md:translate-x-0 md:ml-2 md:top-1/2 md:-translate-y-1/2 px-2.5 py-1 bg-[#180509]/95 text-[11px] sm:text-[12px] font-pixel text-[#ff4d6d] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-[0_0_15px_rgba(255,30,56,0.8)] z-[110]">
+                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 md:bottom-auto md:left-full md:translate-x-0 md:ml-2 md:top-1/2 md:-translate-y-1/2 px-2.5 py-1 bg-[#180509]/95 text-[11px] sm:text-[12px] oleo-script-swash-caps-bold text-[#ff4d6d] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 shadow-[0_0_15px_rgba(255,30,56,0.8)] z-[110]">
                   {item.label}
                 </span>
               </button>
@@ -381,21 +376,17 @@ export default function App() {
             <div className="relative z-10 sidebar-item-anim border-b-2 border-[#2a133d] pb-2 mb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-pixel text-[13px] sm:text-[14px] text-[#ef4444] tracking-widest uppercase flex items-center gap-1 font-bold">
-                    <PixelSkull size={12} color="#ef4444" />
-                    <span>HALLOWEEN</span>
+                  <span className="oleo-script-swash-caps-bold text-[15px] sm:text-[16px] text-[#ef4444] tracking-wide flex items-center gap-1 font-bold">
+                    <span>Dezembro</span>
                   </span>
-                  <span className="bg-[#1f0a17] border border-[#7f1d1d] px-1.5 py-0.5 font-pixel text-[12px] sm:text-[13px] text-[#fca5a5]">
-                    2026
-                  </span>
-                  <span className="hidden sm:inline-block font-mono text-[13px] sm:text-[14px] text-[#a855f7]">
-                    • 07 NOV • 22H
+                  <span className="hidden sm:inline-block font-pixel text-[12px] sm:text-[13px] text-[#a855f7]">
+                    • 19 - DEZ - 21
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="text-[#ef4444] font-pixel text-[13px] sm:text-[14px] font-bold sm:hidden">
-                    07 NOV • 22H
+                    19 - DEZ - 21
                   </span>
                   {/* Minimize toggle button */}
                   <button
@@ -403,7 +394,7 @@ export default function App() {
                       audioManager.playClick();
                       setIsCardMinimized(true);
                     }}
-                    title="Minimizar painel para ver o hotel"
+                    title="Minimizar painel"
                     className="px-2 py-0.5 bg-[#2a133d] hover:bg-[#ff3344] text-[#d1d5db] hover:text-white font-pixel text-[14px] transition-colors cursor-pointer"
                   >
                     —
@@ -413,11 +404,8 @@ export default function App() {
 
               <div className="flex flex-wrap items-baseline justify-between gap-1 mt-1">
                 <div className="flex items-baseline gap-2">
-                  <h2 className="neon-ahs-title font-pixel text-[14px] sm:text-[15px] md:text-[15px] text-[#ff3344] font-black tracking-wider leading-tight">
-                    AMERICAN HORROR STORY
-                  </h2>
-                  <h1 className="neon-triplex-title font-pixel text-base sm:text-lg md:text-xl text-[#f59e0b] font-black tracking-wider leading-none">
-                    THE TRIPLEX
+                  <h1 className="neon-triplex-title font-pixel text-base sm:text-lg md:text-xl text-[#f59e0b] font-black tracking-wider leading-tight">
+                    CARNATAL - THE TRIPLEX
                   </h1>
                 </div>
                 <span className="text-[#a855f7] flex items-center gap-0.5 text-[13px] sm:text-[14px] font-pixel">
@@ -523,97 +511,6 @@ export default function App() {
                   </div>
                   <OfficialSocialButtons />
                 </div>
-              </div>
-
-            </div>
-
-            {/* Bottom Footer Bar: Audio, CRT & Info Links */}
-            <div className="relative z-10 sidebar-item-anim mt-2 pt-2 border-t border-[#2a133d] flex flex-wrap items-center justify-between gap-2">
-              
-              {/* 8-bit Audio Bar & CRT Filter Toggle */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-[150px]">
-                {/* Audio Toggle: Trilha Sonora Oficial American Horror Story */}
-                <button
-                  onClick={toggleAudio}
-                  title="Tocar / Pausar trilha sonora oficial American Horror Story: Hotel (Loop Contínuo)"
-                  aria-label="Controle de áudio da trilha American Horror Story"
-                  className={`flex-1 py-1 px-1.5 border flex items-center justify-between text-[12px] sm:text-[13px] font-pixel transition-all cursor-pointer ${
-                    isMusicOn 
-                      ? 'bg-[#14532d] border-[#22c55e] text-[#86efac] shadow-[0_0_12px_rgba(34,197,94,0.4)]' 
-                      : 'bg-[#160a21] border-[#361c4d] text-[#9ca3af] hover:border-[#ff3344]/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    {isMusicOn ? (
-                      <PixelVolume size={11} color="#22c55e" />
-                    ) : (
-                      <PixelVolumeMute size={11} color="#ef4444" />
-                    )}
-                    <span>AHS THEME</span>
-                  </div>
-                  <span className={isMusicOn ? 'text-[#86efac] font-bold animate-pulse' : 'text-[#ef4444]'}>
-                    {isMusicOn ? 'LOOP ON' : 'OFF'}
-                  </span>
-                </button>
-
-                {/* CRT Monitor Toggle */}
-                <button
-                  onClick={() => {
-                    audioManager.playClick();
-                    setIsCrtOn(!isCrtOn);
-                  }}
-                  className={`py-1 px-1.5 border text-[12px] sm:text-[13px] font-pixel transition-all cursor-pointer ${
-                    isCrtOn 
-                      ? 'bg-[#3b0764] border-[#a855f7] text-[#f5d0fe]' 
-                      : 'bg-[#160a21] border-[#361c4d] text-[#9ca3af]'
-                  }`}
-                >
-                  CRT:{isCrtOn ? 'ON' : 'OFF'}
-                </button>
-
-                {/* Scene Toggle: Circo Macabro vs Hotel Cortez */}
-                <button
-                  onClick={() => {
-                    audioManager.playClick();
-                    setCurrentScene(prev => prev === 'circus' ? 'hotel' : 'circus');
-                  }}
-                  title="Alternar entre o Circo Macabro e o Hotel Cortez"
-                  className="py-1 px-1.5 border text-[12px] sm:text-[13px] font-pixel transition-all cursor-pointer bg-[#180a14] border-[#7f1d1d] text-[#fca5a5] hover:border-[#ff3344] hover:bg-[#3b0710]"
-                >
-                  {currentScene === 'circus' ? 'CENÁRIO: CIRCO' : 'CENÁRIO: HOTEL'}
-                </button>
-              </div>
-
-              {/* Quick Links / Info / Admin */}
-              <div className="flex items-center justify-end gap-1.5 text-[12px] sm:text-[13px] font-pixel text-[#9ca3af]">
-                <button
-                  onClick={() => handleOpenSection('sobre')}
-                  className="hover:text-[#ef4444] transition-colors cursor-pointer"
-                >
-                  SOBRE
-                </button>
-                <span>•</span>
-                <button
-                  onClick={() => handleOpenSection('faq')}
-                  className="hover:text-[#ef4444] transition-colors cursor-pointer"
-                >
-                  FAQ
-                </button>
-                <span>•</span>
-                <button
-                  onClick={() => handleOpenSection('contato')}
-                  className="hover:text-[#ef4444] transition-colors cursor-pointer"
-                >
-                  CONTATO
-                </button>
-                <span>•</span>
-                <button
-                  onClick={() => handleOpenSection('admin')}
-                  className="hover:text-[#fbbf24] transition-colors cursor-pointer flex items-center gap-0.5 text-[#d97706]"
-                >
-                  <PixelKey size={9} color="#d97706" />
-                  <span>ADMIN</span>
-                </button>
               </div>
 
             </div>

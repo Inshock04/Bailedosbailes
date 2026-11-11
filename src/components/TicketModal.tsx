@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PixelClose, PixelSkull, PixelFlame, PixelTicketIcon } from './PixelIcons';
+import { PixelClose, PixelFlame, PixelTicketIcon, PixelCocktail, PixelSparkles } from './PixelIcons';
 import { audioManager } from '../utils/audio';
 import type { TicketTier } from '../types';
 
@@ -14,61 +14,29 @@ const DEFAULT_TIERS: TicketTier[] = [
     id: 't-open',
     name: 'Ingresso Open',
     category: 'OPEN',
-    price: 10,
-    batch: 'ANTECIPADO',
+    price: 35,
+    batch: 'OFERTA RELÂMPAGO',
     available: 500,
     total: 500,
-    features: ['Open das 22:00 às 23:00'],
-    drinksIncluded: [],
+    features: ['Oferta Relâmpago', 'Caipirinha por 1h no início do Open'],
+    drinksIncluded: ['Gin', 'Vodka', 'Energético'],
     color: '#dc2626'
-  },
-  {
-    id: 't-pos-open',
-    name: 'Pós Open',
-    category: 'PISTA',
-    price: 10,
-    batch: 'ANTECIPADO',
-    available: 500,
-    total: 500,
-    features: ['Entrada a partir das 23:00'],
-    drinksIncluded: [],
-    color: '#2563eb'
   }
-];
-
-const POS_OPEN_COMBOS = [
-  { qty: 1, label: '1 por R$ 10' },
-  { qty: 3, label: '3 por R$ 20' },
-  { qty: 5, label: '5 por R$ 30' }
 ];
 
 const MAX_TICKET_QUANTITY = 50;
 
-/**
- * Regra progressiva oficial do Pós Open:
- * 1 por R$ 10 (2 = R$ 20)
- * 3 por R$ 20 (4 = R$ 30)
- * 5 por R$ 30
- * A partir de 5 ingressos, cada ingresso adicional custa R$ 5 (6 = 35, 7 = 40, ...)
- */
 export const calculateIngressoTotal = (quantity: number): number => {
   if (quantity <= 0) return 0;
-  if (quantity === 1) return 10;
-  if (quantity === 2) return 20;
-  if (quantity === 3) return 20;
-  if (quantity === 4) return 30;
-  return 30 + (quantity - 5) * 5;
+  return quantity * 35;
 };
 
 export const calculateTicketModalTotal = (tier: TicketTier | undefined, quantity: number): number => {
   if (quantity <= 0) return 0;
-  if (tier?.category === 'OPEN') {
-    return quantity * (tier.price || 10);
-  }
-  return calculateIngressoTotal(quantity);
+  return quantity * (tier?.price || 35);
 };
 
-export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, preselectedTierId }) => {
+export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
   const [tiers, setTiers] = useState<TicketTier[]>(DEFAULT_TIERS);
   const [selectedTierId, setSelectedTierId] = useState<string>('t-open');
   const [quantity, setQuantity] = useState<number>(1);
@@ -87,20 +55,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setTiers(data);
-          setSelectedTierId((prev) =>
-            data.some((t: TicketTier) => t.id === prev) ? prev : data[0].id
-          );
+          const openOnly = data.filter((t: TicketTier) => t.category === 'OPEN' || t.id === 't-open');
+          if (openOnly.length > 0) {
+            setTiers(openOnly);
+            setSelectedTierId(openOnly[0].id);
+          }
         }
       })
       .catch(() => {});
   }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen && preselectedTierId) {
-      setSelectedTierId(preselectedTierId);
-    }
-  }, [isOpen, preselectedTierId]);
 
   // Trava o scroll da página ao fundo enquanto o modal está aberto
   useEffect(() => {
@@ -115,12 +78,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   if (!isOpen) return null;
 
   const currentTier = tiers.find((t) => t.id === selectedTierId) || tiers[0] || DEFAULT_TIERS[0];
-  const isOpenTier = currentTier.category === 'OPEN';
-  const baseUnitPrice = currentTier?.price || 10;
+  const unitPrice = currentTier?.price || 35;
   const totalPrice = calculateTicketModalTotal(currentTier, quantity);
-  const fullPrice = baseUnitPrice * quantity;
-  const savings = Math.max(0, fullPrice - totalPrice);
-  const hasDiscount = savings > 0;
+  const drinks = currentTier?.drinksIncluded?.length
+    ? currentTier.drinksIncluded
+    : ['Gin', 'Vodka', 'Energético'];
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,9 +138,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
   };
 
   const inputClass =
-    'w-full bg-[#120718] border-2 border-[#431424] px-3 text-base sm:text-sm text-white placeholder-gray-500 focus:border-[#22c55e] outline-hidden font-mono h-11';
+    'w-full bg-[#120718]/90 border-2 border-[#431424] rounded-lg px-3.5 text-base sm:text-sm text-white placeholder-gray-500 focus:border-[#22c55e] focus:shadow-[0_0_15px_rgba(34,197,94,0.25)] outline-hidden font-mono h-11 transition-all duration-200';
   const labelClass =
-    'block font-pixel text-[11px] sm:text-[12px] text-[#fca5a5] mb-1.5 uppercase font-bold';
+    'block font-pixel text-[12px] sm:text-[13px] text-[#fca5a5] mb-1.5 font-bold tracking-wide';
 
   return (
     <div
@@ -188,24 +150,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
       }}
     >
       <div
-        className="modal-panel max-w-xl bg-[#0e0a17] border-2 border-[#ff3344] shadow-[0_0_35px_rgba(255,51,68,0.5)] rounded-xl text-[#f3edf9]"
+        className="modal-panel max-w-xl bg-[#0e0a17]/98 border-2 border-[#ff3344] shadow-[0_0_45px_rgba(255,51,68,0.45)] rounded-2xl text-[#f3edf9]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="ticket-modal-title"
       >
         {/* Modal Header (fixo no topo) */}
-        <div className="flex items-center justify-between gap-2 border-b-2 border-[#450a0a] px-4 sm:px-6 py-3 shrink-0 bg-[#0e0a17]">
-          <div className="flex items-center gap-2 min-w-0">
-            <PixelSkull size={20} color="#ef4444" className="shrink-0" />
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[#450a0a] px-4 sm:px-6 py-3.5 shrink-0 bg-[#0e0a17]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <PixelCocktail size={22} color="#f59e0b" className="shrink-0" />
             <div className="min-w-0">
               <h2
                 id="ticket-modal-title"
-                className="font-pixel text-[11px] sm:text-sm font-bold text-[#ff4455] tracking-wider leading-tight"
+                className="font-pixel text-sm sm:text-base font-bold text-[#ff4455] tracking-wider leading-tight"
               >
-                BILHETERIA OFICIAL • THE TRIPLEX
+                INGRESSOS • CARNATAL THE TRIPLEX
               </h2>
-              <span className="block font-mono text-[11px] sm:text-[12px] text-[#fca5a5] leading-tight mt-0.5">
-                07 de Novembro • Ingresso Open & Pós Open
+              <span className="block font-mono text-xs text-[#fde047] leading-tight mt-0.5">
+                19 - DEZ - 21h • Ingresso Open — Oferta Relâmpago
               </span>
             </div>
           </div>
@@ -215,7 +177,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               audioManager.playClick();
               onClose();
             }}
-            className="shrink-0 w-9 h-9 flex items-center justify-center hover:bg-[#3b0710] active:bg-[#3b0710] text-[#fca5a5] cursor-pointer transition-colors"
+            className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center hover:bg-[#3b0710] active:scale-95 text-[#fca5a5] hover:text-white cursor-pointer transition-all duration-200"
             aria-label="Fechar"
           >
             <PixelClose size={18} />
@@ -224,152 +186,91 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
         <form onSubmit={handleCheckout} className="flex flex-col min-h-0 flex-1">
           {/* Corpo rolável */}
-          <div className="modal-scroll-body custom-scrollbar px-4 sm:px-6 py-3.5 space-y-3.5">
+          <div className="modal-scroll-body custom-scrollbar px-4 sm:px-6 py-4 space-y-4">
             {/* Informative Banner */}
-            <div className="bg-[#1b0814] border border-[#7f1d1d] p-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div className="bg-[#1b0814] border border-[#7f1d1d] rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-[#fca5a5] font-mono leading-snug flex-1 min-w-[170px]">
                 Pague com segurança pelo <strong>Mercado Pago</strong> (PIX ou Cartão).
               </span>
-              <span className="shrink-0 bg-[#052e16] border border-[#22c55e] text-[#86efac] font-pixel text-[10px] px-2 py-1">
+              <span className="shrink-0 bg-[#052e16] border border-[#22c55e] rounded-md text-[#86efac] font-pixel text-[11px] px-2.5 py-1">
                 CHECKOUT OFICIAL
               </span>
             </div>
 
             {error && (
               <div
-                className="bg-red-900/50 border border-red-500 p-3 text-red-200 text-xs font-mono rounded"
+                className="bg-red-900/50 border border-red-500 p-3 text-red-200 text-xs font-mono rounded-xl animate-[fadeIn_0.2s_ease-out]"
                 role="alert"
               >
                 {error}
               </div>
             )}
 
-            {/* 1. Seleção de Modalidade (Ingresso Open vs Pós Open) */}
+            {/* 1. Card Principal: Ingresso Open - Oferta Relâmpago */}
             <div>
-              <span className={labelClass}>MODALIDADE DO INGRESSO</span>
-              <div className="grid grid-cols-1 gap-2" role="radiogroup" aria-label="Modalidade do Ingresso">
-                {tiers.map((tier) => {
-                  const isSelected = currentTier.id === tier.id;
-                  const tierIsOpen = tier.category === 'OPEN';
-
-                  return (
-                    <div
-                      key={tier.id}
-                      role="radio"
-                      aria-checked={isSelected}
-                      tabIndex={0}
-                      onClick={() => {
-                        audioManager.playClick();
-                        setSelectedTierId(tier.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          audioManager.playClick();
-                          setSelectedTierId(tier.id);
-                        }
-                      }}
-                      className={`w-full p-3 border-2 text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#22c55e] bg-[#0c2414]/90 shadow-[0_0_15px_rgba(34,197,94,0.25)]'
-                          : 'border-[#431424] bg-[#120718] hover:border-[#fca5a5]/50'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-2.5 min-w-0">
-                          <span
-                            className={`mt-1 shrink-0 w-4 h-4 border-2 flex items-center justify-center ${
-                              isSelected ? 'border-[#22c55e]' : 'border-[#6b2a3a]'
-                            }`}
-                          >
-                            {isSelected && <span className="w-2 h-2 bg-[#22c55e]" />}
-                          </span>
-                          <div className="min-w-0">
-                            <span className="flex items-center gap-1.5 font-pixel text-xs sm:text-sm text-white font-bold leading-tight uppercase">
-                              <PixelTicketIcon
-                                size={15}
-                                color={isSelected ? '#4ade80' : '#fca5a5'}
-                                className="shrink-0"
-                              />
-                              <span>{tier.name}</span>
-                            </span>
-                            <span className="inline-block mt-1 bg-[#240c1e] text-[#fca5a5] px-1.5 py-0.5 border border-[#581c2b] font-pixel text-[10px]">
-                              {tierIsOpen ? 'OPEN DAS 22:00 ÀS 23:00 • R$ 10 CADA' : 'ENTRADA A PARTIR DAS 23:00 • COMBOS'}
-                            </span>
-                          </div>
-                        </div>
-                        <span
-                          className={`shrink-0 font-pixel text-sm sm:text-base font-bold leading-tight ${
-                            isSelected ? 'text-[#22c55e]' : 'text-gray-300'
-                          }`}
-                        >
-                          R$ {tier.price.toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Resumo ou seletores de promoções do Pós Open */}
-                      {!tierIsOpen && !isSelected && (
-                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#fbbf24]">
-                          Entrada a partir das 23h • Promoções: 1 por R$ 10 • 3 por R$ 20 • 5 por R$ 30 (+R$ 5 cada adicional)
-                        </div>
-                      )}
-
-                      {!tierIsOpen && isSelected && (
-                        <div
-                          className="mt-2.5 pt-2.5 border-t border-[#166534]/70"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="block font-mono text-[11px] text-[#bbf7d0] mb-2">
-                            Entrada liberada <strong>a partir das 23:00</strong>.
-                          </span>
-                          <span className="block font-pixel text-[10px] sm:text-[11px] text-[#fde047] uppercase mb-1.5">
-                            PROMOÇÕES PÓS OPEN — ESCOLHA UM COMBO:
-                          </span>
-                          <div className="grid grid-cols-3 gap-1.5">
-                            {POS_OPEN_COMBOS.map((combo) => {
-                              const active = quantity === combo.qty;
-                              return (
-                                <button
-                                  key={combo.qty}
-                                  type="button"
-                                  onClick={() => {
-                                    audioManager.playClick();
-                                    setQuantity(combo.qty);
-                                  }}
-                                  className={`py-1.5 px-2 border font-mono text-xs font-bold transition-all cursor-pointer text-center ${
-                                    active
-                                      ? 'bg-[#f59e0b] text-[#0b0712] border-[#fef08a] shadow-[0_0_10px_rgba(245,158,11,0.5)]'
-                                      : 'bg-[#1a1207] text-[#fbbf24] border-[#a16207] hover:border-[#fde047]'
-                                  }`}
-                                >
-                                  {combo.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <span className="block font-mono text-[11px] text-[#86efac] mt-2 leading-snug">
-                            A partir de 5 ingressos, cada ingresso adicional sai por <strong>R$ 5,00</strong> (6 por R$ 35 • 7 por R$ 40...).
-                          </span>
-                        </div>
-                      )}
-
-                      {tierIsOpen && !isSelected && (
-                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#fca5a5]">
-                          Open das 22:00 às 23:00 • R$ 10,00 cada
-                        </div>
-                      )}
-
-                      {tierIsOpen && isSelected && (
-                        <div className="mt-2 pl-[26px] font-mono text-[11px] text-[#bbf7d0]">
-                          Open das <strong>22:00 às 23:00</strong> • Valor unitário de <strong>R$ 10,00</strong> por ingresso.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={labelClass}>MODALIDADE DISPONÍVEL</span>
+                <span className="inline-flex items-center gap-1 bg-[#f59e0b]/20 border border-[#f59e0b] text-[#fde047] px-2.5 py-0.5 rounded-full text-xs font-bold animate-pulse">
+                  <PixelFlame size={12} color="#fde047" />
+                  <span>OFERTA RELÂMPAGO</span>
+                </span>
               </div>
-              <span className="block font-mono text-[10px] text-[#fca5a5]/80 mt-1.5">
-                * Valores válidos somente para vendas antecipadas. Após a compra, não realizamos estorno.
+
+              <div className="w-full p-4 rounded-xl border-2 border-[#22c55e] bg-gradient-to-br from-[#0c2414]/95 via-[#101c18]/95 to-[#160b24]/95 shadow-[0_0_25px_rgba(34,197,94,0.22)] transition-all duration-300 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <span className="mt-1 shrink-0 w-4 h-4 rounded-full border-2 border-[#22c55e] flex items-center justify-center">
+                      <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="flex items-center gap-1.5 font-pixel text-base sm:text-lg text-white font-bold leading-tight">
+                        <PixelTicketIcon size={16} color="#4ade80" className="shrink-0" />
+                        <span>{currentTier.name}</span>
+                      </span>
+                      <span className="inline-block mt-1 bg-[#f59e0b] text-[#0b0712] px-2 py-0.5 rounded font-pixel text-[11px] font-bold">
+                        OFERTA RELÂMPAGO • LOTE ESPECIAL
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="block font-pixel text-lg sm:text-xl font-bold text-[#4ade80] leading-none">
+                      R$ {unitPrice.toFixed(2)}
+                    </span>
+                    <span className="text-[11px] text-[#86efac]">por ingresso</span>
+                  </div>
+                </div>
+
+                {/* Info de Bebidas do Open */}
+                <div className="pt-2.5 border-t border-[#22c55e]/30 space-y-2.5">
+                  <div>
+                    <span className="block text-xs text-[#bbf7d0] oleo-script-swash-caps-bold mb-1.5 flex items-center gap-1.5">
+                      <PixelCocktail size={13} color="#4ade80" />
+                      <span>Bebidas do Open Bar:</span>
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {drinks.map((drink) => (
+                        <span
+                          key={drink}
+                          className="bg-[#052e16] border border-[#22c55e]/80 text-[#bbf7d0] px-3 py-1 rounded-lg text-xs sm:text-sm oleo-script-swash-caps-bold shadow-sm"
+                        >
+                          🍸 {drink}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Destaque Caipirinha por 1h no início do Open */}
+                  <div className="bg-[#2a1205]/90 border border-[#f59e0b] rounded-xl p-2.5 flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                    <PixelSparkles size={16} color="#fde047" className="shrink-0" />
+                    <span className="text-xs sm:text-sm text-[#fef08a] oleo-script-swash-caps-regular leading-snug">
+                      🍹 Especial: <strong className="oleo-script-swash-caps-bold">Caipirinha liberada por 1h</strong> no início do Open!
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <span className="block font-mono text-[11px] text-[#fca5a5]/80 mt-1.5">
+                * Valor promocional de Oferta Relâmpago para vendas antecipadas. Após a compra, não realizamos estorno.
               </span>
             </div>
 
@@ -431,8 +332,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
 
                 {/* Quantidade */}
                 <div>
-                  <span className={labelClass}>QUANTIDADE ({isOpenTier ? 'INGRESSO OPEN' : 'PÓS OPEN'})</span>
-                  <div className="flex items-center gap-2 bg-[#120718] border-2 border-[#431424] p-1 h-11">
+                  <span className={labelClass}>QUANTIDADE (INGRESSO OPEN)</span>
+                  <div className="flex items-center gap-2 bg-[#120718]/90 border-2 border-[#431424] rounded-lg p-1 h-11">
                     <button
                       id="qty-minus"
                       type="button"
@@ -442,12 +343,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                         audioManager.playClick();
                         setQuantity((prev) => Math.max(1, prev - 1));
                       }}
-                      className="w-10 sm:w-9 h-full bg-[#2d0f1b] hover:bg-[#431424] active:bg-[#431424] disabled:opacity-40 text-white font-pixel text-base flex items-center justify-center cursor-pointer select-none"
+                      className="w-10 sm:w-9 h-full rounded-md bg-[#2d0f1b] hover:bg-[#431424] active:scale-95 disabled:opacity-40 text-white font-pixel text-base flex items-center justify-center cursor-pointer select-none transition-all duration-150"
                     >
                       -
                     </button>
                     <span
-                      className="flex-1 text-center font-pixel text-base text-white font-bold tabular-nums"
+                      className="flex-1 text-center font-pixel text-base text-white font-bold tabular-nums transition-all duration-150"
                       aria-live="polite"
                     >
                       {quantity}
@@ -461,7 +362,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
                         audioManager.playClick();
                         setQuantity((prev) => Math.min(MAX_TICKET_QUANTITY, prev + 1));
                       }}
-                      className="w-10 sm:w-9 h-full bg-[#2d0f1b] hover:bg-[#431424] active:bg-[#431424] disabled:opacity-40 text-white font-pixel text-base flex items-center justify-center cursor-pointer select-none"
+                      className="w-10 sm:w-9 h-full rounded-md bg-[#2d0f1b] hover:bg-[#431424] active:scale-95 disabled:opacity-40 text-white font-pixel text-base flex items-center justify-center cursor-pointer select-none transition-all duration-150"
                     >
                       +
                     </button>
@@ -472,22 +373,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
           </div>
 
           {/* 3. Total & Botão de Checkout (fixo no rodapé) */}
-          <div className="shrink-0 border-t-2 border-[#381622] bg-[#0b0712] px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="shrink-0 border-t-2 border-[#381622] bg-[#0b0712] px-4 sm:px-6 py-3.5 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs text-[#9ca3af] block font-mono leading-tight">
-                {currentTier.name.toUpperCase()} • {quantity} {quantity === 1 ? 'ingresso' : 'ingressos'}
+              <span className="text-xs text-[#fde047] block font-mono leading-tight">
+                Ingresso Open (Oferta Relâmpago) • {quantity} {quantity === 1 ? 'ingresso' : 'ingressos'}
               </span>
               <span className="font-pixel text-lg sm:text-xl text-[#22c55e] font-bold leading-tight tabular-nums">
                 R$ {totalPrice.toFixed(2)}
               </span>
-              {hasDiscount && (
-                <span className="text-[11px] text-[#fbbf24] font-mono flex items-center gap-1 leading-tight mt-0.5">
-                  <PixelFlame size={12} color="#fbbf24" />
-                  <span>Combo Pós Open • economia de R$ {savings.toFixed(2)}</span>
-                </span>
-              )}
-              <span className="text-[9px] sm:text-[10px] text-[#fca5a5]/70 font-mono block leading-tight mt-0.5">
-                * Valor somente para vendas antecipadas
+              <span className="text-[11px] text-[#86efac] font-mono block leading-tight mt-0.5">
+                Gin, Vodka, Energético + 1h de Caipirinha no início
               </span>
             </div>
 
@@ -495,11 +390,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, prese
               id="ticket-checkout-btn"
               type="submit"
               disabled={!isIntegrationReady || isLoading}
-              className={`shrink-0 pixel-btn ${
+              className={`shrink-0 pixel-btn rounded-xl ${
                 !isIntegrationReady || isLoading
                   ? 'bg-gray-700 border-gray-500 text-gray-400 cursor-not-allowed shadow-none'
                   : 'bg-[#15803d] hover:bg-[#16a34a] active:bg-[#14532d] text-white border-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.6)] cursor-pointer'
-              } px-4 sm:px-6 h-12 font-pixel text-[11px] sm:text-[13px] tracking-wider font-bold flex items-center justify-center border-2 transition-all whitespace-nowrap`}
+              } px-5 sm:px-7 h-12 font-pixel text-xs sm:text-sm tracking-wider font-bold flex items-center justify-center border-2 transition-all duration-200 whitespace-nowrap`}
             >
               {!isIntegrationReady ? 'INDISPONÍVEL' : isLoading ? 'GERANDO...' : 'COMPRAR'}
             </button>
