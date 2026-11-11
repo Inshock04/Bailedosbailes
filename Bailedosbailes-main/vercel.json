@@ -1,0 +1,18 @@
+{
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/admin/login", "destination": "/api" },
+    { "source": "/api/admin/:path*", "destination": "/api" },
+    { "source": "/api/checkin/:path*", "destination": "/api" },
+    { "source": "/api/portaria/:path*", "destination": "/api" },
+    { "source": "/api/ingresso/:path*", "destination": "/api" },
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/ingresso/:path*", "destination": "/index.html" },
+    { "source": "/meus-ingressos/:path*", "destination": "/index.html" },
+    { "source": "/portaria", "destination": "/index.html" },
+    { "source": "/portaria/(.*)", "destination": "/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

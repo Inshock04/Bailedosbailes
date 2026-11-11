@@ -1,0 +1,140 @@
+// Prisma Schema for Hotel Cortez Backend
+// Database: PostgreSQL (Neon / Supabase / Vercel Postgres)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  CONVERTED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REJECTED
+  REFUNDED
+}
+
+// ----------------------------------------------------
+// 1. LISTA DE ESPERA (ENTIDADE SEPARADA DE INGRESSOS)
+// ----------------------------------------------------
+model WaitlistEntry {
+  id        String         @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  status    WaitlistStatus @default(WAITING)
+  notes     String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+  @@map("waitlist_entries")
+}
+
+// ----------------------------------------------------
+// 2. TIPOS DE INGRESSO E PREÇOS OFICIAIS
+// ----------------------------------------------------
+model TicketTier {
+  id             String   @id // ex: 't-pista', 't-vip', 't-camarote', 't-lounge'
+  name           String
+  category       String   // 'PISTA' | 'VIP' | 'CAMAROTE' | 'LOUNGE'
+  price          Decimal  @db.Decimal(10, 2) // Preço estrito do backend
+  originalPrice  Decimal? @db.Decimal(10, 2)
+  batch          String   // '1º LOTE', '2º LOTE', etc.
+  totalQuota     Int
+  availableQuota Int
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders         Order[]
+
+  @@map("ticket_tiers")
+}
+
+// ----------------------------------------------------
+// 3. PEDIDOS DE INGRESSO (ORDENS FINANCEIRAS)
+// ----------------------------------------------------
+model Order {
+  id             String      @id @default(uuid()) // external_reference no Mercado Pago
+  buyerName      String
+  buyerEmail     String
+  buyerPhone     String
+  
+  ticketTierId   String
+  ticketTier     TicketTier  @relation(fields: [ticketTierId], references: [id])
+  
+  quantity       Int         @default(1)
+  unitPrice      Decimal     @db.Decimal(10, 2)
+  totalAmount    Decimal     @db.Decimal(10, 2)
+  
+  status         OrderStatus @default(PENDING)
+  paymentMethod  String?     @default("MERCADO_PAGO")
+  
+  mpPreferenceId String?
+  mpPaymentId    String?     @unique // Chave para idempotência no webhook
+  
+  ticketToken    String      @unique // Token seguro para QR Code / Check-in
+  checkedIn      Boolean     @default(false)
+  checkedInAt    DateTime?
+  
+  paidAt         DateTime?
+  emailSent      Boolean     @default(false)
+  emailSentAt    DateTime?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([buyerEmail])
+  @@index([status])
+  @@index([ticketToken])
+  @@index([mpPaymentId])
+  @@map("orders")
+}
+
+// ----------------------------------------------------
+// 4. USUÁRIOS ADMINISTRADORES (PAINEL PROTEGIDO)
+// ----------------------------------------------------
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+// ----------------------------------------------------
+// 5. LOGS DE AUDITORIA E SEGURANÇA
+// ----------------------------------------------------
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // 'PAYMENT_CONFIRMED', 'ADMIN_LOGIN_FAILED', etc.
+  entity    String?  // 'Order', 'WaitlistEntry', 'AdminUser'
+  entityId  String?
+  ipAddress String?
+  userAgent String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

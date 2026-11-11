@@ -1,0 +1,6 @@
+{
+  "name": "Hotel Cortez Halloween Party",
+  "description": "Experiência web imersiva em Pixel Art com tema de Halloween no THE TRIPLEX (Rua Manoel Castilho 201, Itaim Paulista): compra de ingressos, promoções da noite, oráculo místico, lista VIP RSVP e mapa de acesso.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

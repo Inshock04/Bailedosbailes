@@ -1,0 +1,219 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import request from 'supertest';
+import app, { calculateTicketTotal, isCurrentEditionCoupon } from '../server'; // Express App
+import { calculateIngressoTotal, calculateTicketModalTotal } from '../src/components/TicketModal';
+import dotenv from 'dotenv';
+import crypto from 'crypto';
+
+dotenv.config();
+
+// Define secrets that might not exist in local .env
+process.env.MP_WEBHOOK_SECRET = process.env.MP_WEBHOOK_SECRET || 'test_secret';
+
+// Mock do Supabase para não sujar o banco de produção
+vi.mock('@supabase/supabase-js', () => {
+  return {
+    createClient: () => ({
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        then: vi.fn((cb) => cb({ data: { id: 'mocked-id' }, error: null })),
+      })),
+    }),
+  };
+});
+
+describe('Baile dos Bailes - QA Test Suite', () => {
+  describe('1. Autenticação Admin', () => {
+    it('Deve rejeitar login com credenciais inválidas (Cenário Negativo)', async () => {
+      const res = await request(app).post('/api/admin/login').send({
+        login: 'wronguser',
+        password: 'wrongpassword',
+      });
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBeDefined();
+    });
+
+    it('Deve aceitar login com credenciais válidas e retornar JWT (Cenário Positivo)', async () => {
+      const res = await request(app).post('/api/admin/login').send({
+        login: process.env.ADMIN_USER || 'admin',
+        password: process.env.ADMIN_KEY || 'cortez2026',
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.token).toBeDefined();
+    });
+  });
+
+  describe('2. Validação da Portaria', () => {
+    it('Deve retornar erro se o token estiver ausente (Cenário Negativo)', async () => {
+      // Como o endpoint é protegido por Admin Auth, devemos passar o header
+      const loginRes = await request(app).post('/api/admin/login').send({
+        login: process.env.ADMIN_USER || 'admin',
+        password: process.env.ADMIN_KEY || 'cortez2026',
+      });
+      const token = loginRes.body.token;
+
+      const res = await request(app)
+        .post('/api/checkin/verify')
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+      
+      // O código de erro pode variar, mas não deve ser 200 sucesso
+      expect(res.status).not.toBe(200);
+    });
+
+    it('Deve tentar validar um ticket simulado', async () => {
+      const loginRes = await request(app).post('/api/admin/login').send({
+        login: process.env.ADMIN_USER || 'admin',
+        password: process.env.ADMIN_KEY || 'cortez2026',
+      });
+      const token = loginRes.body.token;
+
+      const res = await request(app)
+        .post('/api/checkin/verify')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ token: 'FAKE-QR-DATA' });
+      
+      // Retornará erro 400/404 pois a base em memória do server.ts está vazia/ou código inválido
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    });
+  });
+
+  describe('3. Webhook Mercado Pago (Segurança)', () => {
+    it('Deve rejeitar notificação sem assinatura X-Signature', async () => {
+      const res = await request(app).post('/api/webhooks/mercadopago').send({
+        type: 'payment',
+        data: { id: '12345' },
+      });
+      // A proteção do webhook precisa bloquear (Unauthorized ou Bad Request)
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it('Deve validar a assinatura e processar (Simulação)', async () => {
+      const ts = Date.now();
+      const secret = process.env.MP_WEBHOOK_SECRET || 'test_secret';
+      const manifest = `id:12345;request-id:test-req;ts:${ts};`;
+      const hmac = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+      const signature = `ts=${ts},v1=${hmac}`;
+
+      // Envia evento genérico. Como o Supabase e fetch estão mockados/bloqueados no ambiente de teste,
+      // devemos ver como o server reage.
+      const res = await request(app)
+        .post('/api/webhooks/mercadopago')
+        .set('x-signature', signature)
+        .set('x-request-id', 'test-req')
+        .send({
+          type: 'payment',
+          data: { id: '12345' },
+        });
+
+      // No modo teste, o fetch para a API do MP falhará e retornará erro de verificação,
+      // o que é um cenário negativo excelente!
+      expect(res.status).toBe(200); // O webhook aceita a notificação (ack)
+    });
+  });
+
+  describe('4. Sistema de Ingressos (Ingresso Open e Pós Open), Data e Oráculo (The Return)', () => {
+    it('Deve retornar Ingresso Open (R$ 10 cada) e Pós Open em /api/tickets sem bebidas listadas', async () => {
+      const res = await request(app).get('/api/tickets');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(2);
+      expect(res.body[0]).toMatchObject({ id: 't-open', name: 'Ingresso Open', category: 'OPEN', price: 10, drinksIncluded: [] });
+      expect(res.body[1]).toMatchObject({ id: 't-pos-open', name: 'Pós Open', category: 'PISTA', price: 10, drinksIncluded: [] });
+    });
+
+    it('Deve calcular R$ 10 fixo para Ingresso Open e regra progressiva para Pós Open', () => {
+      const openTicket = {
+        id: 't-open',
+        name: 'Ingresso Open',
+        category: 'OPEN',
+        price: 10,
+        batch: 'ANTECIPADO',
+        available: 500,
+        total: 500,
+        features: [],
+        drinksIncluded: [],
+        color: '#dc2626',
+      };
+      const posOpenTicket = {
+        id: 't-pos-open',
+        name: 'Pós Open',
+        category: 'PISTA',
+        price: 10,
+        batch: 'ANTECIPADO',
+        available: 500,
+        total: 500,
+        features: [],
+        drinksIncluded: [],
+        color: '#2563eb',
+      };
+
+      for (const qty of [1, 2, 3, 4, 5, 6, 7, 10]) {
+        expect(calculateTicketTotal(openTicket, qty)).toBe(qty * 10);
+        expect(calculateTicketModalTotal(openTicket, qty)).toBe(qty * 10);
+      }
+
+      const expectedPosOpenByQty: Array<[number, number]> = [
+        [1, 10],
+        [2, 20],
+        [3, 20],
+        [4, 30],
+        [5, 30],
+        [6, 35],
+        [7, 40],
+        [8, 45],
+        [10, 55],
+      ];
+
+      for (const [qty, expected] of expectedPosOpenByQty) {
+        expect(calculateTicketTotal(posOpenTicket, qty)).toBe(expected);
+        expect(calculateTicketModalTotal(posOpenTicket, qty)).toBe(expected);
+        expect(calculateIngressoTotal(qty)).toBe(expected);
+      }
+    });
+
+    it('Deve retornar a nova data (07 de Novembro às 22h) em /api/event', async () => {
+      const res = await request(app).get('/api/event');
+      expect(res.status).toBe(200);
+      expect(res.body.isoDate).toBe('2026-11-07T22:00:00-03:00');
+      expect(res.body.date).toContain('07 DE NOVEMBRO');
+      expect(res.body.time).toBe('22:00 ÀS 06:00');
+    });
+
+    it('Deve retornar exatamente as 5 novas promoções do Oráculo em /api/oracle/cards', async () => {
+      const res = await request(app).get('/api/oracle/cards');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(5);
+      const rewards = res.body.map((c: any) => c.rewardText).sort();
+      expect(rewards).toEqual(
+        [
+          '4 caipiroska de 120 por 70',
+          '3 dose de vodka c/baly por 50',
+          '2 maracujack de 70 por 55',
+          '2 whisky sour de 70 por 55',
+          '2 Jack and Coke de 70 por 55',
+        ].sort()
+      );
+    });
+
+    it('Deve aceitar apenas os cupons das novas promoções e rejeitar promoções antigas/canceladas', () => {
+      // Novas promoções válidas
+      expect(isCurrentEditionCoupon({ rewardTitle: '4 caipiroska de 120 por 70', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 dose de vodka c/baly por 50', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 maracujack de 70 por 55', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 whisky sour de 70 por 55', status: 'ATIVO' })).toBe(true);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 Jack and Coke de 70 por 55', status: 'ATIVO' })).toBe(true);
+
+      // Promoções antigas canceladas
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 CAIPIRINHAS POR R$ 50', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '3 SKOL BEATS POR R$ 40', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: 'DOUBLE ROSH POR R$ 40', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 MARACUJACK POR R$ 55', status: 'ATIVO' })).toBe(false);
+      expect(isCurrentEditionCoupon({ rewardTitle: '2 maracujack de 70 por 55', status: 'CANCELADO' })).toBe(false);
+    });
+  });
+});
