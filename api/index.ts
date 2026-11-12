@@ -322,7 +322,7 @@ function generateSecureToken(prefix: string): string {
 
 function generateAccessCode(): string {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const code = `AHS-${crypto.randomInt(1000, 10000)}`;
+    const code = `CNT-${crypto.randomInt(1000, 10000)}`;
     const alreadyUsed = purchasedTickets.some(ticket => ticket.token === code) || guestList.some(guest => guest.token === code);
     if (!alreadyUsed) return code;
   }
@@ -379,7 +379,7 @@ function hashTicketToken(token: string): string {
 function generateTicketCredentials(): { code: string; token: string; tokenHash: string } {
   const token = crypto.randomBytes(32).toString('base64url');
   const num = crypto.randomInt(0, 10000);
-  const code = `AHS-${String(num).padStart(4, '0')}`;
+  const code = `CNT-${String(num).padStart(4, '0')}`;
   return { code, token, tokenHash: hashTicketToken(token) };
 }
 

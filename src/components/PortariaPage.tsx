@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { 
-  ShieldCheck, 
-  Camera, 
-  CameraOff, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
-  LogOut, 
-  Search, 
-  Volume2, 
-  VolumeX, 
+import {
+  ShieldCheck,
+  Camera,
+  CameraOff,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  LogOut,
+  Search,
+  Volume2,
+  VolumeX,
   ArrowRight,
   UserCheck,
   RefreshCw,
@@ -86,7 +86,7 @@ class SoundFx {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
       osc.start();
       osc.stop(ctx.currentTime + 0.6);
-    } catch {}
+    } catch { }
   }
 
   playError() {
@@ -105,7 +105,7 @@ class SoundFx {
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
       osc.start();
       osc.stop(ctx.currentTime + 0.4);
-    } catch {}
+    } catch { }
   }
 }
 
@@ -345,7 +345,7 @@ export const PortariaPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (html5QrRef.current && html5QrRef.current.isScanning) {
-        html5QrRef.current.stop().catch(() => {});
+        html5QrRef.current.stop().catch(() => { });
       }
     };
   }, []);
@@ -448,11 +448,10 @@ export const PortariaPage: React.FC = () => {
                 setAudioEnabled(next);
                 sfx.enabled = next;
               }}
-              className={`p-2 rounded-lg border transition-colors ${
-                audioEnabled
+              className={`p-2 rounded-lg border transition-colors ${audioEnabled
                   ? 'bg-[#1e0717] border-[#591b33] text-[#4ade80]'
                   : 'bg-[#180612] border-[#381120] text-gray-500'
-              }`}
+                }`}
               title={audioEnabled ? 'Som ativado' : 'Som desativado'}
             >
               {audioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -518,13 +517,12 @@ export const PortariaPage: React.FC = () => {
         {ticket && (
           <div className="bg-[#140513] border-2 border-[#54172f] rounded-2xl overflow-hidden shadow-2xl animate-in fade-in">
             {/* Status Header */}
-            <div className={`p-4 text-center border-b ${
-              ticket.status === 'VALIDO'
+            <div className={`p-4 text-center border-b ${ticket.status === 'VALIDO'
                 ? 'bg-[#052e16] border-[#16a34a]'
                 : ticket.status === 'UTILIZADO'
-                ? 'bg-[#450a0a] border-[#dc2626]'
-                : 'bg-[#431407] border-[#ea580c]'
-            }`}>
+                  ? 'bg-[#450a0a] border-[#dc2626]'
+                  : 'bg-[#431407] border-[#ea580c]'
+              }`}>
               {ticket.status === 'VALIDO' && (
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#14532d] text-[#86efac] font-pixel text-xs border border-[#22c55e]">
@@ -589,11 +587,10 @@ export const PortariaPage: React.FC = () => {
                 </div>
                 <div className="bg-[#1b081a] p-2.5 rounded-xl border border-[#3e1428]">
                   <span className="text-[10px] font-mono text-gray-400 block">Tipo</span>
-                  <span className={`font-pixel text-xs font-bold block ${
-                    ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN'
+                  <span className={`font-pixel text-xs font-bold block ${ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN'
                       ? 'text-[#fef08a]'
                       : 'text-[#86efac]'
-                  }`}>
+                    }`}>
                     {ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN' ? 'INGRESSO OPEN' : 'PÓS OPEN'}
                   </span>
                   <span className="text-[10px] font-mono text-gray-300 block mt-0.5">
@@ -709,7 +706,7 @@ export const PortariaPage: React.FC = () => {
                   <Search size={15} className="absolute left-3 top-3 text-gray-500" />
                   <input
                     type="text"
-                    placeholder="Ex: AHS-1234 ou link/token"
+                    placeholder="Ex: CNT-1234 ou link/token"
                     value={manualCode}
                     onChange={(e) => setManualCode(e.target.value)}
                     className="w-full bg-[#1b081b] border border-[#48152b] rounded-lg pl-9 pr-3 py-2 text-xs sm:text-sm text-white font-mono focus:border-[#dc2626] outline-hidden uppercase"
