@@ -364,7 +364,7 @@ export const PortariaPage: React.FC = () => {
               <Lock className="text-[#fca5a5]" size={26} />
             </div>
             <h1 className="font-pixel text-base text-white tracking-wider uppercase">PORTARIA OFICIAL</h1>
-            <p className="text-xs text-[#f87171] font-mono mt-1">HOTEL CORTEZ HALLOWEEN PARTY</p>
+            <p className="text-xs text-[#f87171] font-mono mt-1">Hotel Cortez Halloween Party</p>
             <p className="text-[11px] text-gray-400 font-mono mt-0.5">Validação de Ingressos & Controle de Acesso</p>
           </div>
 
@@ -437,7 +437,7 @@ export const PortariaPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-pixel text-xs text-white tracking-wider leading-none">PORTARIA CORTEZ</h1>
-              <span className="text-[10px] font-mono text-[#f87171]">CONTROLE DE ACESSO AO VIVO</span>
+              <span className="text-[10px] font-mono text-[#f87171]">Controle de Acesso ao Vivo</span>
             </div>
           </div>
 
@@ -575,7 +575,7 @@ export const PortariaPage: React.FC = () => {
             {/* Ticket Attendee Details */}
             <div className="p-4 space-y-3">
               <div className="bg-[#1b081a] p-3 rounded-xl border border-[#3e1428]">
-                <span className="text-[10px] font-mono text-gray-400 block uppercase">NOME DO CONVIDADO</span>
+                <span className="text-[10px] font-mono text-gray-400 block">Nome do Convidado</span>
                 <span className="text-lg font-bold text-white block capitalize">{ticket.nome}</span>
                 {ticket.telefone && (
                   <span className="text-xs font-mono text-[#d8b4fe] block mt-0.5">{ticket.telefone}</span>
@@ -584,11 +584,11 @@ export const PortariaPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-[#1b081a] p-2.5 rounded-xl border border-[#3e1428]">
-                  <span className="text-[10px] font-mono text-gray-400 block">CÓDIGO AHS</span>
+                  <span className="text-[10px] font-mono text-gray-400 block">Código Ahs</span>
                   <span className="font-pixel text-sm text-[#fbbf24] font-bold">{ticket.codigo}</span>
                 </div>
                 <div className="bg-[#1b081a] p-2.5 rounded-xl border border-[#3e1428]">
-                  <span className="text-[10px] font-mono text-gray-400 block">TIPO</span>
+                  <span className="text-[10px] font-mono text-gray-400 block">Tipo</span>
                   <span className={`font-pixel text-xs font-bold block ${
                     ticket.item === 'INGRESSO OPEN' || ticket.categoria === 'OPEN'
                       ? 'text-[#fef08a]'
@@ -695,8 +695,8 @@ export const PortariaPage: React.FC = () => {
 
             {/* Manual Code Input Option */}
             <div className="pt-2 border-t border-[#290d1c]">
-              <span className="text-[10px] font-mono text-gray-400 block mb-1.5 uppercase">
-                OU DIGITE O CÓDIGO / TOKEN MANUALMENTE:
+              <span className="text-[10px] font-mono text-gray-400 block mb-1.5">
+                Ou digite o código / token manualmente:
               </span>
               <form
                 onSubmit={(e) => {

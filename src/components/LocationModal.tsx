@@ -135,7 +135,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({ isOpen, onClose })
               <span className="font-pixel text-[11px] text-[#bef264] tracking-wider uppercase font-bold">
                 ATENDIMENTO & DÚVIDAS
               </span>
-              <span className="font-mono text-[11px] text-[#a3e635]">CANAIS OFICIAIS</span>
+              <span className="font-mono text-[11px] text-[#a3e635]">Canais Oficiais</span>
             </div>
             <OfficialSocialButtons />
           </div>

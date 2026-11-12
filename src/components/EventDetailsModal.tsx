@@ -45,7 +45,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 O EVENTO • CARNATAL — THE TRIPLEX
               </h2>
               <span className="block font-mono text-xs text-[#fbbf24] mt-0.5 leading-tight">
-                19 - DEZ - 21h • THE TRIPLEX
+                19 - Dez - 21h • The Triplex
               </span>
             </div>
           </div>
@@ -77,23 +77,17 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
             </div>
           </div>
 
-          {/* A MANSÃO ESTÁ DE VOLTA */}
+          {/* O TRIPLEX ESTÁ DE VOLTA */}
           <div className="bg-[#1b0f24] border border-[#581c87] p-4 space-y-2.5 text-left">
             <h3 className="font-pixel text-xs sm:text-sm text-[#f43f5e] tracking-wide flex items-center gap-2 font-bold uppercase">
               <PixelStar size={13} color="#f43f5e" />
-              <span>A MANSÃO ESTÁ DE VOLTA</span>
+              <span>O TRIPLEX ESTÁ DE VOLTA</span>
             </h3>
             <p className="leading-relaxed text-[#f3e8ff] font-semibold">
-              Algumas noites terminam. Outras deixam histórias que merecem uma continuação.
+              O TRIPLEX está de volta trazendo uma nova edição para esse Natal!
             </p>
             <p className="leading-relaxed text-[#d1d5db]">
-              A mansão abre novamente suas portas para mais uma noite de música, experiências e muita diversão. Uma nova edição, novos momentos e uma atmosfera preparada para surpreender quem estiver presente.
-            </p>
-            <p className="leading-relaxed text-[#e9d5ff]">
-              Prepare sua fantasia, reúna sua galera e venha fazer parte de mais uma noite que promete entrar para a história.
-            </p>
-            <p className="leading-relaxed text-[#fbbf24] font-bold">
-              Dessa vez, a história continua.
+              Uma noite de muita música, diversão e surpresas para fechar o ano em grande estilo. Prepare-se para uma experiência fora do comum!
             </p>
           </div>
 
@@ -110,23 +104,18 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 <span className="font-pixel text-xs sm:text-sm text-[#c084fc] font-bold block">
                   01 • LINE-UP DE DJS
                 </span>
-                <div className="flex flex-col gap-0.5 font-pixel text-xs sm:text-sm text-[#e9d5ff] pt-0.5">
-                  <span>???</span>
-                  <span>???</span>
-                  <span>???</span>
-                </div>
+                <p className="text-xs sm:text-sm text-[#e9d5ff] leading-relaxed">
+                  6 DJs para comandar a noite, com muita música e energia do começo ao fim.
+                </p>
               </div>
 
-              {/* 02 • CONCURSO DE FANTASIAS — PARTE 2 */}
+              {/* 02 • CONCURSO DE FANTASIAS */}
               <div className="bg-[#14081c] border-2 border-[#b45309] p-3.5 space-y-1.5">
                 <span className="font-pixel text-xs sm:text-sm text-[#f59e0b] font-bold block">
-                  02 • CONCURSO DE FANTASIAS — PARTE 2
+                  02 • CONCURSO DE FANTASIAS
                 </span>
-                <p className="text-xs sm:text-sm text-[#fef08a] font-semibold">
-                  O concurso está de volta!
-                </p>
                 <p className="text-xs sm:text-sm text-[#e9d5ff] leading-relaxed">
-                  Prepare sua melhor produção, solte a criatividade e entre na disputa. A segunda edição promete novas fantasias, personagens e momentos inesquecíveis.
+                  Prepare sua fantasia, capriche na produção, solte a criatividade e entre na disputa! As melhores produções podem levar prêmios especiais.
                 </p>
               </div>
 
@@ -136,7 +125,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                   03 • DECORAÇÃO TEMÁTICA
                 </span>
                 <p className="text-xs sm:text-sm text-[#e9d5ff] leading-relaxed">
-                  A atmosfera da mansão continua presente, com cenários, iluminação especial, elementos temáticos e detalhes espalhados pelo ambiente para tornar a experiência ainda mais imersiva.
+                  A atmosfera do TRIPLEX continua presente, com cenários, iluminação especial, elementos temáticos e detalhes espalhados pelo ambiente para tornar a experiência ainda mais imersiva.
                 </p>
               </div>
 
@@ -174,7 +163,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
               <span>E DEPOIS?</span>
             </h3>
             <p className="text-xs sm:text-sm text-[#e9d5ff] leading-relaxed">
-              Das 22:00 às 06:00, a mansão será palco de mais uma história.
+              Das 21:00 às 06:00, o TRIPLEX será palco de mais uma história.
             </p>
             <p className="text-xs sm:text-sm text-[#d8b4fe] italic leading-relaxed">
               Algumas surpresas não precisam ser anunciadas. Algumas experiências são melhores quando descobertas na hora.
@@ -189,7 +178,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
         <div className="shrink-0 border-t-2 border-[#5c3e06] bg-[#0b0613] px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-center sm:text-left">
             <div className="flex flex-wrap items-baseline justify-center sm:justify-start gap-2">
-              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">INGRESSO OPEN • OFERTA RELÂMPAGO</span>
+              <span className="font-pixel text-xs sm:text-sm text-[#fbbf24] font-bold">Ingresso Open • Oferta Relâmpago</span>
               <span className="font-pixel text-base sm:text-lg text-[#22c55e] font-bold">R$ 35,00</span>
             </div>
             <span className="block text-[11px] text-[#bbf7d0] font-mono mt-0.5">
@@ -211,9 +200,8 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ isOpen, on
                 onOpenTickets();
               }
             }}
-            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-xs sm:text-[13px] tracking-wider font-bold flex items-center justify-center gap-2 cursor-pointer rounded-xl"
+            className="w-full sm:w-auto pixel-btn bg-[#dc2626] hover:bg-[#ef4444] text-white px-5 py-2.5 font-pixel text-xs sm:text-[13px] tracking-wider font-bold flex items-center justify-center cursor-pointer rounded-xl"
           >
-            <PixelCocktail size={14} color="#ffffff" />
             <span>GARANTIR INGRESSO</span>
           </button>
         </div>

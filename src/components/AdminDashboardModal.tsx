@@ -1030,10 +1030,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                       </div>
 
                       <div className="space-y-1 text-left">
-                        <p><span className="text-[#a855f7]">TITULAR:</span> <strong className="text-white">{verifyResult.data.name}</strong></p>
-                        <p><span className="text-[#a855f7]">ITEM:</span> {verifyResult.data.item}</p>
-                        <p><span className="text-[#a855f7]">CÓDIGO:</span> <code className="bg-[#24083a] text-[#fbbf24] px-1.5 py-0.5">{verifyResult.data.code || verifyResult.data.token}</code></p>
-                        {verifyResult.data.usedAt && <p><span className="text-[#a855f7]">UTILIZADO EM:</span> {new Date(verifyResult.data.usedAt).toLocaleString('pt-BR')}</p>}
+                        <p><span className="text-[#a855f7]">Titular:</span> <strong className="text-white">{verifyResult.data.name}</strong></p>
+                        <p><span className="text-[#a855f7]">Item:</span> {verifyResult.data.item === 'INGRESSO OPEN' ? 'Ingresso Open' : verifyResult.data.item === 'PÓS OPEN' ? 'Pós Open' : verifyResult.data.item}</p>
+                        <p><span className="text-[#a855f7]">Código:</span> <code className="bg-[#24083a] text-[#fbbf24] px-1.5 py-0.5 font-pixel text-[11px]">{verifyResult.data.code || verifyResult.data.token}</code></p>
+                        {verifyResult.data.usedAt && <p><span className="text-[#a855f7]">Utilizado em:</span> {new Date(verifyResult.data.usedAt).toLocaleString('pt-BR')}</p>}
                       </div>
 
                       {confirmSuccess ? (
@@ -1266,7 +1266,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                           {searchLoading && (
                             <tr>
                               <td colSpan={6} className="p-4 text-center text-gray-400 font-mono text-xs">
-                                BUSCANDO...
+                                Buscando...
                               </td>
                             </tr>
                           )}
@@ -1519,7 +1519,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     </span>
 
                     {sellersLoading ? (
-                      <div className="p-4 text-center text-gray-400 font-mono text-xs">CARREGANDO...</div>
+                      <div className="p-4 text-center text-gray-400 font-mono text-xs">Carregando...</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left font-mono text-xs border border-[#164e63]">
@@ -1615,10 +1615,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({ isOpen
                     <p>1. Crie um vendedor digitando o nome acima.</p>
                     <p>2. O link de referência é gerado automaticamente (ex: <code className="bg-[#071520] px-1">seusite.com/nome-do-vendedor</code>).</p>
                     <p>3. Envie o link ao vendedor para compartilhar com os clientes.</p>
-                    <p>4. Quando alguém acessar o link e comprar um ingresso, o nome do vendedor ficará registrado na coluna "VENDEDOR" da tabela de ingressos.</p>
+                    <p>4. Quando alguém acessar o link e comprar um ingresso, o nome do vendedor ficará registrado na coluna "Vendedor" da tabela de ingressos.</p>
                     <p className="text-[#a5f3fc] font-bold flex items-center gap-1.5">
                       <PixelWarning size={13} color="#fbbf24" />
-                      <span>O nome do vendedor NÃO aparece no ingresso do cliente, apenas na tabela administrativa.</span>
+                      <span>O nome do vendedor não aparece no ingresso do cliente, apenas na tabela administrativa.</span>
                     </p>
                   </div>
                 </div>

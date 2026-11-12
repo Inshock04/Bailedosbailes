@@ -220,7 +220,7 @@ export default function App() {
       id: 'home',
       label: 'Home Page',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <FlyingSleighReindeerIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+        <FlyingSleighReindeerIcon isHovered={isHovered} isActive={isActive} className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
       ),
       bg: 'hover:bg-[#ff0033]/20',
       activeColor: 'bg-[#ff0033]/30',
@@ -235,7 +235,7 @@ export default function App() {
       id: 'evento',
       label: 'Info',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <GrinchIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+        <GrinchIcon isHovered={isHovered} isActive={isActive} className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
       ),
       bg: 'hover:bg-[#22c55e]/20',
       activeColor: 'bg-[#22c55e]/30',
@@ -245,7 +245,7 @@ export default function App() {
       id: 'ingressos',
       label: 'Ingressos',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <CocktailGlassIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+        <CocktailGlassIcon isHovered={isHovered} isActive={isActive} className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
       ),
       bg: 'hover:bg-[#f59e0b]/20',
       activeColor: 'bg-[#f59e0b]/30',
@@ -258,7 +258,7 @@ export default function App() {
       id: 'oraculo',
       label: 'Cupons',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <GiftCarnivalMaskIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+        <GiftCarnivalMaskIcon isHovered={isHovered} isActive={isActive} className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
       ),
       bg: 'hover:bg-[#a855f7]/20',
       activeColor: 'bg-[#a855f7]/30',
@@ -268,7 +268,7 @@ export default function App() {
       id: 'admin',
       label: 'Admin',
       renderIcon: (isHovered: boolean, isActive: boolean) => (
-        <VintageKeyIcon isHovered={isHovered} isActive={isActive} className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" />
+        <VintageKeyIcon isHovered={isHovered} isActive={isActive} className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
       ),
       bg: 'hover:bg-[#ff0033]/20',
       activeColor: 'bg-[#ff0033]/30',
@@ -351,7 +351,7 @@ export default function App() {
                 audioManager.playClick();
                 setIsCardMinimized(false);
               }}
-              className="bg-[#0c0614]/95 border-2 border-[#ff3344] text-[#ff3344] hover:text-white px-3 py-2 font-pixel text-[14px] sm:text-[15px] tracking-wider shadow-[0_0_20px_rgba(255,51,68,0.6)] flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+              className="bg-gradient-to-r from-[#022c17]/95 to-[#16a34a]/95 border-2 border-[#ef4444] text-white hover:text-[#fef08a] px-3 py-2 font-pixel text-[14px] sm:text-[15px] tracking-wider shadow-[0_0_20px_rgba(239,68,68,0.6)] flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
             >
               <PixelSkull size={13} color="#ef4444" />
               <span>THE TRIPLEX • EXPANDIR</span>
@@ -367,26 +367,26 @@ export default function App() {
           /* Responsive Horizontal Top Card (Mobile) / Compact Sidebar (Desktop) */
           <aside 
             ref={rightSidebarRef}
-            className="relative pointer-events-auto w-full max-w-[96vw] sm:max-w-[94vw] md:max-w-[305px] lg:max-w-[335px] bg-[#0c0614]/95 backdrop-blur-md border-2 border-[#361c4d] rounded-xl md:rounded-none shadow-[0_0_30px_rgba(0,0,0,0.95)] flex flex-col justify-between p-3 sm:p-3 md:p-3.5 my-0 md:my-auto max-h-[80vh] sm:max-h-[85vh] md:max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar select-none mobile-scroll-smooth"
+            className="relative pointer-events-auto w-full max-w-[96vw] sm:max-w-[94vw] md:max-w-[305px] lg:max-w-[335px] bg-gradient-to-b from-[#022c17]/95 via-[#064e29]/95 to-[#16a34a]/95 backdrop-blur-md border-2 border-[#ef4444] rounded-xl md:rounded-none shadow-[0_0_25px_rgba(239,68,68,0.5)] flex flex-col justify-between p-3 sm:p-3 md:p-3.5 my-0 md:my-auto max-h-[80vh] sm:max-h-[85vh] md:max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar select-none mobile-scroll-smooth"
           >
             {/* Atmospheric canvas smoke particles at the bottom of the card */}
             <CardSmokeCanvas className="absolute bottom-0 left-0 right-0 w-full h-20 sm:h-24 md:h-28 z-0 pointer-events-none opacity-85" />
             
             {/* Top Bar on Mobile & Desktop: Branding Header */}
-            <div className="relative z-10 sidebar-item-anim border-b-2 border-[#2a133d] pb-2 mb-2">
+            <div className="relative z-10 sidebar-item-anim border-b-2 border-[#ef4444]/40 pb-2 mb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="oleo-script-swash-caps-bold text-[15px] sm:text-[16px] text-[#ef4444] tracking-wide flex items-center gap-1 font-bold">
                     <span>Dezembro</span>
                   </span>
-                  <span className="hidden sm:inline-block font-pixel text-[12px] sm:text-[13px] text-[#a855f7]">
-                    • 19 - DEZ - 21
+                  <span className="hidden sm:inline-block font-pixel text-[12px] sm:text-[13px] text-[#fef08a]">
+                    • 19 - Dez - 21
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <span className="text-[#ef4444] font-pixel text-[13px] sm:text-[14px] font-bold sm:hidden">
-                    19 - DEZ - 21
+                    19 - Dez - 21
                   </span>
                   {/* Minimize toggle button */}
                   <button
@@ -395,7 +395,7 @@ export default function App() {
                       setIsCardMinimized(true);
                     }}
                     title="Minimizar painel"
-                    className="px-2 py-0.5 bg-[#2a133d] hover:bg-[#ff3344] text-[#d1d5db] hover:text-white font-pixel text-[14px] transition-colors cursor-pointer"
+                    className="px-2 py-0.5 bg-[#042514] hover:bg-[#ef4444] border border-[#ef4444]/40 text-[#d1d5db] hover:text-white font-pixel text-[14px] transition-colors cursor-pointer"
                   >
                     —
                   </button>
@@ -408,8 +408,8 @@ export default function App() {
                     CARNATAL - THE TRIPLEX
                   </h1>
                 </div>
-                <span className="text-[#a855f7] flex items-center gap-0.5 text-[13px] sm:text-[14px] font-pixel">
-                  <PixelPin size={12} color="#a855f7" />
+                <span className="text-[#fef08a] flex items-center gap-0.5 text-[13px] sm:text-[14px] font-pixel">
+                  <PixelPin size={12} color="#fef08a" />
                   <span>SÃO PAULO</span>
                 </span>
               </div>
@@ -424,44 +424,43 @@ export default function App() {
                 <div className="sidebar-item-anim">
                   <button
                     onClick={() => handleOpenSection('tickets')}
-                    className="w-full pixel-btn bg-[#991b1b] hover:bg-[#b91c1c] active:bg-[#7f1d1d] text-white py-2 px-3 font-pixel text-[14px] sm:text-[15px] tracking-wider font-bold flex items-center justify-center gap-2 border-2 border-[#ff3344] shadow-[0_0_15px_rgba(239,68,68,0.5)] cursor-pointer"
+                    className="w-full pixel-btn bg-[#991b1b] hover:bg-[#b91c1c] active:bg-[#7f1d1d] text-white py-2 px-3 font-pixel text-[14px] sm:text-[15px] tracking-wider font-bold flex items-center justify-center border-2 border-[#ff3344] shadow-[0_0_15px_rgba(239,68,68,0.5)] cursor-pointer"
                   >
-                    <PixelSkull size={13} color="#ffffff" />
                     <span>COMPRAR INGRESSO</span>
                   </button>
                 </div>
 
                 {/* Real-time Countdown Box */}
-                <div className="sidebar-item-anim bg-[#12071f] border border-[#361c4d] p-1.5 text-center shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+                <div className="sidebar-item-anim bg-[#031d10]/90 border border-[#ef4444]/40 p-1.5 text-center shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center justify-between px-1 mb-1">
-                    <span className="font-pixel text-[12px] sm:text-[13px] text-[#a855f7] tracking-widest uppercase font-bold">
+                    <span className="font-pixel text-[12px] sm:text-[13px] text-[#fef08a] tracking-widest uppercase font-bold">
                       CONTAGEM REGRESSIVA
                     </span>
                     <span className="font-pixel text-[12px] sm:text-[13px] text-[#ef4444] font-bold">AO VIVO</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1">
-                    <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
+                    <div className="bg-[#062c17] border border-[#166534] p-1 flex flex-col items-center">
                       <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.days).padStart(2, '0')}</span>
-                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">DIAS</span>
+                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#86efac]">DIAS</span>
                     </div>
-                    <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
+                    <div className="bg-[#062c17] border border-[#166534] p-1 flex flex-col items-center">
                       <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.hours).padStart(2, '0')}</span>
-                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">HRS</span>
+                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#86efac]">HRS</span>
                     </div>
-                    <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
+                    <div className="bg-[#062c17] border border-[#166534] p-1 flex flex-col items-center">
                       <span className="font-pixel text-sm sm:text-base md:text-lg text-white font-bold tabular-nums">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">MIN</span>
+                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#86efac]">MIN</span>
                     </div>
-                    <div className="bg-[#180b29] border border-[#4c1d95] p-1 flex flex-col items-center">
+                    <div className="bg-[#062c17] border border-[#166534] p-1 flex flex-col items-center">
                       <span className="font-pixel text-sm sm:text-base md:text-lg text-[#ef4444] font-bold tabular-nums">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#9ca3af]">SEG</span>
+                      <span className="font-pixel text-[11px] sm:text-[12px] text-[#86efac]">SEG</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Column 2 (Mobile) / Bottom Box (Desktop): Location & Maps */}
-              <div className="sidebar-item-anim bg-[#11071c] border border-[#22c55e]/70 p-2 flex flex-col justify-between space-y-1.5">
+              <div className="sidebar-item-anim bg-[#031d10]/90 border border-[#22c55e]/70 p-2 flex flex-col justify-between space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="font-pixel text-[13px] sm:text-[14px] text-[#86efac] tracking-wider uppercase font-bold flex items-center gap-1">
                     <PixelPin size={12} color="#22c55e" />
@@ -494,9 +493,9 @@ export default function App() {
 
                   <button
                     onClick={() => handleOpenSection('local')}
-                    className="p-1.5 bg-[#180b29] hover:bg-[#2e1065] active:bg-[#180b29] border border-[#a855f7] text-[#e9d5ff] font-pixel text-[12px] sm:text-[13px] tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer text-center"
+                    className="p-1.5 bg-[#062c17] hover:bg-[#14532d] active:bg-[#062c17] border border-[#22c55e] text-[#86efac] font-pixel text-[12px] sm:text-[13px] tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer text-center"
                   >
-                    <PixelPin size={12} color="#c084fc" />
+                    <PixelPin size={12} color="#86efac" />
                     <span>VER MAPA</span>
                   </button>
                 </div>

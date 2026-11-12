@@ -6,6 +6,7 @@ import {
   PixelWarning,
   PixelSparkles
 } from './PixelIcons';
+import { GiftCarnivalMaskIcon } from './GlowingRedIcons';
 import { audioManager } from '../utils/audio';
 import type { OracleCard, Coupon } from '../types';
 import QRCode from 'qrcode';
@@ -90,34 +91,34 @@ function shuffleDeck<T>(array: T[], count = 5): T[] {
 
 const ROMAN_NUMERALS = ['I', 'II', 'III', 'IV', 'V'];
 
-/** Cordão de pisca-piscas natalinos/carnavalescos para o topo e base das cartas */
+/** Faixa Pop Art de luzes/estrelas estilo história em quadrinhos para topo e base das cartas */
 const FairyLightsStrip: React.FC<{ variant?: number }> = ({ variant = 0 }) => {
-  const colors = ['#ff3344', '#fbbf24', '#22c55e', '#38bdf8', '#e879f9', '#f97316'];
+  const colors = ['#ff1e38', '#facc15', '#22c55e', '#38bdf8', '#a855f7'];
   return (
     <svg viewBox="0 0 120 18" className="w-full h-3.5 overflow-visible" aria-hidden="true">
-      {/* Fio */}
+      {/* Linha grossa de nanquim Pop Art */}
       <path
-        d="M2 5 Q15 12 30 5 T60 5 T90 5 T118 5"
+        d="M2 9 H118"
         fill="none"
-        stroke="#374151"
-        strokeWidth="1.5"
+        stroke="#000000"
+        strokeWidth="2.4"
       />
-      {[12, 32, 52, 72, 92, 110].map((cx, i) => {
+      {[14, 38, 60, 82, 106].map((cx, i) => {
         const bulbColor = colors[(i + variant) % colors.length];
-        const cy = i % 2 === 0 ? 8 : 6;
         return (
           <g key={cx}>
-            <rect x={cx - 1.5} y={cy - 3.5} width="3" height="2" fill="#9ca3af" rx="0.5" />
-            <circle
-              cx={cx}
-              cy={cy + 1}
-              r="3.2"
+            {/* Sombra dura preta Pop Art */}
+            <polygon
+              points={`${cx + 1.5},3.5 ${cx + 6.5},9.5 ${cx + 1.5},15.5 ${cx - 3.5},9.5`}
+              fill="#000000"
+            />
+            {/* Losango Pop Art */}
+            <polygon
+              points={`${cx},2.5 ${cx + 5},8.5 ${cx},14.5 ${cx - 5},8.5`}
               fill={bulbColor}
-              className="animate-pulse"
-              style={{
-                filter: `drop-shadow(0 0 5px ${bulbColor})`,
-                animationDelay: `${((i + variant) * 180) % 900}ms`
-              }}
+              stroke="#000000"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
             />
           </g>
         );
@@ -126,124 +127,150 @@ const FairyLightsStrip: React.FC<{ variant?: number }> = ({ variant = 0 }) => {
   );
 };
 
-/** Ilustrações personalizadas de cada carta: Máscaras de Carnaval, Renas/Trenó, Caixa de Presentes e Pisca-Piscas */
+/** Ilustrações Pop Art de cada carta (traço pesado em nanquim preto, sombras duras, explosões de quadrinhos e meio-tom) */
 const CarnatalCardIllustration: React.FC<{ index: number }> = ({ index }) => {
   const type = index % 5;
 
-  // Carta 1: Máscara de Carnaval Veneziana com plumas e confetes
+  // Carta 1: Máscara Veneziana Pop Art com Explosão Amarela e Plumas
   if (type === 0) {
     return (
-      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[0_0_10px_rgba(232,121,249,0.7)]" aria-hidden="true">
-        {/* Plumas de Carnaval */}
-        <path d="M32 22 C22 6 12 8 16 22" stroke="#f43f5e" strokeWidth="3" fill="none" strokeLinecap="round" />
-        <path d="M32 20 C32 4 38 4 36 20" stroke="#fbbf24" strokeWidth="3" fill="none" strokeLinecap="round" />
-        <path d="M32 22 C42 6 52 8 48 22" stroke="#22c55e" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* Corpo da Máscara */}
-        <path
-          d="M10 26 C10 18 22 18 32 24 C42 18 54 18 54 26 C54 38 44 44 36 38 L32 43 L28 38 C20 44 10 38 10 26 Z"
-          fill="#a855f7"
-          stroke="#fde047"
-          strokeWidth="2"
+      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+        {/* Explosão Pop Art com Sombra Dura Preta */}
+        <polygon
+          points="34,6 42,16 56,11 50,25 60,34 47,41 53,55 39,50 32,60 25,49 11,54 16,40 6,33 17,24 12,11 26,16"
+          fill="#000000"
         />
-        {/* Olhos da máscara */}
-        <ellipse cx="22" cy="29" rx="5.5" ry="3.2" fill="#090414" stroke="#fde047" strokeWidth="1.2" />
-        <ellipse cx="42" cy="29" rx="5.5" ry="3.2" fill="#090414" stroke="#fde047" strokeWidth="1.2" />
-        {/* Confetes e brilhos */}
-        <circle cx="14" cy="48" r="2" fill="#fbbf24" />
-        <circle cx="50" cy="47" r="2" fill="#22c55e" />
-        <circle cx="32" cy="52" r="2" fill="#f43f5e" />
+        <polygon
+          points="32,4 40,14 54,9 48,23 58,32 45,39 51,53 37,48 30,58 23,47 9,52 14,38 4,31 15,22 10,9 24,14"
+          fill="#facc15"
+          stroke="#000000"
+          strokeWidth="2.6"
+          strokeLinejoin="round"
+        />
+        {/* Plumas angulares */}
+        <path d="M31 24 C23 9 13 11 16 24 Z" fill="#ff1e38" stroke="#000000" strokeWidth="2.4" />
+        <path d="M31 23 C28 7 35 7 31 23 Z" fill="#38bdf8" stroke="#000000" strokeWidth="2.4" />
+        <path d="M31 24 C39 9 49 11 46 24 Z" fill="#22c55e" stroke="#000000" strokeWidth="2.4" />
+        {/* Corpo da Máscara Bicolor Pop Art */}
+        <path
+          d="M9 28 C9 19 21 19 31 25 C41 19 53 19 53 28 C53 40 42 46 35 40 L31 45 L27 40 C20 46 9 40 9 28 Z"
+          fill="#a855f7"
+          stroke="#000000"
+          strokeWidth="2.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 28 C9 19 21 19 31 25 L31 45 L27 40 C20 46 9 40 9 28 Z"
+          fill="#ff1e38"
+          stroke="#000000"
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+        />
+        {/* Olhos angulares */}
+        <polygon points="14,28 21,24 26,29 20,32" fill="#000000" stroke="#ffffff" strokeWidth="1.2" />
+        <polygon points="48,28 41,24 36,29 42,32" fill="#000000" stroke="#ffffff" strokeWidth="1.2" />
       </svg>
     );
   }
 
-  // Carta 2: Rena de Natal com nariz vermelho brilhante, galhada festiva e trenó
+  // Carta 2: Trio Elétrico / Sound Truck Pop Art (da arte oficial)
   if (type === 1) {
     return (
-      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]" aria-hidden="true">
-        {/* Galhadas da Rena com pisca-pisca pendurado */}
-        <path d="M22 24 L15 10 M18 16 L11 15 M20 20 L25 13" stroke="#fde047" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M42 24 L49 10 M46 16 L53 15 M44 20 L39 13" stroke="#fde047" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="11" cy="15" r="2.2" fill="#22c55e" />
-        <circle cx="53" cy="15" r="2.2" fill="#38bdf8" />
-        {/* Orelhas e rosto da Rena */}
-        <ellipse cx="18" cy="27" rx="4" ry="2.2" fill="#b45309" transform="rotate(-20 18 27)" />
-        <ellipse cx="46" cy="27" rx="4" ry="2.2" fill="#b45309" transform="rotate(20 46 27)" />
-        <ellipse cx="32" cy="34" rx="12" ry="13" fill="#d97706" stroke="#fef08a" strokeWidth="1.5" />
-        {/* Máscara de carnaval na rena */}
-        <path d="M20 30 Q26 26 32 30 Q38 26 44 30 Q40 36 32 33 Q24 36 20 30 Z" fill="#9333ea" stroke="#fde047" strokeWidth="1" />
-        <circle cx="27" cy="31" r="1.6" fill="#fff" />
-        <circle cx="37" cy="31" r="1.6" fill="#fff" />
-        {/* Nariz vermelho iluminado (Rudolph) */}
-        <circle cx="32" cy="41" r="4.2" fill="#ff1e38" stroke="#fecdd3" strokeWidth="1" />
-        {/* Trenó estilizado na base */}
-        <path d="M14 53 H50 C54 53 55 49 52 48" stroke="#fde047" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+        <polygon points="9,11 59,7 55,57 5,53" fill="#000000" />
+        <polygon points="6,8 56,4 52,54 2,50" fill="#84cc16" stroke="#000000" strokeWidth="2.6" />
+        {/* Paredão de Som */}
+        <rect x="14" y="13" width="34" height="13" fill="#1e293b" stroke="#000000" strokeWidth="2.6" />
+        <circle cx="24" cy="19.5" r="4.2" fill="#000000" stroke="#38bdf8" strokeWidth="1.6" />
+        <circle cx="24" cy="19.5" r="1.5" fill="#facc15" />
+        <circle cx="38" cy="19.5" r="4.2" fill="#000000" stroke="#38bdf8" strokeWidth="1.6" />
+        <circle cx="38" cy="19.5" r="1.5" fill="#facc15" />
+        {/* Cabine Vermelha & Amarela */}
+        <path d="M10 26 H50 V42 H10 Z" fill="#ff1e38" stroke="#000000" strokeWidth="2.8" />
+        <rect x="10" y="33" width="40" height="5" fill="#facc15" stroke="#000000" strokeWidth="2" />
+        <rect x="13" y="28" width="11" height="7" fill="#38bdf8" stroke="#000000" strokeWidth="2.2" />
+        <line x1="15" y1="33" x2="20" y2="29" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+        {/* Rodas com aro amarelo */}
+        <circle cx="20" cy="43" r="5" fill="#000000" />
+        <circle cx="20" cy="43" r="2" fill="#facc15" />
+        <circle cx="42" cy="43" r="5" fill="#000000" />
+        <circle cx="42" cy="43" r="2" fill="#facc15" />
       </svg>
     );
   }
 
-  // Carta 3: Caixa de Presentes Natalina com laço dourado e serpentinas
+  // Carta 3: Explosão Comic "BANG!" + Caixa Surpresa Pop Art
   if (type === 2) {
     return (
-      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[0_0_10px_rgba(239,68,68,0.75)]" aria-hidden="true">
-        {/* Laço superior */}
-        <path d="M32 22 C22 10 14 18 24 23 Z" fill="#fbbf24" stroke="#fef08a" strokeWidth="1.5" />
-        <path d="M32 22 C42 10 50 18 40 23 Z" fill="#fbbf24" stroke="#fef08a" strokeWidth="1.5" />
-        {/* Tampa da caixa */}
-        <rect x="13" y="22" width="38" height="8" rx="2" fill="#dc2626" stroke="#fde047" strokeWidth="1.5" />
-        {/* Corpo da caixa */}
-        <rect x="16" y="30" width="32" height="24" rx="2" fill="#b91c1c" stroke="#fde047" strokeWidth="1.5" />
-        {/* Fitas douradas e verdes */}
-        <rect x="29" y="22" width="6" height="32" fill="#fbbf24" />
-        <rect x="16" y="39" width="32" height="5" fill="#22c55e" />
-        {/* Confetes ao redor */}
-        <circle cx="10" cy="18" r="2" fill="#38bdf8" />
-        <circle cx="54" cy="18" r="2" fill="#e879f9" />
-        <circle cx="11" cy="46" r="1.8" fill="#fbbf24" />
-        <circle cx="53" cy="46" r="1.8" fill="#22c55e" />
+      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+        {/* Explosão de Quadrinhos */}
+        <polygon
+          points="32,3 39,15 54,8 47,22 61,28 48,37 55,51 40,47 32,60 24,47 9,51 16,37 3,28 17,22 10,8 25,15"
+          fill="#facc15"
+          stroke="#000000"
+          strokeWidth="2.6"
+          strokeLinejoin="round"
+        />
+        {/* Sombra Dura da Caixa */}
+        <rect x="19" y="25" width="30" height="26" fill="#000000" />
+        {/* Caixa Pop Art Vermelha e Fita Verde/Amarela */}
+        <rect x="16" y="27" width="30" height="22" fill="#ff1e38" stroke="#000000" strokeWidth="2.8" />
+        <rect x="13" y="20" width="36" height="8" fill="#a855f7" stroke="#000000" strokeWidth="2.8" />
+        <rect x="28" y="20" width="6" height="29" fill="#facc15" stroke="#000000" strokeWidth="2.2" />
+        <rect x="16" y="35" width="30" height="5" fill="#22c55e" stroke="#000000" strokeWidth="2.2" />
+        {/* Raios de ação no topo */}
+        <path d="M22 15 L17 7 M31 14 V5 M40 15 L45 7" stroke="#000000" strokeWidth="2.8" strokeLinecap="round" />
       </svg>
     );
   }
 
-  // Carta 4: Pisca-Piscas Mágicos em espiral + Árvore/Folia de Carnatal
+  // Carta 4: Taça Martini Pop Art & Raio Elétrico (Roy Lichtenstein Style)
   if (type === 3) {
     return (
-      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[0_0_10px_rgba(34,197,94,0.75)]" aria-hidden="true">
-        {/* Estrela no topo */}
-        <polygon points="32,7 35,14 42,14 36,18 38,25 32,21 26,25 28,18 22,14 29,14" fill="#fde047" />
-        {/* Fios de Pisca-Pisca cruzados */}
-        <path d="M14 26 Q32 34 50 26" stroke="#86efac" strokeWidth="2" fill="none" />
-        <path d="M12 38 Q32 46 52 38" stroke="#c084fc" strokeWidth="2" fill="none" />
-        <path d="M16 49 Q32 55 48 49" stroke="#fde047" strokeWidth="2" fill="none" />
-        {/* Lâmpadas coloridas brilhantes */}
-        <circle cx="18" cy="28" r="3.5" fill="#ff3344" />
-        <circle cx="32" cy="31" r="3.5" fill="#38bdf8" />
-        <circle cx="46" cy="28" r="3.5" fill="#fbbf24" />
-        <circle cx="16" cy="40" r="3.5" fill="#e879f9" />
-        <circle cx="32" cy="43" r="3.5" fill="#22c55e" />
-        <circle cx="48" cy="40" r="3.5" fill="#ff3344" />
-        <circle cx="24" cy="52" r="3.5" fill="#fbbf24" />
-        <circle cx="40" cy="52" r="3.5" fill="#38bdf8" />
+      <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+        <circle cx="34" cy="34" r="24" fill="#000000" />
+        <circle cx="31" cy="31" r="24" fill="#38bdf8" stroke="#000000" strokeWidth="2.8" />
+        {/* Raio Amarelo Pop Art ao fundo */}
+        <polygon
+          points="38,7 20,30 32,30 24,55 46,28 34,28"
+          fill="#facc15"
+          stroke="#000000"
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+        />
+        {/* Taça Martini */}
+        <polygon points="13,18 49,18 31,37" fill="#ffffff" stroke="#000000" strokeWidth="2.8" strokeLinejoin="round" />
+        <polygon points="18,23 44,23 31,37" fill="#ff1e38" stroke="#000000" strokeWidth="2.2" strokeLinejoin="round" />
+        <line x1="31" y1="37" x2="31" y2="51" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="21" y1="51" x2="41" y2="51" stroke="#000000" strokeWidth="3.5" strokeLinecap="round" />
+        {/* Azeitona no palito */}
+        <line x1="43" y1="10" x2="29" y2="28" stroke="#000000" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="38" cy="16" r="4" fill="#84cc16" stroke="#000000" strokeWidth="2.2" />
+        <circle cx="38.5" cy="15.5" r="1.4" fill="#ff1e38" />
       </svg>
     );
   }
 
-  // Carta 5: Trenó Voador + Caixa de Presentes + Máscara de Carnaval
+  // Carta 5: Pandeiro & Óculos Redondos Pop Art (Direto da arte do Carnatal)
   return (
-    <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16 drop-shadow-[0_0_10px_rgba(245,158,11,0.75)]" aria-hidden="true">
-      {/* Caixa de presente dentro do trenó */}
-      <rect x="20" y="16" width="16" height="14" rx="1.5" fill="#22c55e" stroke="#fde047" strokeWidth="1.2" />
-      <rect x="26.5" y="16" width="3" height="14" fill="#ef4444" />
-      {/* Corpo do Trenó */}
-      <path d="M12 28 H46 L52 38 H16 Z" fill="#dc2626" stroke="#fde047" strokeWidth="1.5" />
-      {/* Esquis dourados do trenó */}
-      <path d="M10 44 H52 C56 44 58 40 54 38" stroke="#fbbf24" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      {/* Mini máscara de carnaval sobre o trenó */}
-      <path d="M30 22 C30 18 36 18 40 21 C44 18 50 18 50 22 C50 27 44 29 40 26 C36 29 30 27 30 22 Z" fill="#a855f7" stroke="#fef08a" strokeWidth="1.2" />
-      {/* Luzes de pisca-pisca na base */}
-      <circle cx="18" cy="51" r="2.2" fill="#ff3344" />
-      <circle cx="28" cy="51" r="2.2" fill="#22c55e" />
-      <circle cx="38" cy="51" r="2.2" fill="#38bdf8" />
-      <circle cx="48" cy="51" r="2.2" fill="#fbbf24" />
+    <svg viewBox="0 0 64 64" className="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+      {/* Sombra Dura Preta */}
+      <circle cx="35" cy="34" r="23" fill="#000000" />
+      {/* Corpo do Pandeiro Pop Art */}
+      <circle cx="32" cy="31" r="23" fill="#facc15" stroke="#000000" strokeWidth="3" />
+      <circle cx="32" cy="31" r="18" fill="#ff1e38" stroke="#000000" strokeWidth="2.4" />
+      {/* Platinelas metálicas ao redor do pandeiro */}
+      {[12, 52].map((cx) =>
+        [18, 44].map((cy) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.5" fill="#38bdf8" stroke="#000000" strokeWidth="2" />
+        ))
+      )}
+      {/* Óculos Redondos Pop Art no centro */}
+      <line x1="15" y1="31" x2="49" y2="31" stroke="#000000" strokeWidth="3" />
+      <circle cx="24" cy="31" r="7" fill="#0284c7" stroke="#000000" strokeWidth="2.6" />
+      <circle cx="40" cy="31" r="7" fill="#0284c7" stroke="#000000" strokeWidth="2.6" />
+      <line x1="21" y1="34" x2="26" y2="28" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="37" y1="34" x2="42" y2="28" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
 };
@@ -417,7 +444,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
         {/* Sticky Header */}
         <div className="shrink-0 flex items-center justify-between gap-2 border-b-2 border-[#f59e0b]/40 px-4 sm:px-6 py-3 bg-[#12071f]/95 backdrop-blur-md">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-lg sm:text-xl shrink-0" aria-hidden="true">🎭🎄</span>
+            <GiftCarnivalMaskIcon size={28} className="shrink-0" />
             <div className="min-w-0">
               <h2
                 id="oracle-modal-title"
@@ -473,19 +500,21 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                   )}
                   <div className="text-left font-mono text-xs sm:text-sm space-y-1.5">
                     <p>
-                      <span className="text-[#fde047]">CÓDIGO:</span>{' '}
+                      <span className="text-[#fde047]">Código:</span>{' '}
                       <strong className="text-[#4ade80] font-pixel text-[12px]">
                         {claimedCoupon.token}
                       </strong>
                     </p>
                     <p>
-                      <span className="text-[#fde047]">STATUS:</span>{' '}
+                      <span className="text-[#fde047]">Status:</span>{' '}
                       <span className="bg-[#065f46] text-[#6ee7b7] px-2 py-0.5 rounded text-xs">
-                        {claimedCoupon.status}
+                        {claimedCoupon.status
+                          ? claimedCoupon.status.charAt(0).toUpperCase() + claimedCoupon.status.slice(1).toLowerCase()
+                          : 'Ativo'}
                       </span>
                     </p>
                     <p>
-                      <span className="text-[#fde047]">VALIDADE:</span> Na portaria / bar do evento (19/12 a partir das 21h)
+                      <span className="text-[#fde047]">Validade:</span> Na portaria / bar do evento (19/12 a partir das 21h)
                     </p>
                     <p className="text-xs text-[#bbf7d0] mt-1">
                       Apresente no bar do The Triplex para validar seu presente de Carnatal.
@@ -511,7 +540,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
               {/* Legenda misturando Carnaval com Natal */}
               <div className="bg-gradient-to-r from-[#2a0918]/90 via-[#1a0b2e]/90 to-[#072617]/90 border border-[#f59e0b]/60 rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
                 <p className="oleo-script-swash-caps-regular text-xs sm:text-sm text-[#fef08a] leading-relaxed text-center sm:text-left">
-                  🎭🎄 <strong className="oleo-script-swash-caps-bold text-[#4ade80]">O Papai Noel caiu no samba e o trenó estacionou no bloco!</strong>{' '}
+                  <strong className="oleo-script-swash-caps-bold text-[#4ade80]">O Papai Noel caiu no samba e o trenó estacionou no bloco!</strong>{' '}
                   Entre confetes, máscaras de carnaval, renas e pisca-piscas, escolha uma das{' '}
                   <strong className="oleo-script-swash-caps-bold text-[#f43f5e]">5 cartas premiadas de Carnatal</strong>{' '}
                   para abrir seu presente e garantir seu desconto no bar:
@@ -583,7 +612,10 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
                   <PixelStar size={12} color="#fde047" className="shrink-0" />
                   <span>Promoções exclusivas de Carnatal válidas no bar do evento</span>
                 </span>
-                <span className="text-[#fde047] oleo-script-swash-caps-bold">🎁 Regra: 1 presente por folião</span>
+                <span className="text-[#fde047] oleo-script-swash-caps-bold flex items-center gap-1">
+                  <PixelSparkles size={13} color="#facc15" />
+                  <span>Regra: 1 presente por folião</span>
+                </span>
               </div>
             </div>
           ) : (
@@ -592,7 +624,7 @@ export const OracleModal: React.FC<OracleModalProps> = ({ isOpen, onClose }) => 
               <div className="bg-gradient-to-b from-[#23092c] to-[#0a2216] border-2 border-[#f59e0b] rounded-xl p-4 text-center shadow-[0_0_25px_rgba(245,158,11,0.3)]">
                 <FairyLightsStrip variant={1} />
                 <span className="font-pixel text-[12px] sm:text-[13px] text-[#4ade80] uppercase tracking-widest block mt-1 mb-1 font-bold">
-                  🎄🎭 SEU PRESENTE DE CARNATAL SAIU!
+                  SEU PRESENTE DE CARNATAL SAIU!
                 </span>
                 <h3 className="font-pixel text-base sm:text-lg text-[#fef08a] mb-1 font-bold uppercase">
                   {revealedCard.name}

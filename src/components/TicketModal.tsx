@@ -15,7 +15,7 @@ const DEFAULT_TIERS: TicketTier[] = [
     name: 'Ingresso Open',
     category: 'OPEN',
     price: 35,
-    batch: 'OFERTA RELÂMPAGO',
+    batch: 'Oferta Relâmpago',
     available: 500,
     total: 500,
     features: ['Oferta Relâmpago', 'Caipirinha por 1h no início do Open'],
@@ -164,10 +164,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
                 id="ticket-modal-title"
                 className="font-pixel text-sm sm:text-base font-bold text-[#ff4455] tracking-wider leading-tight"
               >
-                INGRESSOS • CARNATAL THE TRIPLEX
+                INGRESSOS • CARNATAL
               </h2>
               <span className="block font-mono text-xs text-[#fde047] leading-tight mt-0.5">
-                19 - DEZ - 21h • Ingresso Open — Oferta Relâmpago
+                19 - Dez - 21h • Ingresso Open — Oferta Relâmpago
               </span>
             </div>
           </div>
@@ -190,7 +190,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
             {/* Informative Banner */}
             <div className="bg-[#1b0814] border border-[#7f1d1d] rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs text-[#fca5a5] font-mono leading-snug flex-1 min-w-[170px]">
-                Pague com segurança pelo <strong>Mercado Pago</strong> (PIX ou Cartão).
+                Pague com segurança pelo <strong>Mercado Pago</strong> (Pix ou Cartão).
               </span>
               <span className="shrink-0 bg-[#052e16] border border-[#22c55e] rounded-md text-[#86efac] font-pixel text-[11px] px-2.5 py-1">
                 CHECKOUT OFICIAL
@@ -212,7 +212,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
                 <span className={labelClass}>MODALIDADE DISPONÍVEL</span>
                 <span className="inline-flex items-center gap-1 bg-[#f59e0b]/20 border border-[#f59e0b] text-[#fde047] px-2.5 py-0.5 rounded-full text-xs font-bold animate-pulse">
                   <PixelFlame size={12} color="#fde047" />
-                  <span>OFERTA RELÂMPAGO</span>
+                  <span>Oferta Relâmpago</span>
                 </span>
               </div>
 
@@ -228,7 +228,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
                         <span>{currentTier.name}</span>
                       </span>
                       <span className="inline-block mt-1 bg-[#f59e0b] text-[#0b0712] px-2 py-0.5 rounded font-pixel text-[11px] font-bold">
-                        OFERTA RELÂMPAGO • LOTE ESPECIAL
+                        Oferta Relâmpago • Lote Especial
                       </span>
                     </div>
                   </div>
@@ -251,19 +251,20 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
                       {drinks.map((drink) => (
                         <span
                           key={drink}
-                          className="bg-[#052e16] border border-[#22c55e]/80 text-[#bbf7d0] px-3 py-1 rounded-lg text-xs sm:text-sm oleo-script-swash-caps-bold shadow-sm"
+                          className="bg-[#052e16] border-2 border-[#000000] shadow-[2px_2px_0px_#000000] text-[#bbf7d0] px-3 py-1 rounded-lg text-xs sm:text-sm oleo-script-swash-caps-bold inline-flex items-center gap-1.5"
                         >
-                          🍸 {drink}
+                          <PixelCocktail size={13} color="#facc15" />
+                          <span>{drink}</span>
                         </span>
                       ))}
                     </div>
                   </div>
 
                   {/* Destaque Caipirinha por 1h no início do Open */}
-                  <div className="bg-[#2a1205]/90 border border-[#f59e0b] rounded-xl p-2.5 flex items-center gap-2.5 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <div className="bg-[#2a1205]/90 border-2 border-[#f59e0b] rounded-xl p-2.5 flex items-center gap-2.5 shadow-[3px_3px_0px_#000000]">
                     <PixelSparkles size={16} color="#fde047" className="shrink-0" />
                     <span className="text-xs sm:text-sm text-[#fef08a] oleo-script-swash-caps-regular leading-snug">
-                      🍹 Especial: <strong className="oleo-script-swash-caps-bold">Caipirinha liberada por 1h</strong> no início do Open!
+                      Especial: <strong className="oleo-script-swash-caps-bold">Caipirinha liberada por 1h</strong> no início do Open!
                     </span>
                   </div>
                 </div>

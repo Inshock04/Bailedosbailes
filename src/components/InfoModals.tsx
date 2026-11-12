@@ -36,7 +36,7 @@ export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           <div className="flex items-center gap-2">
             <PixelSkull size={20} color="#c084fc" />
             <h2 className="font-pixel text-sm sm:text-base font-bold text-[#d8b4fe] tracking-wider">
-              SOBRE O HOTEL CORTEZ
+              SOBRE O EVENTO • THE TRIPLEX
             </h2>
           </div>
           <button
@@ -54,15 +54,15 @@ export const AboutModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
 
         <div className="modal-scroll-body custom-scrollbar px-4 sm:px-6 py-4 space-y-3 font-mono text-xs sm:text-sm text-[#d1d5db] leading-relaxed">
           <p>
-            Construído na década de 1920 pelo visionário excêntrico <strong className="text-white">James Patrick March</strong>, o Hotel Cortez nasceu como uma obra-prima da arquitetura Art Déco, projetado com labirintos secretos, corredores sem saída e aposentos privados indevassáveis.
+            O TRIPLEX está de volta trazendo uma nova edição para esse Natal! Uma noite de muita música, diversão e surpresas para fechar o ano em grande estilo. Prepare-se para uma experiência fora do comum!
           </p>
           <div className="bg-[#180d24] border border-[#581c87] p-3.5 text-[#e9d5ff]">
             <p className="italic">
-              "Algumas noites terminam. Outras deixam histórias que merecem uma continuação. A mansão abre novamente suas portas para mais uma noite histórica no THE TRIPLEX."
+              "6 DJs para comandar a noite, com muita música e energia do começo ao fim. Prepare sua fantasia, capriche na produção e entre na disputa!"
             </p>
           </div>
           <p>
-            <strong className="text-[#fbbf24]">Hotel Cortez — The Return</strong> acontece no dia <strong className="text-white">07 de Novembro, das 22:00 às 06:00</strong>, reunindo line-up de DJs, Concurso de Fantasias (Parte 2), decoração temática imersiva e promoções especiais.
+            <strong className="text-[#fbbf24]">CARNATAL — THE TRIPLEX</strong> acontece no dia <strong className="text-white">19 de Dezembro, das 21:00 às 06:00</strong>, reunindo line-up com 6 DJs, Concurso de Fantasias, decoração temática imersiva e promoções especiais.
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
   const faqs = [
     {
       q: 'Qual é a data, horário e censura do evento?',
-      a: 'O evento acontece no dia 07 de Novembro, das 22:00 às 06:00, no THE TRIPLEX. A classificação etária é rigorosamente 18 anos com apresentação obrigatória de documento oficial com foto.'
+      a: 'O evento acontece no dia 19 de Dezembro, das 21:00 às 06:00, no The Triplex. A classificação etária é rigorosamente 18 anos com apresentação obrigatória de documento oficial com foto.'
     },
     {
       q: 'Quais são os valores, horários e combos de ingresso?',
@@ -101,11 +101,11 @@ export const FaqModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
     },
     {
       q: 'Como é feita a compra do ingresso?',
-      a: 'A compra é realizada diretamente aqui pelo site com checkout seguro via Mercado Pago (PIX ou Cartão). Após a confirmação, seus ingressos individuais com QR Code são enviados automaticamente por e-mail. Após a compra, não realizamos estorno.'
+      a: 'A compra é realizada diretamente aqui pelo site com checkout seguro via Mercado Pago (Pix ou Cartão). Após a confirmação, seus ingressos individuais com QR Code são enviados automaticamente por e-mail. Após a compra, não realizamos estorno.'
     },
     {
       q: 'O uso de fantasia é obrigatório?',
-      a: 'Não é obrigatório, mas é super incentivado! Teremos o Concurso de Fantasias — Parte 2 durante a festa para quem caprichar na produção.'
+      a: 'Não é obrigatório, mas é super incentivado! Teremos o Concurso de Fantasias durante a festa: prepare sua fantasia, capriche na produção, solte a criatividade e entre na disputa! As melhores produções podem levar prêmios especiais.'
     },
     {
       q: 'Já fui ao evento passado. Posso usar meu código anterior?',

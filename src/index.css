@@ -109,6 +109,7 @@
   font-family: "Oleo Script Swash Caps", system-ui !important;
   font-style: normal;
   letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .font-ahs-title,
@@ -128,12 +129,14 @@ h3,
   font-family: "Oleo Script Swash Caps", system-ui !important;
   font-weight: 400;
   font-style: normal;
+  text-transform: none;
 }
 
 .oleo-script-swash-caps-bold {
   font-family: "Oleo Script Swash Caps", system-ui !important;
   font-weight: 700;
   font-style: normal;
+  text-transform: none;
 }
 
 /* Pixel Art Borders and Shadows */

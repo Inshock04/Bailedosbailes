@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { ShieldCheck, AlertTriangle, XCircle, CheckCircle2, MapPin, Calendar, Clock, RefreshCw, ExternalLink } from 'lucide-react';
-import { PixelTicketIcon, PixelPumpkin, PixelFlame } from './PixelIcons';
+import { PixelTicketIcon, PixelFlame } from './PixelIcons';
+import triplexBgMobile from '../assets/images/triplex_bg_mobile.jpg';
 
 /* ── Halloween QR Code com abóbora (mesmo estilo do Admin) ── */
 
@@ -179,27 +180,30 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-[#070208] text-gray-100 flex flex-col justify-between selection:bg-[#991b1b] selection:text-white relative overflow-hidden font-sans">
-      {/* Background Decor */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(153,27,27,0.18),transparent_70%)] pointer-events-none" />
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#7f1d1d]/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#450a0a]/30 rounded-full blur-3xl pointer-events-none" />
-
+    <div
+      className="min-h-screen bg-[#1a3a08] text-gray-100 flex flex-col justify-between selection:bg-[#991b1b] selection:text-white relative overflow-hidden font-sans"
+      style={{
+        backgroundImage: `url(${triplexBgMobile})`,
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       {/* Top Bar */}
-      <header className="border-b border-[#2a0e19] bg-[#0c040d]/90 backdrop-blur-md px-4 py-3 sticky top-0 z-20">
+      <header className="border-b-2 border-[#ef4444] bg-gradient-to-r from-[#052e16]/95 via-[#064e3b]/95 to-[#15803d]/95 backdrop-blur-md px-4 py-3 sticky top-0 z-20 shadow-[0_2px_15px_rgba(0,0,0,0.6)]">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#dc2626] animate-pulse" />
-            <span className="font-pixel text-[11px] text-[#fca5a5] tracking-wider uppercase">HOTEL CORTEZ</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] animate-pulse" />
+            <span className="font-pixel text-[11px] text-[#fef08a] tracking-wider uppercase">CARNATAL</span>
           </div>
           <button
             onClick={fetchTicket}
             disabled={loading}
-            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded bg-[#1f0914] border border-[#3b1525] transition-colors"
+            className="flex items-center gap-1.5 text-xs text-white hover:text-[#fef08a] px-2.5 py-1 rounded bg-[#052e16] border border-[#ef4444] transition-colors cursor-pointer"
             title="Atualizar status"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            <span className="font-mono text-[11px]">ATUALIZAR</span>
+            <span className="font-mono text-[11px] normal-case">Atualizar</span>
           </button>
         </div>
       </header>
@@ -207,28 +211,28 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
       {/* Main Content */}
       <main className="max-w-md mx-auto w-full px-4 py-6 flex-1 flex flex-col justify-center relative z-10">
         {loading && (
-          <div className="p-8 text-center bg-[#130612]/80 border border-[#381120] rounded-lg shadow-2xl">
-            <div className="w-10 h-10 border-3 border-[#dc2626] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="font-pixel text-xs text-[#fca5a5] tracking-wider">CONSULTANDO INGRESSO...</p>
-            <p className="text-xs text-gray-400 font-mono mt-1">Verificando autenticidade oficial</p>
+          <div className="p-8 text-center bg-gradient-to-b from-[#052e16]/95 via-[#064e3b]/95 to-[#15803d]/95 border-2 border-[#ef4444] rounded-xl shadow-[0_0_35px_rgba(239,68,68,0.45)] backdrop-blur-sm">
+            <div className="w-10 h-10 border-3 border-[#ef4444] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="font-pixel text-xs text-[#fef08a] tracking-wider">CONSULTANDO INGRESSO...</p>
+            <p className="text-xs text-[#bbf7d0] font-mono mt-1">Verificando autenticidade oficial</p>
           </div>
         )}
 
         {!loading && error && (
-          <div className="p-6 bg-[#20070d] border-2 border-[#ef4444] rounded-lg shadow-2xl text-center space-y-4">
-            <div className="w-14 h-14 bg-[#450a0a] rounded-full flex items-center justify-center mx-auto border border-[#ef4444]">
+          <div className="p-6 bg-gradient-to-b from-[#052e16]/95 via-[#064e3b]/95 to-[#15803d]/95 border-2 border-[#ef4444] rounded-xl shadow-[0_0_35px_rgba(239,68,68,0.5)] text-center space-y-4 backdrop-blur-sm">
+            <div className="w-14 h-14 bg-[#450a0a] rounded-full flex items-center justify-center mx-auto border-2 border-[#ef4444]">
               <XCircle className="text-[#fca5a5]" size={32} />
             </div>
             <div>
-              <h2 className="font-pixel text-sm text-[#fca5a5] uppercase">INGRESSO NÃO ENCONTRADO</h2>
-              <p className="text-xs text-gray-300 font-mono mt-2">{error}</p>
+              <h2 className="font-pixel text-sm text-[#fef08a] uppercase">INGRESSO NÃO ENCONTRADO</h2>
+              <p className="text-xs text-white font-mono mt-2">{error}</p>
             </div>
-            <p className="text-[11px] text-gray-400">
-              Certifique-se de que o link ou QR Code escaneado corresponde ao ingresso original emitido pela organização do Hotel Cortez.
+            <p className="text-[11px] text-[#dcfce7]">
+              Certifique-se de que o link ou QR Code escaneado corresponde ao ingresso original emitido pela organização do Carnatal.
             </p>
             <button
               onClick={() => window.location.href = '/'}
-              className="inline-block w-full py-2.5 px-4 bg-[#7f1d1d] hover:bg-[#991b1b] text-white font-pixel text-xs tracking-wider rounded border border-[#ef4444] transition-all"
+              className="inline-block w-full py-2.5 px-4 bg-[#991b1b] hover:bg-[#b91c1c] text-white font-pixel text-xs tracking-wider rounded border-2 border-[#ef4444] transition-all cursor-pointer"
             >
               IR PARA O SITE OFICIAL
             </button>
@@ -236,23 +240,23 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
         )}
 
         {!loading && ticket && (
-          <div className="bg-[#120511] border-2 border-[#3d1222] rounded-xl overflow-hidden shadow-[0_0_40px_rgba(153,27,27,0.25)] relative">
+          <div className="bg-gradient-to-b from-[#052e16]/95 via-[#065f46]/95 to-[#16a34a]/95 border-2 border-[#ef4444] rounded-xl overflow-hidden shadow-[0_0_40px_rgba(239,68,68,0.5),0_10px_30px_rgba(0,0,0,0.8)] relative backdrop-blur-sm">
             {/* Ticket Header & Status */}
-            <div className="p-5 border-b border-[#2d0f1b] bg-gradient-to-b from-[#210715] to-[#120511] text-center relative">
-              <div className="inline-block px-3 py-1 rounded-full text-[10px] font-pixel tracking-widest uppercase mb-2 bg-[#2d0b1a] text-[#fca5a5] border border-[#7f1d1d]">
+            <div className="p-5 border-b-2 border-[#ef4444]/60 bg-gradient-to-b from-[#031d0e]/90 to-[#064e3b]/70 text-center relative">
+              <div className="inline-block px-3 py-1 rounded-full text-[10px] font-pixel tracking-widest uppercase mb-2 bg-[#052e16] text-[#fef08a] border border-[#ef4444]">
                 INGRESSO OFICIAL
               </div>
-              <h1 className="font-pixel text-base sm:text-lg text-white tracking-wider leading-snug">
-                HOTEL CORTEZ — THE RETURN
+              <h1 className="font-pixel text-xl sm:text-2xl text-white tracking-wider leading-tight">
+                Carnatal
               </h1>
-              <p className="text-[11px] font-mono text-[#f87171] mt-0.5 tracking-wide">
-                AMERICAN HORROR STORY • THE TRIPLEX
+              <p className="font-pixel text-xs sm:text-sm text-[#facc15] tracking-widest uppercase mt-0.5">
+                THE TRIPLEX
               </p>
 
               {/* Status Badge */}
               <div className="mt-4">
                 {ticket.status === 'VALIDO' && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#052e16] border-2 border-[#22c55e] text-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.3)] animate-pulse">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#052e16] border-2 border-[#22c55e] text-[#4ade80] shadow-[0_0_20px_rgba(34,197,94,0.35)] animate-pulse">
                     <CheckCircle2 size={18} />
                     <span className="font-pixel text-xs sm:text-sm tracking-wider font-bold">INGRESSO VÁLIDO</span>
                   </div>
@@ -280,13 +284,13 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
 
             {/* Guest & Code Information */}
             <div className="p-5 space-y-4">
-              <div className="bg-[#1a0817] p-3.5 rounded-lg border border-[#3e1327]">
-                <span className="text-[10px] font-mono text-gray-400 uppercase block">TITULAR DO INGRESSO</span>
+              <div className="bg-gradient-to-br from-[#042411]/95 via-[#064e3b]/90 to-[#15803d]/85 p-3.5 rounded-lg border border-[#ef4444]">
+                <span className="text-[10px] font-mono text-[#bbf7d0] block">Titular do Ingresso</span>
                 <span className="text-base sm:text-lg font-bold text-white tracking-wide block capitalize mt-0.5">
                   {ticket.nome}
                 </span>
-                <div className="mt-2 pt-2 border-t border-[#311020] flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-gray-400">CÓDIGO DE ACESSO:</span>
+                <div className="mt-2 pt-2 border-t border-[#ef4444]/40 flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-[#bbf7d0]">Código de Acesso:</span>
                   <span className="font-pixel text-sm text-[#fbbf24] tracking-widest font-bold">
                     {ticket.codigo}
                   </span>
@@ -295,34 +299,34 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
 
               {/* ═══ TICKET TYPE VISUAL BADGE ═══ */}
               {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN' ? (
-                <div className="bg-gradient-to-b from-[#3b0a14] via-[#26060d] to-[#160308] p-4 rounded-xl border-2 border-[#ef4444] shadow-[0_0_25px_rgba(239,68,68,0.3)] text-center">
+                <div className="bg-gradient-to-b from-[#042411] via-[#065f46] to-[#16a34a] p-4 rounded-xl border-2 border-[#ef4444] shadow-[0_0_25px_rgba(239,68,68,0.35)] text-center">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5">
                     <PixelTicketIcon size={18} color="#fbbf24" />
                     <span className="font-pixel text-sm sm:text-base text-[#fef08a] tracking-widest font-bold">
                       INGRESSO OPEN
                     </span>
                   </div>
-                  <p className="text-xs text-[#fca5a5] font-mono mt-1">
-                    Open das 22:00 às 23:00 • Evento até 06:00
+                  <p className="text-xs text-[#dcfce7] font-mono mt-1">
+                    Open Bar • Das 21:00 às 06:00
                   </p>
                 </div>
               ) : (
-                <div className="bg-gradient-to-b from-[#052e16] via-[#022c22] to-[#021a13] p-4 rounded-xl border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] text-center">
+                <div className="bg-gradient-to-b from-[#042411] via-[#065f46] to-[#16a34a] p-4 rounded-xl border-2 border-[#ef4444] shadow-[0_0_25px_rgba(239,68,68,0.35)] text-center">
                   <div className="inline-flex items-center gap-2 px-4 py-1.5">
                     <PixelTicketIcon size={18} color="#4ade80" />
                     <span className="font-pixel text-sm sm:text-base text-[#4ade80] tracking-widest font-bold">
                       PÓS OPEN
                     </span>
                   </div>
-                  <p className="text-xs text-[#86efac] font-mono mt-1">
-                    Entrada liberada a partir das 23:00 • Evento até 06:00
+                  <p className="text-xs text-[#dcfce7] font-mono mt-1">
+                    Entrada liberada • Das 21:00 às 06:00
                   </p>
                 </div>
               )}
 
               {/* QR Code Presentation */}
-              <div className="bg-[#180715] p-4 rounded-lg border border-[#3b1225] flex flex-col items-center text-center">
-                <div className="p-3 bg-white rounded-lg border-2 border-[#b91c1c] shadow-[0_0_25px_rgba(220,38,38,0.3)]">
+              <div className="bg-gradient-to-b from-[#042411]/95 via-[#064e3b]/90 to-[#15803d]/85 p-4 rounded-lg border border-[#ef4444] flex flex-col items-center text-center">
+                <div className="p-3 bg-white rounded-lg border-2 border-[#ef4444] shadow-[0_0_25px_rgba(220,38,38,0.35)]">
                   {qrDataUrl ? (
                     <img
                       src={qrDataUrl}
@@ -336,66 +340,60 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
                   )}
                 </div>
 
-                <p className="text-xs text-[#fca5a5] font-pixel tracking-wider mt-3">
+                <p className="text-xs text-[#fef08a] font-pixel tracking-wider mt-3">
                   APRESENTE ESTE QR CODE NA ENTRADA
                 </p>
-                <p className="text-[11px] text-gray-400 font-mono mt-1">
+                <p className="text-[11px] text-[#dcfce7] font-mono mt-1">
                   O fiscal da portaria escaneará este código para autorizar o acesso.
                 </p>
               </div>
 
               {/* Event Details */}
-              <div className="space-y-2 text-xs font-mono text-gray-300 bg-[#160613] p-3.5 rounded-lg border border-[#331021]">
+              <div className="space-y-2 text-xs font-mono text-gray-100 bg-gradient-to-br from-[#042411]/95 via-[#064e3b]/90 to-[#15803d]/85 p-3.5 rounded-lg border border-[#ef4444]">
                 <div className="flex items-start gap-2.5">
-                  <Calendar size={15} className="text-[#f87171] shrink-0 mt-0.5" />
+                  <Calendar size={15} className="text-[#ef4444] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">07 DE NOVEMBRO DE 2026 (SÁBADO)</span>
-                    <span className="text-gray-400 text-[11px]">Hotel Cortez — The Return</span>
+                    <span className="text-white font-bold block">19 de Dezembro de 2026 (Sábado)</span>
+                    <span className="text-[#bbf7d0] text-[11px]">Carnatal • The Triplex</span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <Clock size={15} className="text-[#f87171] shrink-0 mt-0.5" />
+                  <Clock size={15} className="text-[#ef4444] shrink-0 mt-0.5" />
                   <div>
                     <span className="text-white font-bold block">
-                      {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN'
-                        ? 'OPEN DAS 22:00 ÀS 23:00 (EVENTO ATÉ 06:00)'
-                        : 'ENTRADA A PARTIR DAS 23:00 (EVENTO ATÉ 06:00)'}
+                      Das 21:00 às 06:00
                     </span>
-                    <span className="text-gray-400 text-[11px]">
-                      {ticket.tipo_ingresso === 'OPEN_BAR' || ticket.item === 'INGRESSO OPEN'
-                        ? 'Abertura às 22h com Open das 22h às 23h'
-                        : 'Acesso Pós Open liberado a partir das 23h'}
+                    <span className="text-[#bbf7d0] text-[11px]">
+                      Abertura às 21h • Evento até 06:00
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
-                  <MapPin size={15} className="text-[#f87171] shrink-0 mt-0.5" />
+                  <MapPin size={15} className="text-[#ef4444] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-white font-bold block">THE TRIPLEX</span>
-                    <span className="text-gray-400 text-[11px]">R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP</span>
+                    <span className="text-white font-bold block">The Triplex</span>
+                    <span className="text-[#bbf7d0] text-[11px]">R. Manuel de Castilho, 201 - Itaim Paulista, São Paulo - SP</span>
                   </div>
                 </div>
               </div>
 
               {/* Security & Rules Alert */}
-              <div className="p-3 bg-[#1e0712] rounded border border-[#481427] text-[11px] font-mono text-gray-400 space-y-1">
-                <p className="text-[#fca5a5] font-bold">AVISOS IMPORTANTES:</p>
+              <div className="p-3 bg-gradient-to-r from-[#042411]/95 to-[#064e3b]/90 rounded-lg border border-[#ef4444] text-[11px] font-mono text-[#dcfce7] space-y-1">
+                <p className="text-[#fef08a] font-bold">Avisos Importantes:</p>
                 <p className="flex flex-wrap items-center gap-1">
                   <span>• <strong className="text-white">Fantasia opcional</strong> — Sem pressão: venha de fantasia, produzidão, básico ou do jeito que quiser.</span>
-                  <PixelPumpkin size={13} />
                   <PixelFlame size={13} />
                 </p>
-                <p>• Este ingresso é pessoal e intransferível após a validação na portaria.</p>
               </div>
             </div>
 
             {/* Ticket Footer */}
-            <div className="p-3 bg-[#0d030c] border-t border-[#2a0e19] text-center">
+            <div className="p-3 bg-[#042411]/95 border-t border-[#ef4444]/60 text-center">
               <a
                 href="/"
-                className="inline-flex items-center gap-1.5 text-xs text-[#f87171] hover:text-[#fca5a5] font-mono"
+                className="inline-flex items-center gap-1.5 text-xs text-[#fef08a] hover:text-white font-mono"
               >
                 <span>Acessar portal oficial do evento</span>
                 <ExternalLink size={12} />
@@ -406,8 +404,8 @@ export const IngressoPublicPage: React.FC<IngressoPublicPageProps> = ({ token })
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#210a14] bg-[#0a030b] py-3 text-center text-[10px] font-mono text-gray-500 relative z-10">
-        HOTEL CORTEZ — THE RETURN • 2026 • TODOS OS DIREITOS RESERVADOS
+      <footer className="border-t-2 border-[#ef4444] bg-gradient-to-r from-[#052e16]/95 via-[#064e3b]/95 to-[#15803d]/95 py-3 text-center text-[10px] font-mono text-[#bbf7d0] relative z-10">
+        Carnatal • The Triplex • 2026 • Todos os Direitos Reservados
       </footer>
     </div>
   );

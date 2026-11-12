@@ -40,7 +40,7 @@ export const DressCodeModal: React.FC<DressCodeModalProps> = ({ isOpen, onClose 
                 DRESS CODE • GUIA DE ESTILO
               </h2>
               <span className="block font-mono text-xs text-[#c084fc] leading-tight mt-0.5">
-                Concurso de Fantasias — Parte 2
+                Concurso de Fantasias
               </span>
             </div>
           </div>
@@ -102,10 +102,10 @@ export const DressCodeModal: React.FC<DressCodeModalProps> = ({ isOpen, onClose 
             <PixelCrown size={22} color="#fbbf24" className="shrink-0 mt-0.5" />
             <div>
               <span className="font-pixel text-[11px] sm:text-[12px] text-[#fef08a] block mb-0.5">
-                CONCURSO DE FANTASIAS — PARTE 2:
+                CONCURSO DE FANTASIAS:
               </span>
               <p className="text-xs text-[#fed7aa] leading-relaxed">
-                O concurso está de volta! Prepare sua melhor produção, solte a criatividade e entre na disputa durante a festa.
+                Prepare sua fantasia, capriche na produção, solte a criatividade e entre na disputa! As melhores produções podem levar prêmios especiais.
               </p>
             </div>
           </div>
